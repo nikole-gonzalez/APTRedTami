@@ -7,7 +7,6 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'assets/css/main.css' %}" />
 
-
     <!-- SweetAlert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7/dist/sweetalert2.all.min.js"></script>
@@ -15,29 +14,34 @@
       href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7/dist/sweetalert2.min.css"
       rel="stylesheet"
     />
-    <noscript
-      ><link rel="stylesheet" href="{% static 'assets/css/noscript.css' %}"
-    /></noscript>
+
+    <noscript>
+      <link rel="stylesheet" href="{% static 'assets/css/noscript.css' %}" />
+    </noscript>
   </head>
+
   <body class="is-preload">
-    <div class="container">
-      {% if messages %} {% for message in messages %}
-      <script>
-        Swal.fire({
-          icon: "{{ message.tags }}",
-          title: "{{ message }}",
-          showConfirmButton: false,
-          timer: 2500,
-        });
-      </script>
-      {% endfor %} {% endif %} {% block content %}{% endblock %}
-    </div>
+    {% if messages %}
+      {% for message in messages %}
+        <script>
+          Swal.fire({
+            icon: "{{ message.tags }}",
+            title: "{{ message }}",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+        </script>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
     {% block javascripts %}
-    <script src="{% static 'assets/js/jquery.min.js' %}"></script>
-    <script src="{% static 'assets/js/browser.min.js' %}"></script>
-    <script src="{% static 'assets/js/breakpoints.min.js' %}"></script>
-    <script src="{% static 'assets/js/util.js' %}"></script>
-    <script src="{% static 'assets/js/main.js' %}"></script>
+      <script src="{% static 'assets/js/jquery.min.js' %}"></script>
+      <script src="{% static 'assets/js/browser.min.js' %}"></script>
+      <script src="{% static 'assets/js/breakpoints.min.js' %}"></script>
+      <script src="{% static 'assets/js/util.js' %}"></script>
+      <script src="{% static 'assets/js/main.js' %}"></script>
     {% endblock %}
   </body>
 </html>

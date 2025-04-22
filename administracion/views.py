@@ -9,6 +9,9 @@ def home(request):
 def admin_index(request):
     return render(request, 'administracion/index.html')
 
+def cesfam_index(request):
+    return render(request, 'cesfam/index_c.html')
+
 
 
 
