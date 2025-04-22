@@ -6,5 +6,12 @@ from . import views
 urlpatterns = [
     path('', views.home, name='admin-index'),
     path('admin_index/', views.admin_index, name='admin_index'),
+
+    path('respuestas/', views.respuestas, name='respuestas'),
+    path('reportes/', views.reportes, name='reportes'),
+    path('apis/', views.apis, name='apis'),
+    path('mensaje/', views.mensaje, name='mensajes'),
+
+    path('datos_perfil/', views.datos_perfil, name="datos_perfil")
    
 ]
