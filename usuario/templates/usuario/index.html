@@ -1,7 +1,10 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE HTML>
-<!DOCTYPE HTML>
-<html>
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+
 	<head>
 		<title>Generic - Phantom by HTML5 UP</title>
 		<meta charset="utf-8" />
@@ -55,6 +58,12 @@
 						</div>
 					</div>
 
+					
+					<form method="post" action="{% url 'logout' %}">
+						{% csrf_token %}
+						<button type="submit">Cerrar Sesión</button>
+					</form>
+
 				<!-- Footer -->
 					<footer id="footer">
 						<div class="inner">
@@ -106,4 +115,4 @@
 			<script src="assets/js/main.js"></script>
 
 	</body>
-</html>
+{% endblock %}
