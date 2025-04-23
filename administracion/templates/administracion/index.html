@@ -9,23 +9,23 @@
 <div id="wrapper">
 
     <!-- Header -->
-        <header id="header">
-            <div class="inner">
+    <header id="header">
+        <div class="inner">
 
-                <!-- Logo -->
-                    <a href="{% url 'admin_index' %}" class="logo">
-                        <span class="symbol"><img src="{% static 'images/logo.svg' %}" alt="" /></span><span class="title">Phantom</span> 
-                    </a>
+            <!-- Logo -->
+                <a href="{% url 'admin_index'%}" class="logo">
+                    <span class="symbol"><img src="{% static 'images/logo.svg' %}" alt="" /></span><span class="title">Red Tami</span> 
+                </a>
 
-                <!-- Nav -->
-                    <nav>
-                        <ul>
-                            <li><a href="#menu">Menú</a></li>
-                        </ul>
-                    </nav>
+            <!-- Nav -->
+                <nav>
+                    <ul>
+                        <li><a href="#menu">Menú</a></li>
+                    </ul>
+                </nav>
 
-            </div>
-        </header>
+        </div>
+</header>
 
     <!-- Menu -->
         <nav id="menu">
@@ -137,13 +137,6 @@
         </footer>
 
 </div>	
-
-<!-- Scripts -->
-<script src="{% static 'assets/js/jquery.min.js' %}"></script> 
-<script src="{% static 'assets/js/browser.min.js' %}"></script>  
-<script src="{% static 'assets/js/breakpoints.min.js' %}"></script>  
-<script src="{% static 'assets/js/util.js' %}"></script>  
-<script src="{% static 'assets/js/main.js' %}"></script>  
 
 {% endblock %}
 

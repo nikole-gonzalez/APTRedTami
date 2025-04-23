@@ -32,10 +32,13 @@
 			<h2>Menú</h2>
 			<ul>
 				<li><a href="{% url 'admin_index'%}">Home</a></li>
-				<li><a href="{% url 'respuestas' %}">Respuestas de los usuarios</a></li>
-				<li><a href="{% url 'reportes' %}">Reportes</a></li>
-				<li><a href="{% url 'apis' %}">Api's</a></li>
-				<li><a href="{% url 'mensajes' %}">Listado Mensajes</a></li>
+				<li><a href="{% url 'datos_perfil' %}">Datos del perfil</a></li>
+				<li><a href="{% url 'tamizaje' %}">Tamizaje</a></li>
+				<li><a href="{% url 'opc_vis_FRM' %}">Factores de riesgo modificables</a></li>
+				<li><a href="{% url 'opc_vis_FRNM'%}">Factores de riesgo no modificables</a></li>
+				<li><a href="{% url 'opc_vis_DS'%}">Determinantes sociales de la salud</a></li>
+				<li><a href="{% url 'preg_especialista'%}">Pregunta a especialista</a></li>
+				<li><a href="{% url 'listado_priorizado'%}">Listado priorizado</a></li>
 			</ul>
 		</nav>
 
@@ -129,12 +132,5 @@
 		</div>
 
 </div>
-
-<!-- Scripts -->
-<script src="{% static 'assets/js/jquery.min.js' %}"></script> 
-<script src="{% static 'assets/js/browser.min.js' %}"></script>  
-<script src="{% static 'assets/js/breakpoints.min.js' %}"></script>  
-<script src="{% static 'assets/js/util.js' %}"></script>  
-<script src="{% static 'assets/js/main.js' %}"></script>  		
-
+		
 {% endblock %}

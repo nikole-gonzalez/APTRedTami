@@ -8,12 +8,13 @@ urlpatterns = [
     path('admin_index/', views.admin_index, name='admin_index'),
     path('cesfam_index/', views.cesfam_index, name='cesfam_index'),
    
-
+    #Opciones Home
     path('respuestas/', views.respuestas, name='respuestas'),
     path('reportes/', views.reportes, name='reportes'),
     path('apis/', views.apis, name='apis'),
     path('mensaje/', views.mensaje, name='mensajes'),
 
+    #Opciones respuestas
     path('datos_perfil/', views.datos_perfil, name="datos_perfil"),
     path('tamizaje/', views.tamizaje, name="tamizaje"),
     path('opc_vis_FRM/', views.opc_vis_FRM, name="opc_vis_FRM"),
