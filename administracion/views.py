@@ -32,6 +32,11 @@ def mensaje(request):
 def datos_perfil(request):
     return render(request, 'administracion/datos_perfil.html')
 
+def tamizaje(request):
+    return render(request, 'administracion/tamizaje.html')
+
+
+
 # ------------------------------------------------------ #
 # ---------------------- Reportes ---------------------- #
 # ------------------------------------------------------ #
