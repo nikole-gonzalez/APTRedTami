@@ -2,7 +2,6 @@
 venv/
 .env/
 .venv
-venv/*
 
 # Base de datos SQLite (archivo local de desarrollo)
 *.sqlite3
