@@ -5,8 +5,8 @@ venv/
 venv/*
 
 # Base de datos SQLite (archivo local de desarrollo)
-#*.sqlite3
-#*.db
+*.sqlite3
+*.db
 
 # Caché de Python y archivos compilados
 #pycache/
