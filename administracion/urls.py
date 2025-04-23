@@ -18,3 +18,4 @@ urlpatterns = [
     path('tamizaje/', views.tamizaje, name="tamizaje")
    
 ]
+a 
