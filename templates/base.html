@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}{% endblock %}</title>
@@ -18,9 +18,9 @@
     <noscript>
       <link rel="stylesheet" href="{% static 'assets/css/noscript.css' %}" />
     </noscript>
-  </head>
+</head>
 
-  <body class="is-preload">
+<body class="is-preload">
     {% if messages %}
       {% for message in messages %}
         <script>
@@ -36,6 +36,19 @@
 
     {% block content %}{% endblock %}
 
+    <!-- Footer agregado -->
+    <footer id="footer">
+        <div class="inner">
+            <section>
+                <h2>Contacto</h2>
+                <address>
+                    <p><i class="icon solid fa-phone"></i> Teléfono: <a href="tel:+56912345678">+56 9 1234 5678</a></p>
+                    <p><i class="icon solid fa-envelope"></i> Email: <a href="mailto:contacto@redtami.cl">contacto@redtami.cl</a></p>
+                </address>
+            </section>
+        </div>
+    </footer>
+
     {% block javascripts %}
       <script src="{% static 'assets/js/jquery.min.js' %}"></script>
       <script src="{% static 'assets/js/browser.min.js' %}"></script>
@@ -43,5 +56,5 @@
       <script src="{% static 'assets/js/util.js' %}"></script>
       <script src="{% static 'assets/js/main.js' %}"></script>
     {% endblock %}
-  </body>
+</body>
 </html>
