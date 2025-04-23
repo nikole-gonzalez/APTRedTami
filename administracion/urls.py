@@ -14,6 +14,7 @@ urlpatterns = [
     path('apis/', views.apis, name='apis'),
     path('mensaje/', views.mensaje, name='mensajes'),
 
-    path('datos_perfil/', views.datos_perfil, name="datos_perfil")
+    path('datos_perfil/', views.datos_perfil, name="datos_perfil"),
+    path('tamizaje/', views.tamizaje, name="tamizaje")
    
 ]
