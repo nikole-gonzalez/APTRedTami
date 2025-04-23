@@ -1,2 +1,0 @@
-# APTRedTami
-Proyecto de título
