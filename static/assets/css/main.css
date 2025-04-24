@@ -1808,6 +1808,14 @@ body.is-menu-visible #menu .close {
 }
 
 /* Wrapper */
+#wrapper {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+
 #wrapper > * > .inner {
     width: 100%;
     max-width: 68em;
@@ -1821,89 +1829,65 @@ body.is-menu-visible #menu .close {
     }
 }
 
-/* Mensajes de Django - Estilos consistentes con Phantom */
-.message {
-    font-size: 0.8em;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 1em;
-    margin-bottom: 1em;
-    border-radius: 4px;
-    animation: fadeIn 0.3s ease-out forwards;
-}
+/* Mensajes */
 
-.message-success {
-    background-color: rgba(123, 208, 193, 0.9);
-    color: #ffffff;
-    border-left: 4px solid #7bd0c1;
-}
-
-.message-error {
-    background-color: rgba(242, 132, 158, 0.9);
-    color: #ffffff;
-    border-left: 4px solid #f2849e;
-}
-
-.message-info {
-    background-color: rgba(126, 202, 246, 0.9);
-    color: #ffffff;
-    border-left: 4px solid #7ecaf6;
-}
-
-.message-warning {
-    background-color: rgba(255, 193, 7, 0.9);
-    color: #ffffff;
-    border-left: 4px solid #ffc107;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Login Centrado */
-.login-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    width: 100%;
-    background-color: #ffffff;
-    padding: 2em;
-    box-sizing: border-box;
-}
-
-.login-inner {
+.message-container {
+    position: fixed;
+    top: 1em;
+    left: 0;
+    right: 0;
+    z-index: 10001;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+}
+
+.message {
+    font-size: 0.7em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 1.25em 2em;
+    margin-bottom: 0.5em;
+    border-radius: 4px;
+    animation: fadeIn 0.3s ease-out forwards;
+    font-weight: 900;
+    border-left: 4px solid;
+    max-width: 500px;
     width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
+}
+
+/* Estilos para el Login - Versión responsiva */
+#header.login-header {
+    padding: 6em 0;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.login-inner .content {
+#header.login-header .inner {
     width: 100%;
-    margin-bottom: 2em;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.login-inner .inner-content {
-    padding: 0;
+.login-content-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 2em;
+    box-sizing: border-box;
 }
 
 .login-form {
     width: 100%;
-}
-
-.login-fields {
-    width: 100%;
-    margin: 0 0 1.5em 0;
+    margin: 2em auto 0;
 }
 
 .login-fields .field {
-    margin-bottom: 1.5em;
+    margin-bottom: 1.75em;
 }
 
 .login-fields input[type="text"],
@@ -1912,8 +1896,9 @@ body.is-menu-visible #menu .close {
     padding: 0.75em 1em;
     border: 1px solid #c9c9c9;
     border-radius: 4px;
-    font-size: 0.9em;
+    font-size: 1em;
     text-align: center;
+    height: 3.5em;
 }
 
 .login-fields input[type="text"]:focus,
@@ -1923,38 +1908,54 @@ body.is-menu-visible #menu .close {
 }
 
 .login-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
+    margin-top: 2em;
+    text-align: center;
 }
 
 .login-actions input[type="submit"] {
     width: 100%;
-    margin-bottom: 1em;
+    margin-bottom: 1.5em;
 }
 
 .forgot-password {
-    display: inline-block;
-    font-size: 0.8em;
-    color: #585858;
-    text-decoration: none;
-    border-bottom: dotted 1px rgba(88, 88, 88, 0.5);
-    transition: color 0.2s ease, border-bottom-color 0.2s ease;
-}
-
-.forgot-password:hover {
-    color: #f2849e !important;
-    border-bottom-color: transparent;
+    font-size: 0.7em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
 }
 
 /* Responsive */
-@media screen and (max-width: 736px) {
-    .login-inner {
-        padding: 2em 1em;
+@media screen and (max-width: 980px) {
+    #header.login-header {
+        padding: 4em 0;
     }
+    
+    .login-content-container {
+        padding: 0 1.5em;
+    }
+}
+
+@media screen and (max-width: 736px) {
+    #header.login-header {
+        padding: 3em 0;
+    }
+    
+    .login-content-container {
+        padding: 0 1em;
+    }
+    
     .login-fields input[type="text"],
     .login-fields input[type="password"] {
-        padding: 0.6em;
+        height: 3em;
+        padding: 0.5em 1em;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    #header.login-header {
+        padding: 2em 0;
+    }
+    
+    .login-content-container h1 {
+        font-size: 1.75em;
     }
 }
