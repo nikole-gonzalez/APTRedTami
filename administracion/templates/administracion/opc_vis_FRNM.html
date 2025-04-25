@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Factores de riesgo no modificables{% endblock %}
+
+{% block content %}
+
+<h2 class="major">Factores de riesgo no modificables</h2>
+
+<section class="tiles">
+    <article class="style3">
+        <span class="image">
+            <img src="{% static 'images/pic03.jpg' %}" alt="" />
+        </span>
+        <a href="{% url 'datos_FRNM1' %}">
+            <h2>Opción 1 visualización</h2>
+            <div class="content">
+                <p>Opción uno de visualización de factores de riesgo no modificables</p>
+            </div>
+        </a>
+    </article>
+    <article class="style4">
+        <span class="image">
+            <img src="{% static 'images/pic04.jpg' %}" alt="" />
+        </span>
+        <a href="{% url 'datos_FRNM2' %}">
+            <h2>Opción 2 visualización</h2>
+            <div class="content">
+                <p>Opción dos de visualización de factores de riesgo no modificables</p>
+            </div>
+        </a>
+    </article>    
+</section>
+<br>
+<section>
+    <a class="button" href="{% url 'respuestas' %}">Volver</a>   
+</section>
+
+{% endblock %}

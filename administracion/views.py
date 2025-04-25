@@ -46,8 +46,32 @@ def opc_vis_FRNM(request):
     return render(request, 'administracion/opc_vis_FRNM.html')
 
 @login_required
+def datos_FRNM1(request):
+    return render(request, 'administracion/datos_FRNM1.html')
+
+@login_required
+def datos_FRNM2(request):
+    return render(request, 'administracion/datos_FRNM2.html')
+
+@login_required
+def datos_FRM1(request):
+    return render(request, 'administracion/datos_FRM1.html')
+
+@login_required
+def datos_FRM2(request):
+    return render(request, 'administracion/datos_FRM2.html')
+
+@login_required
 def opc_vis_DS(request):
     return render(request, 'administracion/opc_vis_DS.html')
+
+@login_required
+def datos_DS1(request):
+    return render(request, 'administracion/datos_DS1.html')
+
+@login_required
+def datos_DS2(request):
+    return render(request, 'administracion/datos_DS2.html')
 
 @login_required
 def preg_especialista(request):
