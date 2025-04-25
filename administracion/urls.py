@@ -22,5 +22,13 @@ urlpatterns = [
     path('opc_vis_DS/', views.opc_vis_DS, name="opc_vis_DS"),
     path('preg_especialista/', views. preg_especialista, name="preg_especialista"),
     path('listado_priorizado/', views.listado_priorizado, name="listado_priorizado"),
+
+    #Opciones de factores
+    path('datos_DS1/', views.datos_DS1, name="datos_DS1"),
+    path('datos_DS2/', views.datos_DS2, name="datos_DS2"),
+    path('datos_FRM1/', views.datos_FRM1, name="datos_FRM1"),
+    path('datos_FRM2/', views.datos_FRM2, name="datos_FRM2"),
+    path('datos_FRNM1/',views.datos_FRNM1, name="datos_FRNM1"),
+    path('datos_FRNM2/', views.datos_FRNM2, name="datos_FRNM2"),
    
 ]

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Determinantes sociales de la salud{% endblock %}
+
+{% block content %}
+
+<h2 class="major">Determinantes sociales de la salud</h2>
+
+<section class="tiles">
+    <article class="style1">
+        <span class="image">
+            <img src="{% static 'images/pic01.jpg' %}" alt="" />
+        </span>
+        <a href="{% url 'datos_DS1' %}">
+            <h2>Opción 1 visualización</h2>
+            <div class="content">
+                <p>Opción uno de visualización de determinantes de la salud</p>
+            </div>
+        </a>
+    </article>
+    <article class="style2">
+        <span class="image">
+            <img src="{% static 'images/pic02.jpg' %}" alt="" />
+        </span>
+        <a href="{% url 'datos_DS2' %}">
+            <h2>Opción 2 visualización</h2>
+            <div class="content">
+                <p>Opción dos de visualización de determinantes de la salud</p>
+            </div>
+        </a>
+    </article>    
+</section>
+<br>
+<section>
+    <a class="button" href="{% url 'respuestas' %}">Volver</a>   
+</section>
+
+{% endblock %}
