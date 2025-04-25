@@ -1377,8 +1377,8 @@ body.is-touch .tiles article .content {
 
 #header .logo .symbol img {
     display: block;
-    width: 2em;
-    height: 2em;
+    width: 3em;
+    height: 3em;
 }
 
 #header nav {
@@ -1813,6 +1813,7 @@ body.is-menu-visible #menu .close {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    padding: 2em 0;
 }
 
 
@@ -1821,11 +1822,12 @@ body.is-menu-visible #menu .close {
     max-width: 68em;
     margin: 0 auto;
     padding: 0 2.5em;
+    padding: 2.5em; 
 }
 
 @media screen and (max-width: 736px) {
     #wrapper > * > .inner {
-        padding: 0 1.25em;
+        padding: 0 1.5em;
     }
 }
 
@@ -1958,4 +1960,39 @@ body.is-menu-visible #menu .close {
     .login-content-container h1 {
         font-size: 1.75em;
     }
+}
+
+/* Password Toggle Styles */
+.password-toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-toggle input {
+    padding-right: 2.5em; /* Espacio para el botón */
+    width: 100%;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 0;
+    background: none;
+    border: none;
+    color: #7f888f; /* Color consistente con Phantom */
+    cursor: pointer;
+    padding: 0 0.75em;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: #3d4449; /* Color hover de Phantom */
+}
+
+.toggle-password i {
+    font-size: 1em;
 }

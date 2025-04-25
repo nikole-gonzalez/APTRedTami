@@ -32,3 +32,5 @@ def custom_logout(request):
     logout(request)
     messages.info(request, "Has cerrado sesión correctamente.")
     return redirect('login')  
+
+
