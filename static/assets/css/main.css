@@ -1959,3 +1959,38 @@ body.is-menu-visible #menu .close {
         font-size: 1.75em;
     }
 }
+
+/* Password Toggle Styles */
+.password-toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-toggle input {
+    padding-right: 2.5em; /* Espacio para el botón */
+    width: 100%;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 0;
+    background: none;
+    border: none;
+    color: #7f888f; /* Color consistente con Phantom */
+    cursor: pointer;
+    padding: 0 0.75em;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: #3d4449; /* Color hover de Phantom */
+}
+
+.toggle-password i {
+    font-size: 1em;
+}

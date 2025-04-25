@@ -1,3 +1,4 @@
+
 /*
 	Phantom by HTML5 UP
 	html5up.net | @ajlkn
@@ -180,6 +181,16 @@
 					if (event.keyCode == 27)
 						$menu._hide();
 
+			});
+	
+			$(document).on('click', '.toggle-password', function() {
+				$(this).toggleClass('fa-eye fa-eye-slash');
+				var input = $($(this).attr('toggle'));
+				if (input.attr('type') == 'password') {
+					input.attr('type', 'text');
+				} else {
+					input.attr('type', 'password');
+				}
 			});
 
 })(jQuery);
