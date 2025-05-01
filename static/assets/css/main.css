@@ -101,7 +101,7 @@ html {
 }
 
 body {
-    background: #c6fffa;
+    background: #c6fffa !important;
 }
 
 body.is-preload *, body.is-preload *:before, body.is-preload *:after {

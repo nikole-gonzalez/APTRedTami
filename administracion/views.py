@@ -30,6 +30,10 @@ def mensaje(request):
     return render(request, 'administracion/mensaje.html')
 
 @login_required
+def gestion_usuarios(request):
+    return render(request, 'administracion/gestion_usuarios.html')
+
+@login_required
 def datos_perfil(request):
     return render(request, 'administracion/datos_perfil.html')
 

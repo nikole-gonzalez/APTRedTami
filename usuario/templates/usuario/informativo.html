@@ -1,0 +1,707 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Información sobre Cáncer Cervicouterino{% endblock %}
+
+{% block content %}
+<!-- Encabezado estilo Phantom -->
+<div id="wrapper">
+    <header id="header">
+        <div class="inner">
+            <a href="{% url 'pag_informativa' %}" class="logo">
+                <span class="symbol"><img src="{% static 'images/logo.png' %}" alt="Logo" /></span>
+                <span class="title">Red TAMI</span>
+            </a>
+            <nav>
+                <ul>
+                    <li><a href="#menu">Menú</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <nav id="menu">
+        <h2>Menú</h2>
+        <ul>
+            <li><a href="{% url 'pag_informativa' %}">Inicio</a></li>
+            <li><a href="#que-es">¿Qué es?</a></li>
+            <li><a href="#vph">VPH</a></li>
+            <li><a href="#factores-riesgo">Factores de riesgo</a></li>
+            <li><a href="#prevencion">Prevención</a></li>
+            <li><a href="#vacunacion">Vacunación</a></li>
+            <li><a href="#diagnostico">Diagnóstico</a></li>
+            <li><a href="#tratamiento">Tratamiento</a></li>
+            <li><a href="#recursos">Recursos</a></li>
+            <li><a href="#registro">Registro</a></li>
+        </ul>
+    </nav>
+
+    <div id="main">
+        <div class="inner">
+            <h1>Prevención del Cáncer Cervicouterino</h1>
+
+            
+        <nav class="section-nav">
+            <h2>Contenido</h2>
+            <ul>
+                <li><a href="#que-es">¿Qué es?</a></li>
+                <li><a href="#vph">VPH</a></li>
+                <li><a href="#factores-riesgo">Factores de riesgo</a></li>
+                <li><a href="#prevencion">Prevención</a></li>
+                <li><a href="#vacunacion">Vacunación</a></li>
+                <li><a href="#diagnostico">Diagnóstico</a></li>
+                <li><a href="#tratamiento">Tratamiento</a></li>
+                <li><a href="#recursos">Recursos</a></li>
+                <li><a href="#registro">Registro</a></li>
+            </ul>
+        </nav>
+            
+            <!-- Hero Section -->
+            <section class="hero">
+                <div class="hero-content">
+                    <p>Información confiable para la prevención, detección temprana y tratamiento del cáncer cervicouterino en Chile</p>
+                    <a href="#registro" class="button primary">Regístrate si ya respondiste el cuestionario</a>
+                </div>
+            </section>
+
+            <!-- Sección Qué es -->
+            <section id="que-es">
+                <h2>¿Qué es el cáncer cervicouterino?</h2>
+                <p>El cáncer cervicouterino (o cáncer de cuello uterino) es un tipo de cáncer que se origina en las células del cuello del útero, la parte inferior del útero que conecta con la vagina.</p>
+                <p>Es el cuarto cáncer más frecuente en mujeres a nivel mundial, pero en Chile ocupa el tercer lugar en incidencia y mortalidad por cáncer en mujeres.</p>
+                <p>La buena noticia es que es uno de los cánceres más prevenibles cuando se detecta a tiempo a través de exámenes regulares y se maneja adecuadamente.</p>
+            </section>
+
+            <!-- Sección VPH -->
+            <section id="vph">
+                <h2>Virus del Papiloma Humano (VPH)</h2>
+                <p>El VPH es un grupo de más de 200 virus relacionados, de los cuales al menos 14 son de alto riesgo y pueden causar cáncer. Los tipos 16 y 18 son responsables de aproximadamente el 70% de los casos de cáncer cervicouterino.</p>
+                
+                <h3>¿Cómo se transmite el VPH?</h3>
+                <ul>
+                    <li>Principalmente por contacto sexual</li>
+                    <li>Es extremadamente común - la mayoría de las personas sexualmente activas lo contraerán en algún momento</li>
+                    <li>En la mayoría de los casos, el sistema inmunológico elimina el virus naturalmente</li>
+                    <li>Cuando la infección persiste, puede desarrollar lesiones precancerosas</li>
+                </ul>
+                
+                <h3>¿El VPH siempre causa cáncer?</h3>
+                <p>No. La mayoría de las infecciones por VPH desaparecen por sí solas. Solo las infecciones persistentes con tipos de alto riesgo pueden, con el tiempo, convertirse en cáncer.</p>
+            </section>
+
+            <!-- Sección Factores de Riesgo -->
+            <section id="factores-riesgo">
+                <h2>Factores de riesgo</h2>
+                <div class="risk-factors">
+                    <div class="factor">
+                        <h3>Principales factores</h3>
+                        <ul>
+                            <li>Infección persistente por VPH de alto riesgo</li>
+                            <li>Tabaquismo (duplica el riesgo)</li>
+                            <li>Infección por VIH u otras causas de inmunosupresión</li>
+                            <li>Uso prolongado de anticonceptivos orales (más de 5 años)</li>
+                        </ul>
+                    </div>
+                    <div class="factor">
+                        <h3>Otros factores</h3>
+                        <ul>
+                            <li>Inicio de relaciones sexuales a temprana edad</li>
+                            <li>Múltiples parejas sexuales</li>
+                            <li>Alto número de partos</li>
+                            <li>Dieta baja en frutas y verduras</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección Prevención -->
+            <section id="prevencion">
+                <h2>Prevención</h2>
+                <div class="prevention-cards">
+                    <div class="card">
+                        <h3>Primaria (evitar la infección)</h3>
+                        <ul>
+                            <li>Vacunación contra el VPH</li>
+                            <li>Uso correcto de preservativos</li>
+                            <li>Retrasar el inicio de las relaciones sexuales</li>
+                            <li>Evitar el tabaco</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Secundaria (detección temprana)</h3>
+                        <ul>
+                            <li>Test de Papanicolaou (PAP) regular</li>
+                            <li>Test de VPH según indicación médica</li>
+                            <li>Control ginecológico anual</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="note">En Chile, el PAP es gratuito en la atención primaria para mujeres entre 25 y 64 años.</p>
+            </section>
+
+            <!-- Sección Vacunación -->
+            <section id="vacunacion">
+                <h2>Vacunación en Chile</h2>
+                
+                <h3>Programa Nacional de Inmunización</h3>
+                <p>Chile incorporó la vacuna contra el VPH al Programa Nacional de Inmunización en 2014:</p>
+                
+                <div class="vaccination-groups">
+                    <div class="group">
+                        <h4>Niñas y niños</h4>
+                        <ul>
+                            <li>4° básico (9-10 años): 2 dosis (0 y 6 meses)</li>
+                            <li>Vacuna cuadrivalente (protege contra VPH 6, 11, 16 y 18)</li>
+                            <li>Eficacia >90% cuando se aplica antes del inicio sexual</li>
+                        </ul>
+                    </div>
+                    <div class="group">
+                        <h4>Mujeres adultas</h4>
+                        <ul>
+                            <li>No está incluida en el plan gratuito para adultas</li>
+                            <li>Puede obtenerse en centros privados (consulta precio)</li>
+                            <li>Eficacia disminuida si ya hubo exposición al VPH</li>
+                            <li>Recomendable hasta los 45 años</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <p class="important">La vacuna no reemplaza el PAP ni protege contra todos los tipos de VPH, por lo que el control ginecológico sigue siendo esencial.</p>
+            </section>
+
+            <!-- Sección Diagnóstico -->
+            <section id="diagnostico">
+                <h2>Diagnóstico</h2>
+                <p>El diagnóstico temprano es clave para el tratamiento exitoso del cáncer cervicouterino.</p>
+                
+                <h3>Métodos de diagnóstico</h3>
+                <div class="diagnosis-methods">
+                    <div class="method">
+                        <h4>Papanicolaou (PAP)</h4>
+                        <p>Examen que recolecta células del cuello uterino para detectar anomalías. Recomendado cada 3 años para mujeres entre 25-64 años.</p>
+                    </div>
+                    <div class="method">
+                        <h4>Test de VPH</h4>
+                        <p>Detecta la presencia de VPH de alto riesgo. En Chile se usa en combinación con el PAP en algunos casos.</p>
+                    </div>
+                    <div class="method">
+                        <h4>Colposcopía</h4>
+                        <p>Examen visual del cuello uterino con aumento, realizado cuando hay resultados anormales en el PAP.</p>
+                    </div>
+                    <div class="method">
+                        <h4>Biopsia</h4>
+                        <p>Extracción de una pequeña muestra de tejido para análisis cuando se detectan lesiones sospechosas.</p>
+                    </div>
+                </div>
+                
+                <div class="symptoms">
+                    <h3>Signos de alerta</h3>
+                    <ul>
+                        <li>Sangrado vaginal anormal (entre periodos, después de relaciones, postmenopausia)</li>
+                        <li>Flujo vaginal inusual</li>
+                        <li>Dolor pélvico o durante las relaciones sexuales</li>
+                    </ul>
+                    <p class="warning">¡Estos síntomas pueden aparecer en etapas avanzadas! No esperes a tener síntomas para hacerte controles.</p>
+                </div>
+            </section>
+
+            <!-- Sección Tratamiento -->
+            <section id="tratamiento">
+                <h2>Tratamiento</h2>
+                <p>Las opciones de tratamiento dependen del estadio del cáncer, la edad y el deseo de fertilidad.</p>
+                
+                <div class="treatment-options">
+                    <div class="option">
+                        <h3>Lesiones precancerosas</h3>
+                        <ul>
+                            <li><strong>Conización:</strong> Extracción del tejido anormal</li>
+                            <li><strong>LEEP:</strong> Extirpación con asa eléctrica</li>
+                            <li><strong>Crioterapia:</strong> Congelamiento de tejidos anormales</li>
+                        </ul>
+                    </div>
+                    <div class="option">
+                        <h3>Cáncer invasivo</h3>
+                        <ul>
+                            <li><strong>Cirugía:</strong> Histerectomía con diferentes alcances</li>
+                            <li><strong>Radioterapia:</strong> Externa o interna (braquiterapia)</li>
+                            <li><strong>Quimioterapia:</strong> A menudo combinada con radioterapia</li>
+                            <li><strong>Terapias dirigidas:</strong> Para casos avanzados</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="treatment-info">
+                    <h3>En Chile</h3>
+                    <p>El tratamiento del cáncer cervicouterino está cubierto por el AUGE/GES, garantizando acceso oportuno a diagnóstico y tratamiento dentro de plazos definidos.</p>
+                    <p>Las garantías incluyen:</p>
+                    <ul>
+                        <li>Confirmación diagnóstica en 30 días</li>
+                        <li>Tratamiento quirúrgico en 30 días desde indicación</li>
+                        <li>Radioterapia en 60 días desde indicación</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Carrusel de Recursos -->
+            <section id="recursos">
+                <h2>Recursos y fuentes confiables</h2>
+                <div class="carousel">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <div class="resource-card">
+                                <img src="{% static 'images/minsal-logo.jpg' %}" alt="MINSAL">
+                                <h3>Ministerio de Salud Chile</h3>
+                                <p>Información oficial sobre programas de prevención y tratamiento en Chile.</p>
+                                <a href="https://www.minsal.cl" target="_blank" class="button small">Visitar sitio</a>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="resource-card">
+                                <img src="{% static 'images/oms-logo.png' %}" alt="OMS">
+                                <h3>Organización Mundial de la Salud</h3>
+                                <p>Estrategia global para eliminar el cáncer cervicouterino.</p>
+                                <a href="https://www.who.int/es/news-room/fact-sheets/detail/cervical-cancer" target="_blank" class="button small">Visitar sitio</a>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="resource-card">
+                                <img src="{% static 'images/inc-logo.jpg' %}" alt="Instituto Nacional del Cáncer Chile">
+                                <h3>Instituto Nacional del Cáncer Chile</h3>
+                                <p>Guías clínicas y datos epidemiológicos nacionales.</p>
+                                <a href="https://www.incancer.cl" target="_blank" class="button small">Visitar sitio</a>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-control prev">‹</button>
+                    <button class="carousel-control next">›</button>
+                </div>
+            </section>
+
+            <!-- Sección Registro -->
+            <section id="registro">
+                <div class="registration-section">
+                    <h2>¿Ya respondiste nuestro cuestionario por WhatsApp?</h2>
+                    <p>Regístrate ahora para acceder a tu historial de agendamientos y gestionar tu perfil.</p>
+                    <a href="{% url 'registro_usuario' %}" class="button primary large">Crear mi cuenta</a>
+                    
+                    <div class="registration-info">
+                        <h3>¿Qué necesitas para registrarte?</h3>
+                        <ol>
+                            <li>El código de verificación que recibiste por WhatsApp</li>
+                            <li>Tu nombre completo</li>
+                            <li>Un email válido</li>
+                            <li>Tu número de teléfono</li>
+                            <li>Una contraseña segura</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+    .section-nav {
+        margin-bottom: 2em;
+        padding: 1em;
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    .section-nav h2 {
+        margin-top: 0;
+        font-size: 1.3em;
+        color: #333;
+    }
+
+    .section-nav ul {
+        list-style: none;
+        padding-left: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1em;
+    }
+
+    .section-nav ul li a {
+        text-decoration: none;
+        font-weight: bold;
+        color: #0077cc;
+    }
+
+    .section-nav ul li a:hover {
+        text-decoration: underline;
+    }
+
+    /* Estilos generales */
+    :root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --accent-color: #e74c3c;
+        --light-gray: #f5f5f5;
+        --dark-gray: #333;
+        --white: #ffffff;
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+    }
+    
+    /* Menú Superior */
+    .main-nav {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        background-color: var(--white);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 15px 20px;
+    }
+    
+    .logo img {
+        height: 40px;
+        vertical-align: middle;
+    }
+    
+    .logo span {
+        margin-left: 10px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        color: var(--primary-color);
+    }
+    
+    .nav-links {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .nav-links li {
+        margin-left: 25px;
+    }
+    
+    .nav-links a {
+        text-decoration: none;
+        color: var(--primary-color);
+        font-weight: 500;
+        transition: color 0.3s;
+    }
+    
+    .nav-links a:hover {
+        color: var(--accent-color);
+    }
+    
+    .nav-button {
+        background-color: var(--accent-color);
+        color: white !important;
+        padding: 8px 15px;
+        border-radius: 5px;
+    }
+    
+    .nav-button:hover {
+        background-color: #c0392b;
+    }
+    
+    /* Hero Banner */
+    .hero-banner {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{% static "images/hero-bg.jpg" %}');
+        background-size: cover;
+        background-position: center;
+        height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: white;
+        margin-top: 70px; /* Para compensar el menú fijo */
+    }
+    
+    .hero-content {
+        max-width: 800px;
+        padding: 20px;
+    }
+    
+    .hero-banner h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+    }
+    
+    .subtitle {
+        font-size: 1.5rem;
+        margin-bottom: 30px;
+    }
+    
+    .hero-button {
+        background-color: var(--accent-color);
+        color: white;
+        padding: 12px 25px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background-color 0.3s;
+    }
+    
+    .hero-button:hover {
+        background-color: #c0392b;
+    }
+    
+    /* Secciones */
+    .content-section {
+        padding: 60px 0;
+    }
+    
+    .white-bg {
+        background-color: var(--white);
+    }
+    
+    .gray-bg {
+        background-color: var(--light-gray);
+    }
+    
+    .accent-bg {
+        background-color: var(--accent-color);
+        color: white;
+    }
+    
+    .section-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    
+    .section-title {
+        text-align: center;
+        margin-bottom: 40px;
+        font-size: 2.2rem;
+        color: inherit;
+        position: relative;
+    }
+    
+    .section-title:after {
+        content: '';
+        display: block;
+        width: 80px;
+        height: 4px;
+        background: var(--secondary-color);
+        margin: 15px auto;
+    }
+    
+    .accent-bg .section-title:after {
+        background: white;
+    }
+    
+    /* Estilos para cajas destacadas */
+    .highlight-box {
+        background-color: #e8f4fc;
+        border-left: 4px solid var(--secondary-color);
+        padding: 15px;
+        margin: 20px 0;
+    }
+    
+    .warning-box {
+        background-color: #fff3e0;
+        border-left: 4px solid #f39c12;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    
+    /* Columnas */
+    .two-columns {
+        display: flex;
+        gap: 30px;
+    }
+    
+    .column {
+        flex: 1;
+    }
+    
+    /* Tarjetas de riesgo */
+    .risk-cards {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .risk-card {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        flex: 1;
+        min-width: 250px;
+        max-width: 350px;
+    }
+    
+    .risk-icon {
+        font-size: 2rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Sección de registro */
+    .registration-box {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .registration-text {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+    }
+    
+    .registration-button {
+        display: inline-block;
+        background-color: white;
+        color: var(--accent-color);
+        padding: 15px 30px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        margin-bottom: 30px;
+        transition: all 0.3s;
+    }
+    
+    .registration-button:hover {
+        background-color: #f5f5f5;
+        transform: translateY(-2px);
+    }
+    
+    .requirements-box {
+        background: rgba(255,255,255,0.2);
+        padding: 20px;
+        border-radius: 8px;
+        text-align: left;
+        display: inline-block;
+    }
+    
+    /* Footer */
+    .main-footer {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 40px 0 20px;
+    }
+    
+    .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    
+    .footer-logo img {
+        height: 40px;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+    
+    .footer-links {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .footer-links a {
+        color: white;
+        text-decoration: none;
+    }
+    
+    .footer-links a:hover {
+        text-decoration: underline;
+    }
+    
+    .copyright {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .nav-container {
+            flex-direction: column;
+        }
+        
+        .nav-links {
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .nav-links li {
+            margin: 5px 10px;
+        }
+        
+        .hero-banner {
+            height: 300px;
+            margin-top: 120px;
+        }
+        
+        .hero-banner h1 {
+            font-size: 2rem;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+        }
+        
+        .two-columns {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Smooth scrolling para los enlaces del menú
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                const offset = 80; // Ajuste para el menú fijo
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - offset;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+    
+    // Cambiar estilo del menú al hacer scroll
+    window.addEventListener('scroll', function() {
+        const nav = document.querySelector('.main-nav');
+        if (window.scrollY > 50) {
+            nav.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        } else {
+            nav.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+        }
+    });
+</script>
+{% endblock %}
