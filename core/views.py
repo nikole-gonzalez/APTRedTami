@@ -18,10 +18,10 @@ def custom_login(request):
             elif user.groups.filter(name='usuario_cesfam').exists():
                 return redirect('cesfam_index')  
             else:
-                return redirect('usuario_index')  
+                return redirect('pag_informativa')  
         else:
             messages.error(request, "Credenciales inválidas")
-            return render(request, 'login')
+            return render(request, 'registration/login.html')
 
     
     return render(request, 'registration/login.html')
