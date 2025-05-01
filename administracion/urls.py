@@ -13,6 +13,7 @@ urlpatterns = [
     path('reportes/', views.reportes, name='reportes'),
     path('apis/', views.apis, name='apis'),
     path('mensaje/', views.mensaje, name='mensajes'),
+    path('gestion_usuarios/', views.gestion_usuarios, name="gestion_usuarios"),
 
     #Opciones respuestas
     path('datos_perfil/', views.datos_perfil, name="datos_perfil"),
