@@ -29,7 +29,7 @@ from .views import (
 # Registramos los ViewSets
 router = DefaultRouter()
 router.register(r'usuarios', UsuarioViewSet)
-router.register(r'respuestas', TMViewSet)
+router.register(r'TM', TMViewSet)
 router.register(r'textos', UsuarioTextoPreguntaViewSet)
 router.register(r'divulgacion', DivulgacionViewSet)
 router.register(r'frnm', FRNMViewSet)
