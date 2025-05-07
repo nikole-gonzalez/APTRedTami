@@ -1,5 +1,3 @@
-# api/urls.py
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -25,6 +23,8 @@ from .views import (
     retorna_genero,
     verificar_usuario
 )
+
+app_name = 'api'  
 
 # Registramos los ViewSets
 router = DefaultRouter()
