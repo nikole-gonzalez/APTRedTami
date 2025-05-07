@@ -30,7 +30,7 @@ urlpatterns = [
     path('logout/', views.custom_logout, name='logout'),
     path('administracion/', include('administracion.urls')),
     path('usuario/', include('usuario.urls')),
-    path('API/', include('API.urls')),
+    path('API/', include('API.urls', namespace='api')),
     path('reset/password_reset', PasswordResetView.as_view(template_name='registration/password_reset_forms.html', email_template_name="registration/password_reset_email.html"), name = 'password_reset'),
     path('reset/password_reset_done', PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), name = 'password_reset_done'),
     re_path(r'^reset/(?P<uidb64>[0-9A-za-z_\-]+)/(?P<token>.+)/$', PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirms.html'), name = 'password_reset_confirm'),
