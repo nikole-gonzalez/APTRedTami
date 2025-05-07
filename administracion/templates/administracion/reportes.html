@@ -8,13 +8,21 @@
 <a class="button" href="{% url 'admin_index' %}">Volver</a>
 
 <section id="reportes">
+    <div class="chart-container">
     {% if hay_datos %}
-        <!-- Aquí pondrías tus gráficos -->
-        <p>Aquí irán los gráficos</p>
+    <h2>Género</h2>
+    <img src="data:imagen/png;base64,{{imagen_base64_personas_por_genero}}" alt="Género", style="width: 45%; height: auto;">
+    <h2>Comuna</h2>
+    <img src="data:imagen/png;base64,{{imagen_base64_ingresos_por_comuna}}" alt="Comuna", style="width: 45%; height: auto;">
+    <h2>PAP en los últimos 3 años</h2>
+    <img src="data:imagen/png;base64,{{imagen_base64_realizado_pap_tres_anios}}" alt="PAP realizado", style="width: 45%; height: auto;">
+    <h2>Escolaridad</h2>
+    <img src="data:imagen/png;base64,{{imagen_base64_escolaridad}}" alt="Escolaridad", style="width: 45%; height: auto;">
     {% else %}
         <p>No hay reportes disponibles en este momento.</p>
     {% endif %}
     <a class="button" href="{% url 'admin_index' %}">Volver</a>
+</div>
 </section>
 
 <style>
