@@ -1,10 +1,53 @@
-from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
-from . import views
+from rest_framework.routers import DefaultRouter
+from .views import (
+    UsuarioViewSet,
+    TMViewSet,
+    UsuarioTextoPreguntaViewSet,
+    DivulgacionViewSet,
+    FRNMViewSet,
+    FRMViewSet,
+    DSViewSet,
+    UsuarioAPIView,
+    UsuarioRespuestaTMAPIView,
+    UsuarioTextoPreguntaAPIView,
+    DivulgacionAPIView,
+    UsuarioRespuestFRNMaAPIView,
+    UsuarioRespuestFRMaAPIView,
+    ObtenerID,
+    DivulgacionAPIView,
+
+    apiHome,
+    obtener_usuario,
+    consultar_estado_pregunta,
+    retorna_genero,
+    verificar_usuario
+)
+
+app_name = 'api'  
+
+# Registramos los ViewSets
+router = DefaultRouter()
+router.register(r'usuarios', UsuarioViewSet)
+router.register(r'TM', TMViewSet)
+router.register(r'textos', UsuarioTextoPreguntaViewSet)
+router.register(r'divulgacion', DivulgacionViewSet)
+router.register(r'frnm', FRNMViewSet)
+router.register(r'frm', FRMViewSet)
+router.register(r'ds', DSViewSet)
 
 urlpatterns = [
-    path('', views.home_api, name='api-index'),
-
-
+    path('', include(router.urls)),
+    path('usuarios-api/', UsuarioAPIView.as_view(), name='usuarios-api'),
+    path('respuestas-api/', UsuarioRespuestaTMAPIView.as_view(), name='respuestas-api'),
+    path('textos-api/', UsuarioTextoPreguntaAPIView.as_view(), name='textos-api'),
+    path('frnm-api/', UsuarioRespuestFRNMaAPIView.as_view(), name='frnm-api'),
+    path('frm-api/', UsuarioRespuestFRMaAPIView.as_view(), name='frm-api'),
+    path('divulgacion/', DivulgacionAPIView.as_view(), name='divulgacion-api'),
+    path('obtener-id/', ObtenerID.as_view(), name='obtener-id'),
+    path('home/', apiHome, name='api-home'),
+    path('obtener-usuario/<int:usuario_id>/', obtener_usuario, name='obtener-usuario'),
+    path('consultar-estado-pregunta/', consultar_estado_pregunta, name='consultar-estado-pregunta'),
+    path('retorna-genero/', retorna_genero, name='retorna-genero'),
+    path('verificar-usuario/', verificar_usuario, name='verificar-usuario'),
 ]
