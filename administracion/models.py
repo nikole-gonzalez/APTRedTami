@@ -58,7 +58,7 @@ class UsuarioTextoPregunta(models.Model):
     id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"Pregunta textual #{self.id_texto_preg} de {self.id_usuario}"
+        return f"Pregunta textual #{self.id_texto_preg} de {self.id_manychat}"
 
 class PregTM(models.Model):
     id_preg_tm = models.AutoField(primary_key=True)
