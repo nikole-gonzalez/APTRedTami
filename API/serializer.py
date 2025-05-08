@@ -18,24 +18,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'rut_usuario': {'read_only': True},
             'dv_rut': {'read_only': True},
         }
-    
-    def get_rut_completo_display(self, obj):
-        return f"{obj.rut_usuario}{obj.dv_rut}"
 
-    def validate_rut_completo(self, value):
-        value = value.replace(".", "").replace("-", "").upper()
-        if not re.match(r"^\d{7,8}[0-9K]$", value):
-            raise serializers.ValidationError("Formato de RUT inválido. Debe ser 12345678K.")
-        
-        rut = int(value[:-1])
-        dv = value[-1]
-
-        if not self.validar_dv(rut, dv):
-            raise serializers.ValidationError("Dígito verificador incorrecto para el RUT ingresado.")
-        
-        return value
-    
     def to_internal_value(self, data):
+        # Manejo de fecha en texto natural
         fecha = data.get('fecha_nacimiento')
         if isinstance(fecha, str):
             meses_correctos = [
@@ -60,38 +45,26 @@ class UsuarioSerializer(serializers.ModelSerializer):
                     continue
             else:
                 raise serializers.ValidationError({
-                    "fecha_nacimiento": f"Formato inválido: '{fecha}'. Usa dd/mm/yyyy o '12 de mayo del 2000'"
+                    "fecha_nacimiento": f"Formato inválido: '{fecha}'. Usa dd/mm/yyyy o '12 de mayo del 2000'."
                 })
 
         return super().to_internal_value(data)
 
     def create(self, validated_data):
-        rut_completo = validated_data.pop("rut_completo")
-        rut = int(rut_completo[:-1])
-        dv = rut_completo[-1].upper()
-        validated_data["rut_usuario"] = rut
-        validated_data["dv_rut"] = dv
+        rut_completo = validated_data.pop("rut_completo", None)
+        if rut_completo:
+            rut_completo = rut_completo.replace(".", "").replace("-", "").upper()
+            validated_data["rut_usuario"] = int(rut_completo[:-1])
+            validated_data["dv_rut"] = rut_completo[-1]
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        if "rut_completo" in validated_data:
-            rut_completo = validated_data.pop("rut_completo")
-            rut = int(rut_completo[:-1])
-            dv = rut_completo[-1].upper()
-            validated_data["rut_usuario"] = rut
-            validated_data["dv_rut"] = dv
+        rut_completo = validated_data.pop("rut_completo", None)
+        if rut_completo:
+            rut_completo = rut_completo.replace(".", "").replace("-", "").upper()
+            validated_data["rut_usuario"] = int(rut_completo[:-1])
+            validated_data["dv_rut"] = rut_completo[-1]
         return super().update(instance, validated_data)
-
-    def validar_dv(self, rut, dv):
-        suma = 0
-        multiplo = 2
-        while rut > 0:
-            suma += (rut % 10) * multiplo
-            rut = rut // 10
-            multiplo = 2 if multiplo == 7 else multiplo + 1
-        resto = suma % 11
-        dv_esperado = 'K' if (11 - resto) == 10 else '0' if (11 - resto) == 11 else str(11 - resto)
-        return dv == dv_esperado
 
 
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
