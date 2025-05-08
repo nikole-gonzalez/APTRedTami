@@ -84,14 +84,6 @@ def datos_FRNM2(request):
     return render(request, 'administracion/datos_FRNM2.html')
 
 @login_required
-def datos_FRM1(request):
-    return render(request, 'administracion/datos_FRM1.html')
-
-@login_required
-def datos_FRM2(request):
-    return render(request, 'administracion/datos_FRM2.html')
-
-@login_required
 def opc_vis_DS(request):
     return render(request, 'administracion/opc_vis_DS.html')
 
@@ -206,12 +198,12 @@ def generar_grafico_ingresos_por_comuna():
 
     datos_agrupados = (
         respuestas
-        .values('id_usuario__cod_comuna__nombre_comuna')
+        .values('id_manychat__cod_comuna__nombre_comuna')
         .annotate(total=Count('id_resp_frnm'))
-        .order_by('id_usuario__cod_comuna__nombre_comuna')
+        .order_by('id_manychat__cod_comuna__nombre_comuna')
     )
 
-    comunas = [dato['id_usuario__cod_comuna__nombre_comuna'] for dato in datos_agrupados]
+    comunas = [dato['id_manychat__cod_comuna__nombre_comuna'] for dato in datos_agrupados]
     total_ingresos = [dato['total'] for dato in datos_agrupados]
 
     if not total_ingresos:
@@ -470,8 +462,8 @@ def tamizaje(request):
         "id_opc_tm__id_preg_tm__preg_tm",
         "id_opc_tm__opc_resp_tm",
         "fecha_respuesta_tm",
-        "id_usuario__rut_usuario",
-        "id_usuario__dv_rut"
+        "id_manychat__rut_usuario",
+        "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_tm")
 
     data = {
@@ -489,10 +481,10 @@ def crear_excel_datos_tamizaje(request):
 
     # Obtener datos
     respuestas = RespTM.objects.select_related(
-        'id_opc_tm__id_preg_tm', 'id_usuario'
+        'id_opc_tm__id_preg_tm', 'id_manychat'
     ).values(
-        'id_usuario__rut_usuario',
-        'id_usuario__dv_rut',
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
         'id_opc_tm__id_preg_tm__preg_tm',
         'id_opc_tm__opc_resp_tm',
         'fecha_respuesta_tm'
@@ -503,7 +495,7 @@ def crear_excel_datos_tamizaje(request):
         fecha_str = fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
         
         ws.append([
-            f"{r['id_usuario__rut_usuario']}-{r['id_usuario__dv_rut']}",
+            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_tm__id_preg_tm__preg_tm'],
             r['id_opc_tm__opc_resp_tm'],
             fecha_str,
@@ -523,6 +515,7 @@ def crear_excel_datos_tamizaje(request):
 # ---- FRM ---- #
 # ------------- #
 
+
 @login_required
 def datos_FRM1(request):
     Datos = RespFRM.objects.select_related(
@@ -532,8 +525,8 @@ def datos_FRM1(request):
         "id_opc_frm__id_preg_frm__preg_frm",
         "id_opc_frm__opc_resp_frm",
         "fecha_respuesta_frm",
-        "id_usuario__rut_usuario",
-        "id_usuario__dv_rut"
+        "id_manychat__rut_usuario",
+        "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_frm")
 
     data = {
@@ -549,19 +542,19 @@ def crear_excel_datos_frm1(request):
     ws_FRM_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
     respuestas = RespFRM.objects.select_related(
-        'id_opc_frm__id_preg_frm', 'id_usuario'
+        'id_opc_frm__id_preg_frm', 'id_manychat'
     ).values(
-        'id_usuario__rut_usuario',
-        'id_usuario__dv_rut',
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
         'id_opc_frm__id_preg_frm__preg_frm',
         'id_opc_frm__opc_resp_frm',
         'fecha_respuesta_frm'
-    ).order_by('id_usuario__rut_usuario')
+    ).order_by('id_manychat__rut_usuario')
 
     for r in respuestas:
         fecha = r['fecha_respuesta_frm']
         ws_FRM_V1.append([
-            f"{r['id_usuario__rut_usuario']}-{r['id_usuario__dv_rut']}",
+            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_frm__id_preg_frm__preg_frm'],
             r['id_opc_frm__opc_resp_frm'],
             fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
@@ -572,6 +565,89 @@ def crear_excel_datos_frm1(request):
 
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="FactoresMod_V1.xlsx"'
+    wb.save(response)
+    return response
+
+@login_required
+def datos_FRM2(request):
+    # Obtener todas las preguntas FRM
+    preguntas = PregFRM.objects.all()
+    
+    # Consulta usando id_manychat directamente
+    usuarios_respuestas = RespFRM.objects.select_related(
+        "id_opc_frm", "id_opc_frm__id_preg_frm"
+    ).values(
+        "id_manychat",  # Usamos directamente id_manychat del modelo RespFRM
+        "fecha_respuesta_frm",
+        "id_opc_frm__id_preg_frm__preg_frm",
+        "id_opc_frm__opc_resp_frm"
+    )
+
+    dict_respuestas = {}
+
+    for respuesta in usuarios_respuestas:
+        id_manychat = respuesta["id_manychat"]
+        pregunta = respuesta["id_opc_frm__id_preg_frm__preg_frm"]
+        respuesta_usuario = respuesta["id_opc_frm__opc_resp_frm"]
+        
+        if id_manychat not in dict_respuestas:
+            dict_respuestas[id_manychat] = {
+                "fecha": respuesta["fecha_respuesta_frm"],
+                "respuestas": {}
+            }
+        dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
+
+    # Convertir el diccionario a una lista de listas
+    tabla_respuestas = []
+    for id_manychat, data in dict_respuestas.items():
+        fila = [id_manychat] + [data["respuestas"].get(p.preg_frm, "-") for p in preguntas] + [data["fecha"]]
+        tabla_respuestas.append(fila)
+
+    return render(request, "administracion/datos_FRM2.html", {
+        "preguntas": preguntas,
+        "tabla_respuestas": tabla_respuestas,
+    })
+
+def crear_excel_datos_frm2(request):
+    wb = Workbook()
+    ws_FRM_V2 = wb.active
+    ws_FRM_V2.title = "Factores de riesgo mod 2"
+    
+    preguntas = PregFRM.objects.all().order_by('id_preg_frm')
+    lista_preguntas = ['Rut'] + [pregunta.preg_frm for pregunta in preguntas]
+    ws_FRM_V2.append(lista_preguntas)
+
+    respuestas = RespFRM.objects.select_related(
+        'id_opc_frm__id_preg_frm', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_frm__id_preg_frm__preg_frm',
+        'id_opc_frm__opc_resp_frm'
+    )
+
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
+        respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {}
+        dict_respuestas[rut][pregunta] = respuesta_usuario
+
+    for rut, respuestas_usuario in dict_respuestas.items():
+        fila = [rut]
+        for pregunta in preguntas:
+            respuesta = respuestas_usuario.get(pregunta.preg_frm, '')
+            fila.append(respuesta)
+        ws_FRM_V2.append(fila)
+   
+    ajustar_ancho_columnas(ws_FRM_V2)
+    background_colors(ws_FRM_V2)
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="FactoresMod_V2.xlsx"'
     wb.save(response)
     return response
 
@@ -588,8 +664,8 @@ def datos_FRNM1(request):
         "id_opc_frnm__id_preg_frnm__preg_frnm",
         "id_opc_frnm__opc_resp_frnm",
         "fecha_respuesta_frnm",
-        "id_usuario__rut_usuario",
-        "id_usuario__dv_rut"
+        "id_manychat__rut_usuario",
+        "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_frnm")
 
     data = {
@@ -605,19 +681,19 @@ def crear_excel_datos_frnm1(request):
     ws_FRNM_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
     respuestas = RespFRNM.objects.select_related(
-        'id_opc_frnm__id_preg_frnm', 'id_usuario'
+        'id_opc_frnm__id_preg_frnm', 'id_manychat'
     ).values(
-        'id_usuario__rut_usuario',
-        'id_usuario__dv_rut',
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
         'id_opc_frnm__id_preg_frnm__preg_frnm',
         'id_opc_frnm__opc_resp_frnm',
         'fecha_respuesta_frnm'
-    ).order_by('id_usuario__rut_usuario')
+    ).order_by('id_manychat__rut_usuario')
 
     for r in respuestas:
         fecha = r['fecha_respuesta_frnm']
         ws_FRNM_V1.append([
-            f"{r['id_usuario__rut_usuario']}-{r['id_usuario__dv_rut']}",
+            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_frnm__id_preg_frnm__preg_frnm'],
             r['id_opc_frnm__opc_resp_frnm'],
             fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
@@ -629,6 +705,88 @@ def crear_excel_datos_frnm1(request):
 
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V1.xlsx"'
+    wb.save(response)
+    return response
+
+@login_required
+def datos_FRNM2(request):
+
+    preguntas = PregFRNM.objects.all()
+    
+    usuarios_respuestas = RespFRNM.objects.select_related(
+        "id_opc_frnm", "id_opc_frnm__id_preg_frnm"
+    ).values(
+        "id_manychat", 
+        "fecha_respuesta_frnm",
+        "id_opc_frnm__id_preg_frnm__preg_frnm",
+        "id_opc_frnm__opc_resp_frnm"
+    )
+
+    dict_respuestas = {}
+
+    for respuesta in usuarios_respuestas:
+        id_manychat = respuesta["id_manychat"]
+        pregunta = respuesta["id_opc_frnm__id_preg_frnm__preg_frnm"]
+        respuesta_usuario = respuesta["id_opc_frnm__opc_resp_frnm"]
+        
+        if id_manychat not in dict_respuestas:
+            dict_respuestas[id_manychat] = {
+                "fecha": respuesta["fecha_respuesta_frnm"],
+                "respuestas": {}
+            }
+        dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
+
+    # Convertir el diccionario a una lista de listas
+    tabla_respuestas = []
+    for id_manychat, data in dict_respuestas.items():
+        fila = [id_manychat] + [data["respuestas"].get(p.preg_frnm, "-") for p in preguntas] + [data["fecha"]]
+        tabla_respuestas.append(fila)
+
+    return render(request, "administracion/datos_FRNM2.html", {
+        "preguntas": preguntas,
+        "tabla_respuestas": tabla_respuestas,
+    })
+
+def crear_excel_datos_frnm2(request):
+    wb = Workbook()
+    ws_FRNM_V2 = wb.active
+    ws_FRNM_V2.title = "Factores de riesgo no mod 2"
+    
+    preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
+    lista_preguntas = ['Rut'] + [pregunta.preg_frnm for pregunta in preguntas]
+    ws_FRNM_V2.append(lista_preguntas)
+
+    respuestas = RespFRNM.objects.select_related(
+        'id_opc_frnm__id_preg_frnm', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_frnm__id_preg_frnm__preg_frnm',
+        'id_opc_frnm__opc_resp_frnm'
+    )
+
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
+        respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {}
+        dict_respuestas[rut][pregunta] = respuesta_usuario
+
+    for rut, respuestas_usuario in dict_respuestas.items():
+        fila = [rut]
+        for pregunta in preguntas:
+            respuesta = respuestas_usuario.get(pregunta.preg_frnm, '')
+            fila.append(respuesta)
+        ws_FRNM_V2.append(fila)
+   
+    ajustar_ancho_columnas(ws_FRNM_V2)
+    background_colors(ws_FRNM_V2)
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V2.xlsx"'
     wb.save(response)
     return response
 
@@ -645,8 +803,8 @@ def datos_DS1(request):
         "id_opc_ds__id_preg_ds__preg_ds",
         "id_opc_ds__opc_resp_ds",
         "fecha_respuesta_ds",
-        "id_usuario__rut_usuario",
-        "id_usuario__dv_rut"
+        "id_manychat__rut_usuario",
+        "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_ds")
 
     data = {
@@ -662,19 +820,19 @@ def crear_excel_datos_ds1(request):
     ws_DS_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
     respuestas = RespDS.objects.select_related(
-        'id_opc_ds__id_preg_ds', 'id_usuario'
+        'id_opc_ds__id_preg_ds', 'id_manychat'
     ).values(
-        'id_usuario__rut_usuario',
-        'id_usuario__dv_rut',
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
         'id_opc_ds__id_preg_ds__preg_ds',
         'id_opc_ds__opc_resp_ds',
         'fecha_respuesta_ds'
-    ).order_by('id_usuario__rut_usuario')
+    ).order_by('id_manychat__rut_usuario')
 
     for r in respuestas:
         fecha = r['fecha_respuesta_ds']
         ws_DS_V1.append([
-            f"{r['id_usuario__rut_usuario']}-{r['id_usuario__dv_rut']}",
+            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_ds__id_preg_ds__preg_ds'],
             r['id_opc_ds__opc_resp_ds'],
             fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
@@ -686,5 +844,87 @@ def crear_excel_datos_ds1(request):
 
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="DeterminantesSociales_V1.xlsx"'
+    wb.save(response)
+    return response
+
+@login_required
+def datos_DS2(request):
+
+    preguntas = PregDS.objects.all()
+    
+    usuarios_respuestas = RespDS.objects.select_related(
+        "id_opc_ds", "id_opc_ds__id_preg_ds"
+    ).values(
+        "id_manychat", 
+        "fecha_respuesta_ds",
+        "id_opc_ds__id_preg_ds__preg_ds",
+        "id_opc_ds__opc_resp_ds"
+    )
+
+    dict_respuestas = {}
+
+    for respuesta in usuarios_respuestas:
+        id_manychat = respuesta["id_manychat"]
+        pregunta = respuesta["id_opc_ds__id_preg_ds__preg_ds"]
+        respuesta_usuario = respuesta["id_opc_ds__opc_resp_ds"]
+        
+        if id_manychat not in dict_respuestas:
+            dict_respuestas[id_manychat] = {
+                "fecha": respuesta["fecha_respuesta_ds"],
+                "respuestas": {}
+            }
+        dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
+
+    # Convertir el diccionario a una lista de listas
+    tabla_respuestas = []
+    for id_manychat, data in dict_respuestas.items():
+        fila = [id_manychat] + [data["respuestas"].get(p.preg_ds, "-") for p in preguntas] + [data["fecha"]]
+        tabla_respuestas.append(fila)
+
+    return render(request, "administracion/datos_DS2.html", {
+        "preguntas": preguntas,
+        "tabla_respuestas": tabla_respuestas,
+    })
+
+def crear_excel_datos_ds2(request):
+    wb = Workbook()
+    ws_DS_V2 = wb.active
+    ws_DS_V2.title = "Determinantes salud 2"
+    
+    preguntas = PregDS.objects.all().order_by('id_preg_ds')
+    lista_preguntas = ['Rut'] + [pregunta.preg_ds for pregunta in preguntas]
+    ws_DS_V2.append(lista_preguntas)
+
+    respuestas = RespDS.objects.select_related(
+        'id_opc_ds__id_preg_ds', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_ds__id_preg_ds__preg_ds',
+        'id_opc_ds__opc_resp_ds'
+    )
+
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
+        respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {}
+        dict_respuestas[rut][pregunta] = respuesta_usuario
+
+    for rut, respuestas_usuario in dict_respuestas.items():
+        fila = [rut]
+        for pregunta in preguntas:
+            respuesta = respuestas_usuario.get(pregunta.preg_ds, '')
+            fila.append(respuesta)
+        ws_DS_V2.append(fila)
+   
+    ajustar_ancho_columnas(ws_DS_V2)
+    background_colors(ws_DS_V2)
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="DeterminantesSalud_V2.xlsx"'
     wb.save(response)
     return response
