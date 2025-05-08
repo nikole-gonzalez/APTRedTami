@@ -20,7 +20,7 @@ class Usuario(models.Model):
     rut_usuario = models.IntegerField()
     dv_rut = models.CharField(max_length=1)
     fecha_nacimiento = models.DateTimeField()
-    num_whatsapp = models.IntegerField()
+    num_whatsapp = models.BigIntegerField()
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
     cod_comuna = models.ForeignKey('Comuna', on_delete=models.CASCADE)
     email = models.CharField(max_length=255, blank=True)

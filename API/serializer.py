@@ -34,37 +34,37 @@ class UsuarioSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Dígito verificador incorrecto para el RUT ingresado.")
         
         return value
-
-    def validate_fecha_nacimiento(self, value):
-        if value:
+    
+    def to_internal_value(self, data):
+        fecha = data.get('fecha_nacimiento')
+        if isinstance(fecha, str):
             meses_correctos = [
                 "enero", "febrero", "marzo", "abril", "mayo", "junio",
                 "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
             ]
-            fecha_normalizada = unidecode(value.lower())
+            fecha_normalizada = unidecode(fecha.lower())
             for mes in meses_correctos:
-                palabras_fecha = fecha_normalizada.split()
-                for palabra in palabras_fecha:
-                    puntaje = fuzz.ratio(palabra, mes)
-                    if puntaje > 70:
+                for palabra in fecha_normalizada.split():
+                    if fuzz.ratio(palabra, mes) > 70:
                         fecha_normalizada = fecha_normalizada.replace(palabra, mes)
 
             formatos_fecha = [
-                "%d/%m/%Y", "%d-%m-%Y", "%d %B %Y", "%d de %B de %Y", "%d %m %Y",
-                "%d/%m/%y", "%d-%m-%y", "%d %m %y", "%d de %B del %Y", "%d de %B del %y",
-                "%d de %B %y", "%d de %B %Y", "%d de %b %Y", "%d de %b %y",
-                "%d de %b del %Y", "%d de %b del %y"
+                "%d/%m/%Y", "%d-%m-%Y", "%d %B %Y", "%d de %B de %Y",
+                "%d/%m/%y", "%d-%m-%y", "%d de %B del %Y", "%d de %B del %y"
             ]
             for formato in formatos_fecha:
                 try:
-                    return datetime.strptime(fecha_normalizada, formato).date()
+                    data['fecha_nacimiento'] = datetime.strptime(fecha_normalizada, formato)
+                    break
                 except ValueError:
                     continue
-            raise serializers.ValidationError(
-                f"Formato de fecha inválido. Recibido: '{value}'. Usa dd/mm/yyyy, dd-mm-yyyy, o 'día de mes de año'."
-            )
-        return value
-    
+            else:
+                raise serializers.ValidationError({
+                    "fecha_nacimiento": f"Formato inválido: '{fecha}'. Usa dd/mm/yyyy o '12 de mayo del 2000'"
+                })
+
+        return super().to_internal_value(data)
+
     def create(self, validated_data):
         rut_completo = validated_data.pop("rut_completo")
         rut = int(rut_completo[:-1])
