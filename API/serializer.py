@@ -66,7 +66,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
             validated_data["dv_rut"] = rut_completo[-1]
         return super().update(instance, validated_data)
 
-
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerfilUsuario
