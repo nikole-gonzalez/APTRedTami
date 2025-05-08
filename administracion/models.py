@@ -53,8 +53,8 @@ class Comuna(models.Model):
 class UsuarioTextoPregunta(models.Model):
     id_texto_preg = models.AutoField(primary_key=True)
     texto_pregunta = models.CharField(max_length=200)
-    fecha_pregunta_texto = models.DateField()
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    fecha_pregunta_texto = models.DateField(default=timezone.now)
+    id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"Pregunta textual #{self.id_texto_preg} de {self.id_usuario}"
@@ -77,10 +77,9 @@ class OpcTM(models.Model):
 
 class RespTM(models.Model):
     id_resp_tm = models.AutoField(primary_key=True)
-    id_manychat = models.CharField(max_length=10)
-    fecha_respuesta_tm = models.DateField()
+    fecha_respuesta_tm = models.DateField(default=timezone.now)
     id_opc_tm = models.ForeignKey(OpcTM, on_delete=models.CASCADE)
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.id_opc_tm}"
@@ -103,10 +102,9 @@ class OpcDS(models.Model):
 
 class RespDS(models.Model):
     id_resp_ds = models.AutoField(primary_key=True)
-    id_manychat = models.CharField(max_length=10)
-    fecha_respuesta_ds = models.DateField()
+    fecha_respuesta_ds = models.DateField(default=timezone.now)
     id_opc_ds = models.ForeignKey(OpcDS, on_delete=models.CASCADE)
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.id_opc_ds}"
@@ -129,10 +127,9 @@ class OpcFRM(models.Model):
 
 class RespFRM(models.Model):
     id_resp_frm = models.AutoField(primary_key=True)
-    id_manychat = models.CharField(max_length=10)
-    fecha_respuesta_frm = models.DateField()
+    fecha_respuesta_frm = models.DateField(default=timezone.now)
     id_opc_frm = models.ForeignKey(OpcFRM, on_delete=models.CASCADE)
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.id_opc_frm}"
@@ -155,10 +152,9 @@ class OpcFRNM(models.Model):
 
 class RespFRNM(models.Model):
     id_resp_frnm = models.AutoField(primary_key=True)
-    id_manychat = models.CharField(max_length=10)
-    fecha_respuesta_frnm = models.DateField()
+    fecha_respuesta_frnm = models.DateField(default=timezone.now)
     id_opc_frnm = models.ForeignKey(OpcFRNM, on_delete=models.CASCADE)
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.id_opc_frnm}"

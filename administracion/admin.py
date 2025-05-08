@@ -27,9 +27,9 @@ class ComunaAdmin(admin.ModelAdmin):
     list_filter=("cod_comuna","nombre_comuna","cod_provincia")
 
 class UsuarioTextoPreguntaAdmin(admin.ModelAdmin):
-    list_display=("id_texto_preg","texto_pregunta","fecha_pregunta_texto","id_usuario")
-    search_fields=("id_texto_preg","texto_pregunta","fecha_pregunta_texto","id_usuario")
-    list_filter=("id_texto_preg","texto_pregunta","fecha_pregunta_texto","id_usuario")
+    list_display=("id_texto_preg","texto_pregunta","fecha_pregunta_texto","id_manychat")
+    search_fields=("id_texto_preg","texto_pregunta","fecha_pregunta_texto","id_manychat")
+    list_filter=("id_texto_preg","texto_pregunta","fecha_pregunta_texto","id_manychat")
 
 class PregTMAdmin(admin.ModelAdmin):
     preg_tm = models.CharField(max_length=200)
@@ -43,9 +43,9 @@ class OpcTMAdmin(admin.ModelAdmin):
     list_filter=("id_opc_tm","opc_resp_tm","id_preg_tm")
 
 class RespTMAdmin(admin.ModelAdmin):
-    list_display=("id_resp_tm","id_manychat","fecha_respuesta_tm","id_opc_tm","id_usuario")
-    search_fields=("id_resp_tm","id_manychat","fecha_respuesta_tm","id_opc_tm","id_usuario")
-    list_filter=("id_resp_tm","id_manychat","fecha_respuesta_tm","id_opc_tm","id_usuario")
+    list_display=("id_resp_tm","fecha_respuesta_tm","id_opc_tm","id_manychat")
+    search_fields=("id_resp_tm","fecha_respuesta_tm","id_opc_tm","id_manychat")
+    list_filter=("id_resp_tm","fecha_respuesta_tm","id_opc_tm","id_manychat")
 
 class PregDSAdmin(admin.ModelAdmin):
     list_display=("id_preg_ds","preg_ds","cod_pregunta_ds")
@@ -58,9 +58,9 @@ class OpcDSAdmin(admin.ModelAdmin):
     list_filter=("id_opc_ds","opc_resp_ds","id_preg_ds")
 
 class RespDSAdmin(admin.ModelAdmin):
-    list_display=("id_resp_ds","id_manychat","fecha_respuesta_ds","id_opc_ds","id_usuario")
-    search_fields=("id_resp_ds","id_manychat","fecha_respuesta_ds","id_opc_ds","id_usuario")
-    list_filter=("id_resp_ds","id_manychat","fecha_respuesta_ds","id_opc_ds","id_usuario")
+    list_display=("id_resp_ds","fecha_respuesta_ds","id_opc_ds","id_manychat")
+    search_fields=("id_resp_ds","fecha_respuesta_ds","id_opc_ds","id_manychat")
+    list_filter=("id_resp_ds","fecha_respuesta_ds","id_opc_ds","id_manychat")
 
 class PregFRMAdmin(admin.ModelAdmin):
     list_display=("id_preg_frm","preg_frm","cod_pregunta_frm")
@@ -73,9 +73,9 @@ class OpcFRMAdmin(admin.ModelAdmin):
     list_filter=("id_opc_frm","opc_resp_frm","id_preg_frm")   
 
 class RespFRMAdmin(admin.ModelAdmin):
-    list_display=("id_resp_frm","id_manychat","fecha_respuesta_frm","id_opc_frm","id_usuario")
-    search_fields=("id_resp_frm","id_manychat","fecha_respuesta_frm","id_opc_frm","id_usuario")
-    list_filter=("id_resp_frm","id_manychat","fecha_respuesta_frm","id_opc_frm","id_usuario")
+    list_display=("id_resp_frm","fecha_respuesta_frm","id_opc_frm","id_manychat")
+    search_fields=("id_resp_frm","fecha_respuesta_frm","id_opc_frm","id_manychat")
+    list_filter=("id_resp_frm","fecha_respuesta_frm","id_opc_frm","id_manychat")
 
 class PregFRNMAdmin(admin.ModelAdmin):
     list_display=("id_preg_frnm","preg_frnm","cod_pregunta_frnm")
@@ -88,9 +88,9 @@ class OpcFRNMAdmin(admin.ModelAdmin):
     list_filter=("id_opc_frnm","opc_resp_frnm","id_preg_frnm")
 
 class RespFRNMAdmin(admin.ModelAdmin):
-    list_display=("id_resp_frnm","id_manychat","fecha_respuesta_frnm","id_opc_frnm","id_usuario")
-    search_fields=("id_resp_frnm","id_manychat","fecha_respuesta_frnm","id_opc_frnm","id_usuario")
-    list_filter=("id_resp_frnm","id_manychat","fecha_respuesta_frnm","id_opc_frnm","id_usuario")
+    list_display=("id_resp_frnm","fecha_respuesta_frnm","id_opc_frnm","id_manychat")
+    search_fields=("id_resp_frnm","fecha_respuesta_frnm","id_opc_frnm","id_manychat")
+    list_filter=("id_resp_frnm","fecha_respuesta_frnm","id_opc_frnm","id_manychat")
 
 class DivulgacionAdmin(admin.ModelAdmin):
     list_display=("id_divultacion","texto_divulgacion","url","fecha_envio","imagen")
