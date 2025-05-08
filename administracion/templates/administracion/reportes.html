@@ -10,6 +10,10 @@
 <section id="reportes">
     <div class="chart-container">
     {% if hay_datos %}
+    <h2>Año de nacimiento</h2>
+    <img src="data:imagen/png;base64,{{imagen_base64_anio_nacimiento}}" alt="Año de nacimiento", style="width: 45%; height: auto;">
+    <h2>Usuarias/os por edad</h2>
+    <img src="data:imagen/png;base64,{{imagen_base64_usuarias_por_edad}}" alt="Usuaria/os por edad", style="width: 45%; height: auto;">
     <h2>Género</h2>
     <img src="data:imagen/png;base64,{{imagen_base64_personas_por_genero}}" alt="Género", style="width: 45%; height: auto;">
     <h2>Comuna</h2>
@@ -18,6 +22,10 @@
     <img src="data:imagen/png;base64,{{imagen_base64_realizado_pap_tres_anios}}" alt="PAP realizado", style="width: 45%; height: auto;">
     <h2>Escolaridad</h2>
     <img src="data:imagen/png;base64,{{imagen_base64_escolaridad}}" alt="Escolaridad", style="width: 45%; height: auto;">
+    <h2>Respuestas por día</h2>
+    <img src="data:imagen/png;base64,{{imagen_base64_resp_por_dia}}" alt="Respuestas por día", style="width: 45%; height: auto;">
+    <br>
+    <br>
     {% else %}
         <p>No hay reportes disponibles en este momento.</p>
     {% endif %}
