@@ -8,7 +8,7 @@ class PerfilUsuario(models.Model):
     id_perfil = models.AutoField(primary_key=True, verbose_name="Id Perfil")
     telefono = models.IntegerField(default=0)
     cod_acceso = models.IntegerField(default=0)
-    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     usuario_sist = models.OneToOneField('Usuario', on_delete=models.CASCADE)
 
@@ -19,9 +19,9 @@ class Usuario(models.Model):
     id_manychat = models.CharField(primary_key=True, max_length=20, verbose_name="Id Manychat")
     rut_usuario = models.IntegerField()
     dv_rut = models.CharField(max_length=1)
-    fecha_nacimiento = models.DateField()
+    fecha_nacimiento = models.DateTimeField()
     num_whatsapp = models.IntegerField()
-    fecha_ingreso = models.DateField(auto_now_add=True)
+    fecha_ingreso = models.DateTimeField(auto_now_add=True)
     cod_comuna = models.ForeignKey('Comuna', on_delete=models.CASCADE)
 
     def __str__(self):
@@ -53,7 +53,7 @@ class Comuna(models.Model):
 class UsuarioTextoPregunta(models.Model):
     id_texto_preg = models.AutoField(primary_key=True)
     texto_pregunta = models.CharField(max_length=200)
-    fecha_pregunta_texto = models.DateField(default=timezone.now)
+    fecha_pregunta_texto = models.DateTimeField(auto_now_add=True)
     id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -77,7 +77,7 @@ class OpcTM(models.Model):
 
 class RespTM(models.Model):
     id_resp_tm = models.AutoField(primary_key=True)
-    fecha_respuesta_tm = models.DateField(default=timezone.now)
+    fecha_respuesta_tm = models.DateTimeField(auto_now_add=True)
     id_opc_tm = models.ForeignKey(OpcTM, on_delete=models.CASCADE)
     id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
@@ -102,7 +102,7 @@ class OpcDS(models.Model):
 
 class RespDS(models.Model):
     id_resp_ds = models.AutoField(primary_key=True)
-    fecha_respuesta_ds = models.DateField(default=timezone.now)
+    fecha_respuesta_ds = models.DateTimeField(auto_now_add=True)
     id_opc_ds = models.ForeignKey(OpcDS, on_delete=models.CASCADE)
     id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
@@ -127,7 +127,7 @@ class OpcFRM(models.Model):
 
 class RespFRM(models.Model):
     id_resp_frm = models.AutoField(primary_key=True)
-    fecha_respuesta_frm = models.DateField(default=timezone.now)
+    fecha_respuesta_frm = models.DateTimeField(auto_now_add=True)
     id_opc_frm = models.ForeignKey(OpcFRM, on_delete=models.CASCADE)
     id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
@@ -152,7 +152,7 @@ class OpcFRNM(models.Model):
 
 class RespFRNM(models.Model):
     id_resp_frnm = models.AutoField(primary_key=True)
-    fecha_respuesta_frnm = models.DateField(default=timezone.now)
+    fecha_respuesta_frnm = models.DateTimeField(auto_now_add=True)
     id_opc_frnm = models.ForeignKey(OpcFRNM, on_delete=models.CASCADE)
     id_manychat = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
@@ -163,7 +163,7 @@ class Divulgacion(models.Model):
     id_divultacion = models.AutoField(primary_key=True)
     texto_divulgacion = models.CharField(max_length=200)
     url = models.URLField()
-    fecha_envio = models.DateField()
+    fecha_envio = models.DateTimeField(auto_now_add=True)
     imagen = models.ImageField(blank=True, null=True)
 
     def __str__(self):
