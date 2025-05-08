@@ -11,6 +11,9 @@ from unidecode import unidecode
 import re 
 
 class UsuarioSerializer(serializers.ModelSerializer):
+
+    rut_completo = serializers.CharField(write_only=True, required=True)
+    
     class Meta:
         model = Usuario
         fields = "__all__"
