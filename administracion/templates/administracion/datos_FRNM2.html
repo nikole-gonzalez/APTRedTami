@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Respuesta factores riesgo no modificables 2{% endblock %}
+
+{% block content %}
+<h2 class="major">Datos Factores Riesgos No Modificables 2</h2>
+<a class="button" href="{% url 'admin_index' %}">Volver</a>
+
+<section id="usuarios">
+    {% if tabla_respuestas %}
+    <div class="table-wrapper">
+        <table border="1">
+            <thead>
+                <tr>
+                    <td colspan="8"><b>Total de respuestas: {{ tabla_respuestas|length }}</b></td>
+                </tr>
+                <tr>
+                    <th>#</th> 
+                    <th>Rut</th>
+                    {% for pregunta in preguntas %}
+                        <th>{{ pregunta.preg_frnm }}</th>
+                    {% endfor %}
+                    <th>Fecha Respuesta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fila in tabla_respuestas %}
+                <tr>
+                    <td>{{ forloop.counter }}</td> 
+                    {% for celda in fila %}
+                        <td>{{ celda }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No hay datos ingresados</p>
+    {% endif %}
+
+    <div style="text-align: center;">
+        <form action="{% url 'crear_excel_datos_frnm2' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Descargar como Excel</button>
+        </form>
+    </div>
+
+    <a class="button" href="{% url 'admin_index' %}">Volver</a>
+</secion>
+
+<style>
+    #usuarios {
+        margin-top: 2em;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        max-width: 90%; 
+        margin: 0 auto; 
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px auto; 
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #ddd;
+    }
+
+    th {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        text-align: left;
+        background-color: #f2849e;
+        color: white;
+    }
+</style>
+
+{% endblock %}
