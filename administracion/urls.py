@@ -31,5 +31,10 @@ urlpatterns = [
     path('datos_FRM2/', views.datos_FRM2, name="datos_FRM2"),
     path('datos_FRNM1/',views.datos_FRNM1, name="datos_FRNM1"),
     path('datos_FRNM2/', views.datos_FRNM2, name="datos_FRNM2"),
-   
+
+    #Desacargar en excel
+    path('crear_excel_datos_tamizaje/', views.crear_excel_datos_tamizaje, name="crear_excel_datos_tamizaje"),
+    path('crear_excel_datos_frm1/', views.crear_excel_datos_frm1, name="crear_excel_datos_frm1"),
+    path('crear_excel_datos_frnm1/', views.crear_excel_datos_frnm1, name="crear_excel_datos_frnm1"),
+    path('crear_excel_datos_ds1/', views.crear_excel_datos_ds1, name="crear_excel_datos_ds1"),
 ]

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Datos del Perfil{% endblock %}
+
+{% block content %}
+<h2 class="major">Datos del Perfil</h2>
+<a class="button" href="{% url 'admin_index' %}">Volver</a>
+<section id="usuarios">
+    {% if Datos %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <td colspan="8"><b>Total de respuestas: {{ Datos|length }}</b></td>
+                </tr>
+                <tr>
+                    <th>#</th>
+                    <th>ID Manychat</th>
+                    <th>Rut Usuario</th>
+                    <th>Dígito verificador usuario</th>
+                    <th>Fecha de nacimiento</th>
+                    <th>Whatsapp</th>
+                    <th>Comuna</th>
+                    <th>Fecha de ingreso</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dato in Datos %}
+                <tr>
+                    <td>{{ forloop.counter }}
+                    <td>{{ dato.id_manychat }}</td>
+                    <td>{{ dato.rut_usuario }}</td>
+                    <td>{{ dato.dv_rut }}</td>
+                    <td>{{ dato.fecha_nacimiento}}</td>
+                    <td>{{ dato.num_whatsapp}}</td>
+                    <td>{{ dato.cod_comuna }}</td>
+                    <td>{{ dato.fecha_ingreso }}</td>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No hay datos ingresados</p>
+    {% endif %}
+
+    <a class="button" href="{% url 'admin_index' %}">Volver</a>
+</section>
+
+<style>
+    #usuarios {
+        margin-top: 2em;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        max-width: 90%; 
+        margin: 0 auto; 
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px auto; 
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #ddd;
+    }
+
+    th {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        text-align: left;
+        background-color: #f2849e;
+        color: white;
+    }
+</style>
+
+{% endblock %}
