@@ -23,6 +23,7 @@ class Usuario(models.Model):
     num_whatsapp = models.IntegerField()
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
     cod_comuna = models.ForeignKey('Comuna', on_delete=models.CASCADE)
+    email = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return f"Usuario: {self.rut_usuario}-{self.dv_rut} ({self.id_manychat})"

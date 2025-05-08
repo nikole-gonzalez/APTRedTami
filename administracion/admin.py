@@ -7,9 +7,9 @@ class PerfilUsuarioAdmin(admin.ModelAdmin):
     list_filter=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist")
     
 class UsuarioAdmin(admin.ModelAdmin):
-    list_display=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna")
-    search_fields=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna")
-    list_filter=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna")
+    list_display=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email")
+    search_fields=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email")
+    list_filter=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email")
 
 class RegionAdmin(admin.ModelAdmin):
     list_display=("cod_region","nombre_region")
