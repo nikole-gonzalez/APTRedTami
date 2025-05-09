@@ -1,5 +1,5 @@
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import auth, messages
 from django.contrib.auth.decorators import login_required
 
@@ -28,6 +28,7 @@ from django.db.models.functions import TruncDate
 from openpyxl import Workbook
 
 from .models import *
+from .forms import *
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
@@ -1494,8 +1495,8 @@ def crear_excel_preg_especialista(request):
 
     wb.save(response)
     return response
-
-@login_required
+  
+  @login_required
 def crear_pdf_preg_especialista(request):
     # Obtener los datos
     preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all().order_by("-fecha_pregunta_texto")
@@ -1577,3 +1578,66 @@ def crear_pdf_preg_especialista(request):
     response['Content-Disposition'] = 'attachment; filename="Preguntas_Especialistas.pdf"'
     
     return response
+  
+  
+# ----------------------------------------------------------- #
+# ---------------------- CRUD USUARIO ----------------------- #
+# ----------------------------------------------------------- #
+
+def lista_usuarios(request):
+    perfiles = PerfilUsuario.objects.select_related('user','usuario_sist')
+    return render (request, 'administracion/lista_usuarios.html', {'perfiles': perfiles})
+
+def crear_usuario(request):
+    if request.method == 'POST':
+        form_user = UserForm(request.POST)
+        form_perfil = PerfilUsuarioForm(request.POST)
+        if form_user.is_valid() and form_perfil.is_valid():
+            user = form_user.save(commit=False)
+            user.set_password(form_user.cleaned_data['password'])
+            user.save()
+            perfil = form_perfil.save(commit=False)
+            perfil.user = user
+            perfil.save()
+            messages.success(request, 'Usuario creado correctamente.')
+            return redirect('lista_usuarios')
+    else:
+        form_user = UserForm()
+        form_perfil = PerfilUsuarioForm()
+    return render(request, 'administracion/form_usuario.html', {
+        'form_user': form_user,
+        'form_perfil': form_perfil
+    })
+
+def editar_usuario(request, perfil_id):
+    perfil = get_object_or_404(PerfilUsuario, id_perfil=perfil_id)
+    user = perfil.user
+    if request.method == 'POST':
+        form_user = UserForm(request.POST, instance=user)
+        form_perfil = PerfilUsuarioForm(request.POST, instance=perfil)
+        if form_user.is_valid() and form_perfil.is_valid():
+            user = form_user.save(commit=False)
+            if 'password' in form_user.cleaned_data:
+                user.set_password(form_user.cleaned_data['password'])
+            user.save()
+            form_perfil.save()
+            messages.success(request, 'Usuario actualizado correctamente.')
+            return redirect('lista_usuarios')
+    else:
+        form_user = UserForm(instance=user)
+        form_user.fields['password'].initial = ''
+        form_perfil = PerfilUsuarioForm(instance=perfil)
+    return render(request, 'administracion/form_usuario.html', {
+        'form_user': form_user,
+        'form_perfil': form_perfil
+    })
+
+def eliminar_usuario(request, perfil_id):
+    perfil = get_object_or_404(PerfilUsuario, id_perfil=perfil_id)
+    if request.method == 'POST':
+        perfil.user.delete()
+        perfil.delete()
+        messages.success(request, 'Usuario eliminado.')
+        return redirect('lista_usuarios')
+    return render(request, 'administracion/confirmar_eliminacion.html', {'perfil': perfil})
+  
