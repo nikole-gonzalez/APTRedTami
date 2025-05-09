@@ -51,6 +51,10 @@ urlpatterns = [
   
   
     # Descargar en PDF
+
+    path('crear_pdf_datos_frm1/', views.crear_pdf_datos_frm1, name='crear_pdf_datos_frm1'),
+    path('crear_pdf_datos_frm2/', views.crear_pdf_datos_frm2, name='crear_pdf_datos_frm2'),
+    path('crear_pdf_datos_frnm1/', views.crear_pdf_datos_frnm1, name='crear_pdf_datos_frnm1'),
     path('crear_pdf_datos_frnm2/', views.crear_pdf_datos_frnm2, name='crear_pdf_datos_frnm2'),
     path('crear_pdf_datos_ds1/', views.crear_pdf_datos_ds1, name='crear_pdf_datos_ds1'),
     path('crear_pdf_datos_ds2/', views.crear_pdf_datos_ds2, name="crear_pdf_datos_ds2"),

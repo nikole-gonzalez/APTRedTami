@@ -32,10 +32,11 @@ from .forms import *
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.pagesizes import letter, landscape, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 
 from django.views.decorators.csrf import csrf_exempt
@@ -547,6 +548,127 @@ def crear_excel_datos_frm1(request):
     wb.save(response)
     return response
 
+def crear_pdf_datos_frm1(request):
+    # Función auxiliar para truncar texto largo
+    def truncate_text(text, max_length):
+        if not text:
+            return text
+        return (text[:max_length-3] + '...') if len(text) > max_length else text
+
+    # 1. Configuración del documento PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=1*cm,
+        rightMargin=1*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
+    
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='Small',
+        parent=styles['Normal'],
+        fontSize=7,
+        leading=9
+    ))
+
+    # 2. Obtener y preparar los datos
+    respuestas = RespFRM.objects.select_related(
+        'id_opc_frm__id_preg_frm', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_frm__id_preg_frm__preg_frm',
+        'id_opc_frm__opc_resp_frm',
+        'fecha_respuesta_frm'
+    ).order_by('id_manychat__rut_usuario')
+
+    # Procesamiento de datos
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
+        respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
+        fecha = respuesta['fecha_respuesta_frm']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {
+                'fecha': fecha.strftime('%d/%m/%Y %H:%M') if fecha else 'Sin fecha',
+                'respuestas': {}
+            }
+        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+
+    # 3. Preparar la tabla con estructura vertical (como en frm1 pero con estilo frm2)
+    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha']
+    data = [encabezados]
+
+    for rut, datos in dict_respuestas.items():
+        for pregunta, respuesta in datos['respuestas'].items():
+            data.append([
+                rut,
+                truncate_text(pregunta, 40),
+                truncate_text(respuesta, 30),
+                datos['fecha']
+            ])
+
+    # 4. Crear tabla con ajuste dinámico
+    tabla = Table(data, repeatRows=1)
+    
+    # Calcular ancho de columnas
+    ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
+    ancho_rut = 4*cm
+    ancho_fecha = 3*cm
+    ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
+    ancho_respuesta = (ancho_total - ancho_rut - ancho_fecha) * 0.4
+    
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
+    ])
+    
+    # Aplicar anchos de columnas
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+    estilo.add('COLWIDTH', (1, 0), (1, -1), ancho_pregunta)
+    estilo.add('COLWIDTH', (2, 0), (2, -1), ancho_respuesta)
+    estilo.add('COLWIDTH', (3, 0), (3, -1), ancho_fecha)
+    
+    # Filas alternadas
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    tabla.setStyle(estilo)
+
+    # 5. Construir el documento
+    elementos = [
+        Paragraph("Factores de Riesgo Modificables V1", styles['Title']),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"Total de respuestas: {len(data)-1}", styles['Normal']),
+        Spacer(1, 0.5*cm),
+        tabla,
+        Spacer(1, 0.3*cm),
+        Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')}", styles['Small'])
+    ]
+
+    doc.build(elementos)
+    
+    # 6. Retornar el PDF
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="FactoresMod_V1_vertical.pdf"'
+    return response
+
 @login_required
 def datos_FRM2(request):
     
@@ -629,6 +751,120 @@ def crear_excel_datos_frm2(request):
     wb.save(response)
     return response
 
+@login_required
+def crear_pdf_datos_frm2(request):
+    def truncate_text(text, max_length):
+        if not text:
+            return text
+        return (text[:max_length-3] + '...') if len(text) > max_length else text
+
+ 
+    preguntas = PregFRM.objects.all().order_by('id_preg_frm')
+    
+    respuestas = RespFRM.objects.select_related(
+        'id_opc_frm__id_preg_frm', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_frm__id_preg_frm__preg_frm',
+        'id_opc_frm__opc_resp_frm',
+        'fecha_respuesta_frm'
+    )
+
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
+        respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
+        fecha = respuesta['fecha_respuesta_frm']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {
+                'fecha': fecha.strftime('%d/%m/%Y %H:%M') if fecha else 'Sin fecha',
+                'respuestas': {}
+            }
+        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=1*cm,
+        rightMargin=1*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
+    
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='Small',
+        parent=styles['Normal'],
+        fontSize=7,
+        leading=9
+    ))
+
+    encabezados = ['RUT'] + [truncate_text(p.preg_frm, 25) for p in preguntas] + ['Fecha']
+    data = [encabezados]
+
+    for rut, datos in dict_respuestas.items():
+        fila = [rut]
+        for p in preguntas:
+            respuesta = datos['respuestas'].get(p.preg_frm, 'NR') 
+            fila.append(truncate_text(respuesta, 20))
+        fila.append(datos['fecha'])
+        data.append(fila)
+
+
+    tabla = Table(data, repeatRows=1)
+    
+    ancho_total = landscape(A4)[0] - 2*cm  
+    ancho_rut = 6*cm
+    ancho_fecha = 4*cm
+    ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
+    
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 7),
+        ('FONTSIZE', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
+    ])
+    
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+    for i in range(1, len(preguntas)+1):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
+    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
+    
+    
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    tabla.setStyle(estilo)
+
+  
+    elementos = [
+        Paragraph("Factores de Riesgo Modificables V2", styles['Title']),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+        Spacer(1, 0.5*cm),
+        tabla,
+        Spacer(1, 0.3*cm),
+        Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')} | NR = No Respondió", styles['Small'])
+    ]
+
+    doc.build(elementos)
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="FactoresMod_V2.pdf"'
+    return response
+
 # -------------- #
 # ---- FRNM ---- #
 # -------------- #
@@ -683,6 +919,102 @@ def crear_excel_datos_frnm1(request):
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V1.xlsx"'
     wb.save(response)
+    return response
+
+@login_required
+def crear_pdf_datos_frnm1(request):
+    # 1. Obtener los datos
+    respuestas = RespFRNM.objects.select_related(
+        'id_opc_frnm__id_preg_frnm', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_frnm__id_preg_frnm__preg_frnm',
+        'id_opc_frnm__opc_resp_frnm',
+        'fecha_respuesta_frnm'
+    ).order_by('-fecha_respuesta_frnm')
+
+    # 2. Configuración del documento PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=1.5*cm,
+        rightMargin=1.5*cm,
+        topMargin=2*cm,
+        bottomMargin=2*cm
+    )
+    
+    # Obtener estilos y agregar el estilo 'Small' si no existe
+    styles = getSampleStyleSheet()
+    if 'Small' not in styles:
+        styles.add(ParagraphStyle(
+            name='Small',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=10
+        ))
+
+    # 3. Preparar los datos para la tabla
+    data = []
+    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
+    data.append(encabezados)
+
+    for r in respuestas:
+        fecha = r['fecha_respuesta_frnm']
+        data.append([
+            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+            r['id_opc_frnm__id_preg_frnm__preg_frnm'],
+            r['id_opc_frnm__opc_resp_frnm'],
+            fecha.strftime('%d/%m/%Y %H:%M') if fecha else 'Sin fecha'
+        ])
+
+    # 4. Crear y estilizar la tabla
+    tabla = Table(data, repeatRows=1)
+    
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
+    ])
+    
+    # Ajustar ancho de columnas
+    ancho_columnas = [7*cm, 8*cm, 6*cm, 4*cm]
+    for i, width in enumerate(ancho_columnas):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), width)
+    
+    # Filas alternadas
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    tabla.setStyle(estilo)
+
+    # 5. Construir el documento PDF
+    elementos = [
+        Paragraph("Factores de Riesgo No Modificables - Versión 1", styles['Title']),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+        Spacer(1, 0.5*cm),
+        tabla,
+        Spacer(1, 0.3*cm),
+        Paragraph("Generado el: " + timezone.now().strftime('%d/%m/%Y %H:%M'), styles['Small'])  # Usando el estilo Small que acabamos de definir
+    ]
+
+    doc.build(elementos)
+    
+    # 6. Retornar el PDF generado
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="FactoresNoMod_V1.pdf"'
     return response
 
 @login_required
@@ -766,8 +1098,16 @@ def crear_excel_datos_frnm2(request):
     response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V2.xlsx"'
     wb.save(response)
     return response
+
 @login_required
 def crear_pdf_datos_frnm2(request):
+    # Función auxiliar interna para truncar texto
+    def truncate_text(text, max_length):
+        """Trunca texto largo agregando '...' si excede el máximo"""
+        if not text:
+            return text
+        return (text[:max_length-3] + '...') if len(text) > max_length else text
+
     # 1. Obtener y preparar los datos
     preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
     
@@ -812,15 +1152,15 @@ def crear_pdf_datos_frnm2(request):
         leading=8
     ))
 
-    # 3. Preparar la tabla con ajuste automático
-    encabezados = ['RUT'] + [self._truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha']
+    # 3. Preparar la tabla con textos truncados
+    encabezados = ['RUT'] + [truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha']
     data = [encabezados]
 
     for rut, datos in dict_respuestas.items():
         fila = [rut]
         for p in preguntas:
             respuesta = datos['respuestas'].get(p.preg_frnm, 'NR')  # NR = No Respondió
-            fila.append(self._truncate_text(respuesta, 20))
+            fila.append(truncate_text(respuesta, 20))
         fila.append(datos['fecha'].strftime('%d/%m/%Y') if datos['fecha'] else 'S/F')
         data.append(fila)
 
@@ -831,41 +1171,42 @@ def crear_pdf_datos_frnm2(request):
     ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
     ancho_rut = 6*cm
     ancho_fecha = 3*cm
-    ancho_preguntas = (ancho_total - ancho_rut - ancho_fecha) / len(preguntas)
+    ancho_preguntas = max(2.5*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))  # Mínimo 2.5cm
     
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Encabezado rosa
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 6),
+        ('FONTSIZE', (0, 0), (-1, 0), 7),
         ('FONTSIZE', (0, 1), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
         ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ('WORDWRAP', (0, 0), (-1, -1), True),  # Ajuste de texto
+        ('WORDWRAP', (0, 0), (-1, -1), True),  # Ajuste de texto automático
+        ('LEADING', (0, 0), (-1, -1), 7),  # Espacio entre líneas
     ])
     
-    # Aplicar anchos
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+    # Aplicar anchos de columna
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)  # Columna RUT
     for i in range(1, len(preguntas)+1):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
-    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
+        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)  # Columnas de preguntas
+    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)  # Columna Fecha
     
-    # Filas alternadas
+    # Filas alternadas para mejor legibilidad
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
     tabla.setStyle(estilo)
 
-    # 5. Construir el documento
+    # 5. Construir el documento PDF
     elementos = [
         Paragraph("Factores de Riesgo No Modificables V2", styles['Title']),
         Spacer(1, 0.5*cm),
         Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
-        Spacer(1, 0.5*cm),
+        Spacer(1, 0.3*cm),
         tabla,
         Spacer(1, 0.3*cm),
         Paragraph("NR = No Respondió | S/F = Sin Fecha", styles['SmallText'])
@@ -873,17 +1214,11 @@ def crear_pdf_datos_frnm2(request):
 
     doc.build(elementos)
     
-    # 6. Retornar la respuesta
+    # 6. Retornar el PDF generado
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="FactoresRiesgoNoMod_V2.pdf"'
     return response
-
-def _truncate_text(self, text, max_length):
-    """Función auxiliar para truncar texto largo"""
-    if not text:
-        return text
-    return (text[:max_length-3] + '...') if len(text) > max_length else text
 
 # ------------ #
 # ---- DS ---- #
