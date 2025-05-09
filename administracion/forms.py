@@ -12,4 +12,12 @@ class UserForm(forms.ModelForm):
 class PerfilUsuarioForm(forms.ModelForm):
     class Meta:
         model = PerfilUsuario
-        fields = ['telefono', 'cod_acceso', 'usuario_sist']
+        fields = ['telefono', 'cod_acceso', 'usuario_sist', 'tipo_usuario']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get('tipo_usuario')
+        usuario_sist = cleaned_data.get('usuario_sist')
+
+        if tipo == 'paciente' and not usuario_sist:
+            self.add_error('usuario_sist', 'Este campo es obligatorio para pacientes.')
