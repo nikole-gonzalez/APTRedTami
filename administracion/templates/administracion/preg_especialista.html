@@ -46,8 +46,12 @@
             {% csrf_token %}
             <button type="submit">Descargar como Excel</button>
         </form>
+    <br>
+        <a href="{% url 'crear_pdf_preg_especialista' %}" class="btn btn-danger">
+            <i class="fas fa-file-pdf"></i> Exportar a PDF
+        </a>
+    <br>
     </div>
-
     <a class="button" href="{% url 'respuestas' %}">Volver</a>
 </section>
 

@@ -6,10 +6,9 @@
 <h2 class="major">Datos Listado Ordenable</h2>
 <a class="button" href="{% url 'respuestas' %}">Volver</a>
 
-<section id = "usuarios" >
+<section id="usuarios">
     {% if Datos %}
-    <div class = "table-wrapper">
-
+    <div class="table-wrapper">
         <table border="1">
             <thead>
                 <tr>
@@ -31,15 +30,16 @@
             <tbody>
                 {% for dato in Datos %}
                 <tr>
-                    <td>{{ forloop.counter }}
-                    <td>{{ dato.id_manychat }}</td>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ dato.id }}</td> 
                     <td>{{ dato.rut_usuario }}</td>
-                    <td>{{ dato.num_whatsapp }}</td>
-                    <td>{{ dato.email }}</td>
+                    <td>{{ dato.dv_rut }}</td>  
+                    <td>{{ dato.num_whatsapp }}</td>  
+                    <td>{{ dato.email }}</td>  
                     <td>{{ dato.edad }}</td>
-                    <td>{{ dato.nombre_comuna }}</td>
+                    <td>{{ dato.nombre_comuna }}</td>  
                     <td>{{ dato.pap_alterado }}</td>
-                    <td>{{ dato.parejas_sexuales}}</td>   
+                    <td>{{ dato.parejas_sexuales }}</td>   
                 </tr>
                 {% endfor %}
             </tbody>
@@ -47,11 +47,21 @@
     </div>
     {% else %}
     <p>No hay datos ingresados</p>
-    {% endif%}
-
+    {% endif %}
+     <div style="text-align: center;">
+        <br>
+        <form action="{% url 'crear_excel_listado_priorizado' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Descargar como Excel</button>
+        </form>
+        <br>
+        <a href="{% url 'crear_pdf_listado_priorizado' %}" class="btn btn-danger">
+            <i class="fas fa-file-pdf"></i> Exportar a PDF
+        </a>
+    </div>
 
     <a class="button" href="{% url 'respuestas' %}">Volver</a>
-</secion>
+</section>
 
 <style>
     #usuarios {

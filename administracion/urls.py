@@ -39,5 +39,14 @@ urlpatterns = [
     path('crear_excel_datos_frnm2/', views.crear_excel_datos_frnm2, name="crear_excel_datos_frnm2"),
     path('crear_excel_datos_ds1/', views.crear_excel_datos_ds1, name="crear_excel_datos_ds1"),
     path('crear_excel_datos_ds2/', views.crear_excel_datos_ds2, name="crear_excel_datos_ds2"),
+    path('crear_excel_priorizado/', views.crear_excel_listado_priorizado, name="crear_excel_listado_priorizado"),
     path('crear_excel_preg_especialista', views.crear_excel_preg_especialista, name="crear_excel_preg_especialista"),
+
+    # Descargar en PDF
+    path('crear_pdf_datos_frnm2/', views.crear_pdf_datos_frnm2, name='crear_pdf_datos_frnm2'),
+    path('crear_pdf_datos_ds1/', views.crear_pdf_datos_ds1, name='crear_pdf_datos_ds1'),
+    path('crear_pdf_datos_ds2/', views.crear_pdf_datos_ds2, name="crear_pdf_datos_ds2"),
+    path('crear_pdf_listado_priorizado/', views.crear_pdf_listado_priorizado, name="crear_pdf_listado_priorizado"),
+    path('crear_pdf_preg_especialista/', views.crear_pdf_preg_especialista, name="crear_pdf_preg_especialista"),
+
 ]

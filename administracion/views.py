@@ -18,7 +18,6 @@ from django.contrib.auth.models import User
 from django.db import connection
 from django.db.models import Count, F, Max
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, redirect
 from django.utils import timezone
 
 from collections import Counter
@@ -32,12 +31,22 @@ from .models import *
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+
 
 from django.views.decorators.csrf import csrf_exempt
 import json
 import locale 
 
 import logging
+
+from django.conf import settings
+from django.db.models import F, Subquery, OuterRef, Case, When, Value, CharField
+from datetime import date
+
 
 locale.setlocale(locale.LC_TIME, 'es_ES')
 
@@ -756,6 +765,124 @@ def crear_excel_datos_frnm2(request):
     response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V2.xlsx"'
     wb.save(response)
     return response
+@login_required
+def crear_pdf_datos_frnm2(request):
+    # 1. Obtener y preparar los datos
+    preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
+    
+    respuestas = RespFRNM.objects.select_related(
+        'id_opc_frnm__id_preg_frnm', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_frnm__id_preg_frnm__preg_frnm',
+        'id_opc_frnm__opc_resp_frnm',
+        'fecha_respuesta_frnm'
+    )
+
+    # Procesamiento de datos optimizado
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
+        respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
+        fecha = respuesta['fecha_respuesta_frnm']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {'fecha': fecha, 'respuestas': {}}
+        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+
+    # 2. Configuración del documento PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=1*cm,
+        rightMargin=1*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
+    
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='SmallText',
+        parent=styles['Normal'],
+        fontSize=6,
+        leading=8
+    ))
+
+    # 3. Preparar la tabla con ajuste automático
+    encabezados = ['RUT'] + [self._truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha']
+    data = [encabezados]
+
+    for rut, datos in dict_respuestas.items():
+        fila = [rut]
+        for p in preguntas:
+            respuesta = datos['respuestas'].get(p.preg_frnm, 'NR')  # NR = No Respondió
+            fila.append(self._truncate_text(respuesta, 20))
+        fila.append(datos['fecha'].strftime('%d/%m/%Y') if datos['fecha'] else 'S/F')
+        data.append(fila)
+
+    # 4. Crear tabla con ajuste dinámico
+    tabla = Table(data, repeatRows=1)
+    
+    # Calcular ancho de columnas dinámicamente
+    ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
+    ancho_rut = 6*cm
+    ancho_fecha = 3*cm
+    ancho_preguntas = (ancho_total - ancho_rut - ancho_fecha) / len(preguntas)
+    
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 6),
+        ('FONTSIZE', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+        ('WORDWRAP', (0, 0), (-1, -1), True),  # Ajuste de texto
+    ])
+    
+    # Aplicar anchos
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+    for i in range(1, len(preguntas)+1):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
+    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
+    
+    # Filas alternadas
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    tabla.setStyle(estilo)
+
+    # 5. Construir el documento
+    elementos = [
+        Paragraph("Factores de Riesgo No Modificables V2", styles['Title']),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+        Spacer(1, 0.5*cm),
+        tabla,
+        Spacer(1, 0.3*cm),
+        Paragraph("NR = No Respondió | S/F = Sin Fecha", styles['SmallText'])
+    ]
+
+    doc.build(elementos)
+    
+    # 6. Retornar la respuesta
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="FactoresRiesgoNoMod_V2.pdf"'
+    return response
+
+def _truncate_text(self, text, max_length):
+    """Función auxiliar para truncar texto largo"""
+    if not text:
+        return text
+    return (text[:max_length-3] + '...') if len(text) > max_length else text
 
 # ------------ #
 # ---- DS ---- #
@@ -811,6 +938,92 @@ def crear_excel_datos_ds1(request):
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="DeterminantesSociales_V1.xlsx"'
     wb.save(response)
+    return response
+
+@login_required
+def crear_pdf_datos_ds1(request):
+    # Obtener los datos (similar a crear_excel_datos_ds1)
+    respuestas = RespDS.objects.select_related(
+        'id_opc_ds__id_preg_ds', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_ds__id_preg_ds__preg_ds',
+        'id_opc_ds__opc_resp_ds',
+        'fecha_respuesta_ds'
+    ).order_by('-fecha_respuesta_ds')  # Orden descendente por fecha como en datos_DS1
+
+    # Preparar los datos para el PDF
+    data = []
+    
+    # Encabezados
+    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
+    data.append(encabezados)
+
+    # Llenar con los datos
+    for r in respuestas:
+        fecha = r['fecha_respuesta_ds']
+        data.append([
+            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+            r['id_opc_ds__id_preg_ds__preg_ds'],
+            r['id_opc_ds__opc_resp_ds'],
+            fecha.strftime('%Y-%m-%d %H:%M') if fecha else 'Sin fecha'
+        ])
+
+    # Crear el PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Crear la tabla
+    tabla = Table(data)
+    
+    # Estilo de la tabla (similar al estilo anterior)
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Color rosa
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+    ])
+    
+    # Alternar colores de fila para mejor legibilidad
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    # Ajustar el ancho de las columnas
+    ancho_columnas = [100, 200, 150, 100]  # Ajustado para este formato
+    for i, width in enumerate(ancho_columnas):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), width)
+    
+    tabla.setStyle(estilo)
+    
+    # Construir el PDF
+    elementos = []
+    
+    # Título del documento
+    titulo = Paragraph("Determinantes Sociales - Versión 1", styles['Title'])
+    elementos.append(titulo)
+    
+    # Espacio después del título
+    elementos.append(Paragraph("<br/><br/>", styles['Normal']))
+    
+    # Agregar la tabla
+    elementos.append(tabla)
+    
+    # Generar el PDF
+    doc.build(elementos)
+    
+    # Preparar la respuesta
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="DeterminantesSociales_V1.pdf"'
+    
     return response
 
 @login_required
@@ -895,6 +1108,103 @@ def crear_excel_datos_ds2(request):
     wb.save(response)
     return response
 
+@login_required
+def crear_pdf_datos_ds2(request):
+    # Obtener preguntas ordenadas
+    preguntas = PregDS.objects.all().order_by('id_preg_ds')
+    
+    # Obtener respuestas agrupadas por RUT
+    respuestas = RespDS.objects.select_related(
+        'id_opc_ds__id_preg_ds', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_ds__id_preg_ds__preg_ds',
+        'id_opc_ds__opc_resp_ds'
+    )
+
+    # Procesar datos para la tabla
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
+        respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {}
+        dict_respuestas[rut][pregunta] = respuesta_usuario
+
+    # Preparar datos para el PDF
+    data = []
+    
+    # Encabezados (RUT + preguntas)
+    encabezados = ['RUT'] + [pregunta.preg_ds for pregunta in preguntas]
+    data.append(encabezados)
+
+    # Llenar con los datos
+    for rut, respuestas_usuario in dict_respuestas.items():
+        fila = [rut]
+        for pregunta in preguntas:
+            respuesta = respuestas_usuario.get(pregunta.preg_ds, 'No respondió')
+            fila.append(respuesta)
+        data.append(fila)
+
+    # Crear el PDF en formato horizontal (landscape) para mejor visualización
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+    styles = getSampleStyleSheet()
+    
+    # Crear la tabla
+    tabla = Table(data)
+    
+    # Estilo de la tabla (similar al anterior pero adaptado)
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Color rosa
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),  # Tamaño más pequeño para cabeceras
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # Líneas más delgadas
+        ('FONTSIZE', (0, 1), (-1, -1), 7),  # Tamaño más pequeño para contenido
+    ])
+    
+    # Alternar colores de fila
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    # Ajustar ancho columnas (primera columna más angosta para el RUT)
+    ancho_rut = 60
+    ancho_preguntas = (landscape(letter)[0] - ancho_rut) / len(preguntas)
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+    for i in range(1, len(encabezados)):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
+    
+    tabla.setStyle(estilo)
+    
+    # Construir el PDF
+    elementos = []
+    
+    # Título del documento
+    titulo = Paragraph("Determinantes de Salud - Versión 2", styles['Title'])
+    elementos.append(titulo)
+    elementos.append(Paragraph("<br/><br/>", styles['Normal']))
+    
+    # Agregar la tabla
+    elementos.append(tabla)
+    
+    # Generar el PDF
+    doc.build(elementos)
+    
+    # Preparar la respuesta
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="DeterminantesSalud_V2.pdf"'
+    
+    return response 
+
 # ----------------------------------------------------------------- #
 # ---------------------- Listado priorizado ----------------------- #
 # ----------------------------------------------------------------- #
@@ -904,16 +1214,32 @@ def listado_priorizado(request):
     if request.method == "POST":
         password_ingresada = request.POST.get("password")
         if password_ingresada == settings.ACCESO_LISTADO:
-            
-            usuarios = Usuario.objects.filter(
-                resptm__id_resp_tm=5,  
-                respfrnm__id_resp_frnm=9  
-            ).select_related(
-                'cod_comuna'
-            ).annotate(
+            # Subconsulta para PAP Alterado
+            pap_subquery = RespTM.objects.filter(
+                id_manychat=OuterRef('id_manychat'),
+                id_opc_tm=5
+            ).values('id_opc_tm')[:1]
+
+            # Subconsulta para Parejas sexuales
+            parejas_subquery = RespFRNM.objects.filter(
+                id_manychat=OuterRef('id_manychat'),
+                id_opc_frnm=9
+            ).values('id_opc_frnm')[:1]
+
+            usuarios = Usuario.objects.annotate(
                 nombre_comuna=F('cod_comuna__nombre_comuna'),
-                pap_alterado=F('resptm__id_resp_tm'),
-                parejas_sexuales=F('respfrnm__id_resp_frnm')
+                tiene_pap=Subquery(pap_subquery),
+                tiene_parejas=Subquery(parejas_subquery),
+                pap_alterado=Case(
+                    When(tiene_pap__isnull=False, then=Value('Sí')),
+                    default=Value('No aplica'),
+                    output_field=CharField()
+                ),
+                parejas_sexuales=Case(
+                    When(tiene_parejas__isnull=False, then=Value('Sí')),
+                    default=Value('No aplica'),
+                    output_field=CharField()
+                )
             ).order_by('id_manychat')
 
             datos_procesados = []
@@ -922,13 +1248,14 @@ def listado_priorizado(request):
                 
                 datos_procesados.append({
                     "id": usuario.id_manychat,
-                    "Rut": f"{usuario.rut_usuario}-{usuario.dv_rut}",
-                    "Whatsapp": usuario.num_whatsapp,
-                    "Email": getattr(usuario, 'email', 'No disponible'),
+                    "rut_usuario": usuario.rut_usuario, 
+                    "dv_rut": usuario.dv_rut, 
+                    "num_whatsapp": usuario.num_whatsapp, 
+                    "email": getattr(usuario, 'email', 'No disponible'), 
                     "edad": edad,
-                    "comuna": usuario.nombre_comuna, 
-                    "PAP_Alterado": usuario.pap_alterado,
-                    "Parejas_sexuales": usuario.parejas_sexuales
+                    "nombre_comuna": usuario.nombre_comuna,
+                    "pap_alterado": usuario.pap_alterado,
+                    "parejas_sexuales": usuario.parejas_sexuales
                 })
 
             return render(request, "administracion/listado_priorizado.html", {
@@ -941,10 +1268,193 @@ def listado_priorizado(request):
     
     return render(request, "administracion/form_contrasena_listado.html", {"error": error})
 
-def calcular_edad(fecha_nacimiento):
-    today = date.today()
-    return today.year - fecha_nacimiento.year - ((today.month, today.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+def crear_excel_listado_priorizado(request):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Listado Priorizado"
 
+    # Encabezados
+    encabezados = [
+        'ID ManyChat', 
+        'RUT', 
+        'WhatsApp', 
+        'Email', 
+        'Edad',
+        'Comuna', 
+        'PAP Alterado', 
+        'Parejas sexuales'
+    ]
+    ws.append(encabezados)
+
+    # Obtener los datos (usando la misma consulta que en listado_priorizado)
+    pap_subquery = RespTM.objects.filter(
+        id_manychat=OuterRef('id_manychat'),
+        id_opc_tm=5
+    ).values('id_opc_tm')[:1]
+
+    parejas_subquery = RespFRNM.objects.filter(
+        id_manychat=OuterRef('id_manychat'),
+        id_opc_frnm=9
+    ).values('id_opc_frnm')[:1]
+
+    usuarios = Usuario.objects.annotate(
+        nombre_comuna=F('cod_comuna__nombre_comuna'),
+        tiene_pap=Subquery(pap_subquery),
+        tiene_parejas=Subquery(parejas_subquery),
+        pap_alterado=Case(
+            When(tiene_pap__isnull=False, then=Value('Sí')),
+            default=Value('No aplica'),
+            output_field=CharField()
+        ),
+        parejas_sexuales=Case(
+            When(tiene_parejas__isnull=False, then=Value('Sí')),
+            default=Value('No aplica'),
+            output_field=CharField()
+        )
+    ).order_by('id_manychat')
+
+    # Llenar el Excel con los datos
+    for usuario in usuarios:
+        edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else None
+        
+        fila = [
+            usuario.id_manychat,
+            f"{usuario.rut_usuario}-{usuario.dv_rut}",
+            usuario.num_whatsapp,
+            usuario.email or 'No disponible',
+            edad or 'No registrada',
+            usuario.nombre_comuna,
+            usuario.pap_alterado,
+            usuario.parejas_sexuales
+        ]
+        ws.append(fila)
+    
+    # Ajustar formato (puedes reutilizar tus funciones existentes)
+    ajustar_ancho_columnas(ws)
+    background_colors(ws)
+
+    # Preparar la respuesta
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="Listado_Priorizado.xlsx"'
+
+    wb.save(response)
+    return response
+
+@login_required
+def crear_pdf_listado_priorizado(request):
+    pap_subquery = RespTM.objects.filter(
+        id_manychat=OuterRef('id_manychat'),
+        id_opc_tm=5
+    ).values('id_opc_tm')[:1]
+
+    parejas_subquery = RespFRNM.objects.filter(
+        id_manychat=OuterRef('id_manychat'),
+        id_opc_frnm=9
+    ).values('id_opc_frnm')[:1]
+
+    usuarios = Usuario.objects.annotate(
+        nombre_comuna=F('cod_comuna__nombre_comuna'),
+        tiene_pap=Subquery(pap_subquery),
+        tiene_parejas=Subquery(parejas_subquery),
+        pap_alterado=Case(
+            When(tiene_pap__isnull=False, then=Value('Sí')),
+            default=Value('No aplica'),
+            output_field=CharField()
+        ),
+        parejas_sexuales=Case(
+            When(tiene_parejas__isnull=False, then=Value('Sí')),
+            default=Value('No aplica'),
+            output_field=CharField()
+        )
+    ).order_by('id_manychat')
+
+    # Preparar los datos para el PDF
+    data = []
+    
+    # Encabezados
+    encabezados = [
+        'ID ManyChat', 
+        'RUT', 
+        'WhatsApp', 
+        'Email', 
+        'Edad',
+        'Comuna', 
+        'PAP Alterado', 
+        'Parejas sexuales'
+    ]
+    data.append(encabezados)
+
+    # Llenar con los datos
+    for usuario in usuarios:
+        edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else 'No registrada'
+        
+        fila = [
+            usuario.id_manychat,
+            f"{usuario.rut_usuario}-{usuario.dv_rut}",
+            str(usuario.num_whatsapp),
+            usuario.email or 'No disponible',
+            str(edad),
+            usuario.nombre_comuna,
+            usuario.pap_alterado,
+            usuario.parejas_sexuales
+        ]
+        data.append(fila)
+
+    # Crear el PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Crear la tabla
+    tabla = Table(data)
+    
+    # Estilo de la tabla
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+    ])
+    
+    # Alternar colores de fila para mejor legibilidad
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    tabla.setStyle(estilo)
+    
+    # Ajustar el ancho de las columnas
+    ancho_columnas = [60, 80, 80, 120, 40, 100, 60, 80]
+    for i, width in enumerate(ancho_columnas):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), width)
+    
+    # Construir el PDF
+    elementos = []
+    
+    # Título del documento
+    titulo = Paragraph("Listado Priorizado de Usuarios", styles['Title'])
+    elementos.append(titulo)
+    
+    # Espacio después del título
+    elementos.append(Paragraph("<br/><br/>", styles['Normal']))
+    
+    # Agregar la tabla
+    elementos.append(tabla)
+    
+    # Generar el PDF
+    doc.build(elementos)
+    
+    # Preparar la respuesta
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Listado_Priorizado.pdf"'
+    
+    return response
 # -------------------------------------------------------------------- #
 # ---------------------- Pregunta especialista ----------------------- #
 # -------------------------------------------------------------------- #
@@ -983,4 +1493,87 @@ def crear_excel_preg_especialista(request):
     response["Content-Disposition"] = 'attachment; filename="Preguntas_Especialista.xlsx"'
 
     wb.save(response)
+    return response
+
+@login_required
+def crear_pdf_preg_especialista(request):
+    # Obtener los datos
+    preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all().order_by("-fecha_pregunta_texto")
+    
+    # Preparar los datos para el PDF
+    data = []
+    
+    # Encabezados
+    encabezados = [
+        'ID ManyChat', 
+        'RUT', 
+        'Pregunta', 
+        'Fecha Pregunta'
+    ]
+    data.append(encabezados)
+
+    # Llenar con los datos
+    for pregunta in preguntas:
+        fila = [
+            str(pregunta.id_manychat),
+            f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
+            pregunta.texto_pregunta,
+            pregunta.fecha_pregunta_texto.strftime('%Y-%m-%d %H:%M:%S') if pregunta.fecha_pregunta_texto else 'Sin fecha'
+        ]
+        data.append(fila)
+
+    # Crear el PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Crear la tabla
+    tabla = Table(data)
+    
+    # Estilo de la tabla (mismo estilo que el anterior)
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Mismo color rosa
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+    ])
+    
+    # Alternar colores de fila para mejor legibilidad
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    tabla.setStyle(estilo)
+    
+    # Ajustar el ancho de las columnas (adaptado a estos campos)
+    ancho_columnas = [60, 80, 200, 100]  # Ajustado para la pregunta más larga
+    for i, width in enumerate(ancho_columnas):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), width)
+    
+    # Construir el PDF
+    elementos = []
+    
+    # Título del documento
+    titulo = Paragraph("Preguntas a Especialistas", styles['Title'])
+    elementos.append(titulo)
+    
+    # Espacio después del título
+    elementos.append(Paragraph("<br/><br/>", styles['Normal']))
+    
+    # Agregar la tabla
+    elementos.append(tabla)
+    
+    # Generar el PDF
+    doc.build(elementos)
+    
+    # Preparar la respuesta
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Preguntas_Especialistas.pdf"'
+    
     return response
