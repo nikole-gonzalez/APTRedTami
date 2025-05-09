@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Listado Ordenable{% endblock %}
+
+{% block content %}
+<h2 class="major">Datos Listado Ordenable</h2>
+<a class="button" href="{% url 'respuestas' %}">Volver</a>
+
+<section id = "usuarios" >
+    {% if Datos %}
+    <div class = "table-wrapper">
+
+        <table border="1">
+            <thead>
+                <tr>
+                    <td colspan="10"><b>Total de respuestas: {{ Datos|length }}</b></td>
+                </tr>
+                <tr>
+                    <th>#</th>
+                    <th>ID MANYCHAT</th>
+                    <th>Rut</th>
+                    <th>Dígito verificador</th>
+                    <th>WhatsApp</th>
+                    <th>Email usuario</th>
+                    <th>Edad</th>
+                    <th>Comuna</th>
+                    <th>Pap alterado</th>
+                    <th>Parejas sexuales</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dato in Datos %}
+                <tr>
+                    <td>{{ forloop.counter }}
+                    <td>{{ dato.id_manychat }}</td>
+                    <td>{{ dato.rut_usuario }}</td>
+                    <td>{{ dato.num_whatsapp }}</td>
+                    <td>{{ dato.email }}</td>
+                    <td>{{ dato.edad }}</td>
+                    <td>{{ dato.nombre_comuna }}</td>
+                    <td>{{ dato.pap_alterado }}</td>
+                    <td>{{ dato.parejas_sexuales}}</td>   
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No hay datos ingresados</p>
+    {% endif%}
+
+
+    <a class="button" href="{% url 'respuestas' %}">Volver</a>
+</secion>
+
+<style>
+    #usuarios {
+        margin-top: 2em;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        max-width: 90%; 
+        margin: 0 auto; 
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px auto; 
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #f2849e;
+        color: white;
+        text-align: left;
+    }
+</style>
+
+{% endblock %}

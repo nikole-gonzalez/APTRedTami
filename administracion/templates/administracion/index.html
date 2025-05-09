@@ -35,8 +35,7 @@
                 <li><a href="{% url 'admin_index' %}">Home</a></li>
                 <li><a href="{% url 'respuestas' %}">Respuestas de los usuarios</a></li>
                 <li><a href="{% url 'reportes' %}">Reportes</a></li>
-                <li><a href="{% url 'apis' %}">Api's</a></li>
-                <li><a href="{% url 'mensajes' %}">Listado Mensajes</a></li>
+                <li><a href="{% url 'agenda' %}">Agenda</a></li>
                 <li><a href="{% url 'gestion_usuarios' %}">Gestión de usuarios</a></li>
             </ul>
         </nav>
@@ -75,21 +74,10 @@
                         <span class="image">
                             <img src="{% static 'images/pic03.jpg' %}" alt="" />
                         </span>
-                        <a href="{% url 'apis' %}">
-                            <h2>Api's</h2>
+                        <a href="{% url 'agenda' %}">
+                            <h2>Agenda</h2>
                             <div class="content">
-                                <p>Conexión con Manychat</p>
-                            </div>
-                        </a>
-                    </article>
-                    <article class="style4">
-                        <span class="image">
-                            <img src="{% static 'images/pic04.jpg' %}" alt="" />
-                        </span>
-                        <a href="{% url 'mensajes' %}">
-                            <h2>Listado Mensajes</h2>
-                            <div class="content">
-                                <p>Mensajes personales de los usuarios</p>
+                                <p>Visualización de agendamientos</p>
                             </div>
                         </a>
                     </article>

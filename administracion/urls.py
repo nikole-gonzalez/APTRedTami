@@ -11,8 +11,7 @@ urlpatterns = [
     #Opciones Home
     path('respuestas/', views.respuestas, name='respuestas'),
     path('reportes/', views.reportes, name='reportes'),
-    path('apis/', views.apis, name='apis'),
-    path('mensaje/', views.mensaje, name='mensajes'),
+    path('agenda/', views.agenda, name='agenda'),
     path('gestion_usuarios/', views.gestion_usuarios, name="gestion_usuarios"),
 
     #Opciones respuestas
@@ -40,4 +39,5 @@ urlpatterns = [
     path('crear_excel_datos_frnm2/', views.crear_excel_datos_frnm2, name="crear_excel_datos_frnm2"),
     path('crear_excel_datos_ds1/', views.crear_excel_datos_ds1, name="crear_excel_datos_ds1"),
     path('crear_excel_datos_ds2/', views.crear_excel_datos_ds2, name="crear_excel_datos_ds2"),
+    path('crear_excel_preg_especialista', views.crear_excel_preg_especialista, name="crear_excel_preg_especialista"),
 ]
