@@ -10,7 +10,7 @@ class PerfilUsuario(models.Model):
     cod_acceso = models.IntegerField(default=0)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    usuario_sist = models.OneToOneField('Usuario', on_delete=models.CASCADE)
+    usuario_sist = models.OneToOneField('Usuario', on_delete=models.CASCADE, null=True, blank=True)
     tipo_usuario = models.CharField(
         max_length=20,
         choices=[('administrador', 'Administrador'), ('paciente', 'Paciente')],
