@@ -2,9 +2,9 @@ from django.contrib import admin
 from .models import *
 
 class AgendaAdmin(admin.ModelAdmin):
-    list_display=("id_agenda", "fecha_atencion", "hora_atencion", "requisito_examen", "id_cesfam", "id_usuario", "id_procedimiento")
-    search_fields=("id_agenda", "fecha_atencion", "hora_atencion", "requisito_examen", "id_cesfam", "id_usuario", "id_procedimiento")
-    list_filter=("id_agenda", "fecha_atencion", "hora_atencion", "requisito_examen", "id_cesfam", "id_usuario", "id_procedimiento")
+    list_display=("id_agenda", "fecha_atencion", "hora_atencion", "requisito_examen", "id_cesfam", "id_manychat", "id_procedimiento")
+    search_fields=("id_agenda", "fecha_atencion", "hora_atencion", "requisito_examen", "id_cesfam", "id_manychat", "id_procedimiento")
+    list_filter=("id_agenda", "fecha_atencion", "hora_atencion", "requisito_examen", "id_cesfam", "id_manychat", "id_procedimiento")
 
 class CesfamAdmin(admin.ModelAdmin):
     list_display=("id_cesfam", "nombre_cesfam", "telefono_cesfam", "cod_comuna")

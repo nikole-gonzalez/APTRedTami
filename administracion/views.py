@@ -1496,7 +1496,7 @@ def crear_excel_preg_especialista(request):
     wb.save(response)
     return response
   
-  @login_required
+@login_required
 def crear_pdf_preg_especialista(request):
     # Obtener los datos
     preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all().order_by("-fecha_pregunta_texto")
