@@ -56,12 +56,8 @@ def respuestas(request):
     return render(request, 'administracion/respuestas.html')
 
 @login_required
-def apis(request):
-    return render(request, 'administracion/apis.html')
-
-@login_required
-def mensaje(request):
-    return render(request, 'administracion/mensaje.html')
+def agenda(request):
+    return render(request, 'administracion/agenda.html')
 
 @login_required
 def gestion_usuarios(request):
@@ -76,33 +72,8 @@ def opc_vis_FRNM(request):
     return render(request, 'administracion/opc_vis_FRNM.html')
 
 @login_required
-def datos_FRNM1(request):
-    return render(request, 'administracion/datos_FRNM1.html')
-
-@login_required
-def datos_FRNM2(request):
-    return render(request, 'administracion/datos_FRNM2.html')
-
-@login_required
 def opc_vis_DS(request):
     return render(request, 'administracion/opc_vis_DS.html')
-
-@login_required
-def datos_DS1(request):
-    return render(request, 'administracion/datos_DS1.html')
-
-@login_required
-def datos_DS2(request):
-    return render(request, 'administracion/datos_DS2.html')
-
-@login_required
-def preg_especialista(request):
-    return render(request, 'administracion/preg_especialista.html')
-
-@login_required
-def listado_priorizado (request):
-    return render(request, 'administracion/listado_priorizado.html')
-
 
 # ------------------------------------------------------ #
 # ---------------------- Reportes ---------------------- #
@@ -476,10 +447,8 @@ def crear_excel_datos_tamizaje(request):
     ws = wb.active
     ws.title = "Resultados Tamizaje"
 
-    # Encabezados
     ws.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta', 'Tipo'])
 
-    # Obtener datos
     respuestas = RespTM.objects.select_related(
         'id_opc_tm__id_preg_tm', 'id_manychat'
     ).values(
@@ -570,14 +539,13 @@ def crear_excel_datos_frm1(request):
 
 @login_required
 def datos_FRM2(request):
-    # Obtener todas las preguntas FRM
+    
     preguntas = PregFRM.objects.all()
     
-    # Consulta usando id_manychat directamente
     usuarios_respuestas = RespFRM.objects.select_related(
         "id_opc_frm", "id_opc_frm__id_preg_frm"
     ).values(
-        "id_manychat",  # Usamos directamente id_manychat del modelo RespFRM
+        "id_manychat",  
         "fecha_respuesta_frm",
         "id_opc_frm__id_preg_frm__preg_frm",
         "id_opc_frm__opc_resp_frm"
@@ -699,7 +667,6 @@ def crear_excel_datos_frnm1(request):
             fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
         ])
 
-    # Aplicar formatos (funciones ya existentes)
     ajustar_ancho_columnas(ws_FRNM_V1)
     background_colors(ws_FRNM_V1)
 
@@ -837,8 +804,7 @@ def crear_excel_datos_ds1(request):
             r['id_opc_ds__opc_resp_ds'],
             fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
         ])
-
-    # Aplicar formatos (funciones ya existentes)
+    
     ajustar_ancho_columnas(ws_DS_V1)
     background_colors(ws_DS_V1)
 
@@ -926,5 +892,95 @@ def crear_excel_datos_ds2(request):
 
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="DeterminantesSalud_V2.xlsx"'
+    wb.save(response)
+    return response
+
+# ----------------------------------------------------------------- #
+# ---------------------- Listado priorizado ----------------------- #
+# ----------------------------------------------------------------- #
+
+@login_required
+def listado_priorizado(request):
+    if request.method == "POST":
+        password_ingresada = request.POST.get("password")
+        if password_ingresada == settings.ACCESO_LISTADO:
+            
+            usuarios = Usuario.objects.filter(
+                resptm__id_resp_tm=5,  
+                respfrnm__id_resp_frnm=9  
+            ).select_related(
+                'cod_comuna'
+            ).annotate(
+                nombre_comuna=F('cod_comuna__nombre_comuna'),
+                pap_alterado=F('resptm__id_resp_tm'),
+                parejas_sexuales=F('respfrnm__id_resp_frnm')
+            ).order_by('id_manychat')
+
+            datos_procesados = []
+            for usuario in usuarios:
+                edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else None
+                
+                datos_procesados.append({
+                    "id": usuario.id_manychat,
+                    "Rut": f"{usuario.rut_usuario}-{usuario.dv_rut}",
+                    "Whatsapp": usuario.num_whatsapp,
+                    "Email": getattr(usuario, 'email', 'No disponible'),
+                    "edad": edad,
+                    "comuna": usuario.nombre_comuna, 
+                    "PAP_Alterado": usuario.pap_alterado,
+                    "Parejas_sexuales": usuario.parejas_sexuales
+                })
+
+            return render(request, "administracion/listado_priorizado.html", {
+                "Datos": datos_procesados
+            })
+        else:
+            error = "Contraseña incorrecta"
+    else:
+        error = None
+    
+    return render(request, "administracion/form_contrasena_listado.html", {"error": error})
+
+def calcular_edad(fecha_nacimiento):
+    today = date.today()
+    return today.year - fecha_nacimiento.year - ((today.month, today.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+
+# -------------------------------------------------------------------- #
+# ---------------------- Pregunta especialista ----------------------- #
+# -------------------------------------------------------------------- #
+
+@login_required
+def preg_especialista(request):
+    Datos = UsuarioTextoPregunta.objects.all().order_by("-fecha_pregunta_texto")
+    data = {
+        "Datos": Datos,
+    }
+    return render(request, "administracion/preg_especialista.html", data)
+
+def crear_excel_preg_especialista(request):
+    wb = Workbook()
+    ws_preg_esp = wb.active
+    ws_preg_esp.title = "Preguntas especialistas"
+
+    lista_preguntas = ['ID ManyChat', 'RUT', 'Pregunta', 'Fecha Pregunta'] 
+    ws_preg_esp.append(lista_preguntas)
+
+    preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all()
+
+    for pregunta in preguntas:
+        fila = [
+            pregunta.id_manychat, 
+            f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}", 
+            pregunta.texto_pregunta,
+            pregunta.fecha_pregunta.strftime('%Y-%m-%d %H:%M:%S') if pregunta.fecha_pregunta else ''
+        ]
+        ws_preg_esp.append(fila)
+    
+    ajustar_ancho_columnas(ws_preg_esp)
+    background_colors(ws_preg_esp)
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="Preguntas_Especialista.xlsx"'
+
     wb.save(response)
     return response
