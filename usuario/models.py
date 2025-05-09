@@ -8,7 +8,7 @@ class Agenda(models.Model):
     hora_atencion = models.TimeField()
     requisito_examen = models.CharField(max_length=200)
     id_cesfam = models.ForeignKey('Cesfam', on_delete=models.CASCADE)
-    id_usuario = models.ForeignKey('administracion.Usuario', on_delete=models.CASCADE)
+    id_manychat = models.ForeignKey('administracion.Usuario', on_delete=models.CASCADE)
     id_procedimiento = models.ForeignKey('TipoProcedimiento', on_delete=models.CASCADE)
 
     def __str__(self):

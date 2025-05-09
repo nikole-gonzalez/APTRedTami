@@ -2,14 +2,14 @@ from django.contrib import admin
 from .models import *
 
 class PerfilUsuarioAdmin(admin.ModelAdmin):
-    list_display=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist")
-    search_fields=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist")
-    list_filter=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist")
+    list_display=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist","tipo_usuario")
+    search_fields=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist","tipo_usuario")
+    list_filter=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist", "tipo_usuario")
     
 class UsuarioAdmin(admin.ModelAdmin):
-    list_display=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email")
-    search_fields=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email")
-    list_filter=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email")
+    list_display=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email", "cesfam_usuario")
+    search_fields=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email", "cesfam_usuario")
+    list_filter=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email", "cesfam_usuario")
 
 class RegionAdmin(admin.ModelAdmin):
     list_display=("cod_region","nombre_region")
@@ -93,9 +93,9 @@ class RespFRNMAdmin(admin.ModelAdmin):
     list_filter=("id_resp_frnm","fecha_respuesta_frnm","id_opc_frnm","id_manychat")
 
 class DivulgacionAdmin(admin.ModelAdmin):
-    list_display=("id_divultacion","texto_divulgacion","url","fecha_envio","imagen")
-    search_fields=("id_divultacion","texto_divulgacion","url","fecha_envio","imagen")
-    list_filter=("id_divultacion","texto_divulgacion","url","fecha_envio","imagen")
+    list_display=("id_divulgacion","texto_divulgacion","url","fecha_envio","imagen")
+    search_fields=("id_divulgacion","texto_divulgacion","url","fecha_envio","imagen")
+    list_filter=("id_divulgacion","texto_divulgacion","url","fecha_envio","imagen")
 
 admin.site.register(PerfilUsuario, PerfilUsuarioAdmin)
 admin.site.register(Usuario, UsuarioAdmin)

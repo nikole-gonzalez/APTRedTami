@@ -11,6 +11,11 @@ class PerfilUsuario(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     usuario_sist = models.OneToOneField('Usuario', on_delete=models.CASCADE)
+    tipo_usuario = models.CharField(
+        max_length=20,
+        choices=[('administrador', 'Administrador'), ('paciente', 'Paciente')],
+        default='paciente'
+    )
 
     def __str__(self):
         return f"{self.user.username} - {self.usuario_sist.rut_usuario}"
@@ -24,6 +29,7 @@ class Usuario(models.Model):
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
     cod_comuna = models.ForeignKey('Comuna', on_delete=models.CASCADE)
     email = models.CharField(max_length=255, blank=True)
+    cesfam_usuario = models.ForeignKey('usuario.Cesfam', on_delete=models.CASCADE, null = True, blank= True)
 
     def __str__(self):
         return f"Usuario: {self.rut_usuario}-{self.dv_rut} ({self.id_manychat})"
@@ -161,13 +167,13 @@ class RespFRNM(models.Model):
         return f"{self.id_opc_frnm}"
 
 class Divulgacion(models.Model):
-    id_divultacion = models.AutoField(primary_key=True)
+    id_divulgacion = models.AutoField(primary_key=True)
     texto_divulgacion = models.CharField(max_length=200)
     url = models.URLField()
     fecha_envio = models.DateTimeField(auto_now_add=True)
     imagen = models.ImageField(blank=True, null=True)
 
     def __str__(self):
-        return f"Divulgación #{self.id_divultacion} ({self.fecha_envio})"
+        return f"Divulgación #{self.id_divulgacion} ({self.fecha_envio})"
 
 
