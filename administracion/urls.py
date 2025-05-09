@@ -38,12 +38,24 @@ urlpatterns = [
     path('crear_excel_datos_frnm2/', views.crear_excel_datos_frnm2, name="crear_excel_datos_frnm2"),
     path('crear_excel_datos_ds1/', views.crear_excel_datos_ds1, name="crear_excel_datos_ds1"),
     path('crear_excel_datos_ds2/', views.crear_excel_datos_ds2, name="crear_excel_datos_ds2"),
+    path('crear_excel_priorizado/', views.crear_excel_listado_priorizado, name="crear_excel_listado_priorizado"),
     path('crear_excel_preg_especialista', views.crear_excel_preg_especialista, name="crear_excel_preg_especialista"),
+
 
     #CRUD Usuarios
     path('usuarios/', views.lista_usuarios, name='lista_usuarios'),#Home de gestión de usuarios
     path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
     path('usuarios/editar/<int:perfil_id>/', views.editar_usuario, name='editar_usuario'),
     path('usuarios/eliminar/<int:perfil_id>/', views.eliminar_usuario, name='eliminar_usuario'),
+  
+  
+  
+    # Descargar en PDF
+    path('crear_pdf_datos_frnm2/', views.crear_pdf_datos_frnm2, name='crear_pdf_datos_frnm2'),
+    path('crear_pdf_datos_ds1/', views.crear_pdf_datos_ds1, name='crear_pdf_datos_ds1'),
+    path('crear_pdf_datos_ds2/', views.crear_pdf_datos_ds2, name="crear_pdf_datos_ds2"),
+    path('crear_pdf_listado_priorizado/', views.crear_pdf_listado_priorizado, name="crear_pdf_listado_priorizado"),
+    path('crear_pdf_preg_especialista/', views.crear_pdf_preg_especialista, name="crear_pdf_preg_especialista"),
+
 
 ]

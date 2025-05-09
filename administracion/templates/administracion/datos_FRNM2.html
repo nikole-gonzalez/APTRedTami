@@ -44,6 +44,9 @@
             {% csrf_token %}
             <button type="submit">Descargar como Excel</button>
         </form>
+        <a href="{% url 'crear_pdf_datos_frnm2' %}" class="btn btn-danger">
+            <i class="fas fa-file-pdf"></i> Exportar a PDF
+        </a>
     </div>
 
     <a class="button" href="{% url 'respuestas' %}">Volver</a>
