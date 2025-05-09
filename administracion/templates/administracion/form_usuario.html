@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}{% if form_user.instance.pk %}Editar{% else %}Crear{% endif %} Usuario{% endblock %}
+{% block content %}
+<section class="wrapper">
+  <div class="inner">
+    <header class="major">
+      <h2>{% if form_user.instance.pk %}Editar{% else %}Crear{% endif %} Usuario</h2>
+    </header>
+    <form method="post">
+      {% csrf_token %}
+      <div class="table-wrapper">
+        <table>
+          <tbody>
+            <tr>
+              <th><label>Nombre de usuario</label></th>
+              <td>{{ form_user.first_name }}</td>
+            </tr>
+            <tr>
+              <th><label>Apellido de usuario</label></th>
+              <td>{{ form_user.last_name }}</td>
+            </tr>
+            <tr>
+              <th><label>Correo electrónico</label></th>
+              <td>{{ form_user.email }}</td>
+            </tr>
+            <tr>
+              <th><label>Contraseña</label></th>
+              <td>{{ form_user.password }}</td>
+            </tr>
+            <tr>
+              <th><label>Teléfono</label></th>
+              <td>{{ form_perfil.telefono }}</td>
+            </tr>
+            <tr>
+              <th><label>Código de acceso</label></th>
+              <td>{{ form_perfil.cod_acceso }}</td>
+            </tr>
+            <tr>
+              <th><label>Usuario del sistema (ManyChat)</label></th>
+              <td>{{ form_perfil.usuario_sist }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="actions">
+        <li><input type="submit" value="Guardar" class="primary" /></li>
+        <li><a href="{% url 'lista_usuarios' %}" class="button">Cancelar</a></li>
+      </ul>
+    </form>
+  </div>
+</section>
+{% endblock %}

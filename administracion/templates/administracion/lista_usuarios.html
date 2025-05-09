@@ -6,12 +6,13 @@
     <header class="major">
       <h2>Usuarios Registrados</h2>
     </header>
-    <a href="{% url 'gestion_usaurios' %}" class="button primary icon solid fa-plus">Crear nuevo usuario</a>
+    <a href="{% url 'crear_usuario' %}" class="button primary icon solid fa-plus">Crear nuevo usuario</a>
     <div class="table-wrapper" style="margin-top: 20px;">
       <table>
         <thead>
           <tr>
             <th>Nombre</th>
+            <th>Apellido</th>
             <th>Correo</th>
             <th>Teléfono</th>
             <th>Acciones</th>
@@ -20,9 +21,12 @@
         <tbody>
           {% for perfil in perfiles %}
           <tr>
+            <td>{{ perfil.user.first_name}}</td>
+            <td>{{ perfil.user.last_name}}</td>
             <td>{{ perfil.user.username }}</td>
             <td>{{ perfil.user.email }}</td>
             <td>{{ perfil.telefono }}</td>
+            <br>
             <td>
               <a href="{% url 'editar_usuario' perfil.id_perfil %}" class="button small">Editar</a>
               <a href="{% url 'eliminar_usuario' perfil.id_perfil %}" class="button small alt">Eliminar</a>

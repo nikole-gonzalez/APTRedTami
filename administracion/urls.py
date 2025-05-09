@@ -12,8 +12,7 @@ urlpatterns = [
     path('respuestas/', views.respuestas, name='respuestas'),
     path('reportes/', views.reportes, name='reportes'),
     path('agenda/', views.agenda, name='agenda'),
-    path('gestion_usuarios/', views.gestion_usuarios, name="gestion_usuarios"),
-
+    
     #Opciones respuestas
     path('datos_perfil/', views.datos_perfil, name="datos_perfil"),
     path('tamizaje/', views.tamizaje, name="tamizaje"),
@@ -40,4 +39,11 @@ urlpatterns = [
     path('crear_excel_datos_ds1/', views.crear_excel_datos_ds1, name="crear_excel_datos_ds1"),
     path('crear_excel_datos_ds2/', views.crear_excel_datos_ds2, name="crear_excel_datos_ds2"),
     path('crear_excel_preg_especialista', views.crear_excel_preg_especialista, name="crear_excel_preg_especialista"),
+
+    #CRUD Usuarios
+    path('usuarios/', views.lista_usuarios, name='lista_usuarios'),#Home de gestión de usuarios
+    path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
+    path('usuarios/editar/<int:perfil_id>/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios/eliminar/<int:perfil_id>/', views.eliminar_usuario, name='eliminar_usuario'),
+
 ]
