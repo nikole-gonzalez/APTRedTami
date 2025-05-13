@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Error - Registro</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="stylesheet" href="{% static 'phantom/assets/css/main.css' %}" />
+		<noscript><link rel="stylesheet" href="{% static 'phantom/assets/css/noscript.css' %}" /></noscript>
+	</head>
+	<body class="is-preload">
+		<div id="wrapper">
+			<header id="header">
+				<div class="inner">
+					<h1>Lo sentimos</h1>
+					<p>{{ mensaje }}</p>
+					<a href="/" class="button">Volver al inicio</a>
+				</div>
+			</header>
+			<footer id="footer">
+				<div class="inner">
+					<p>&copy; Tu Sitio. Todos los derechos reservados.</p>
+				</div>
+			</footer>
+		</div>
+
+		<!-- Scripts -->
+		<script src="{% static 'phantom/assets/js/jquery.min.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/browser.min.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/breakpoints.min.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/util.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/main.js' %}"></script>
+	</body>
+</html>
