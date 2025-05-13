@@ -1,0 +1,106 @@
+{% load static %}
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Autorregistro - Red Tami</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="{% static 'phantom/assets/css/main.css' %}" />
+		<noscript><link rel="stylesheet" href="{% static 'phantom/assets/css/noscript.css' %}" /></noscript>
+	</head>
+	<body class="is-preload">
+
+		<!-- Wrapper -->
+		<div id="wrapper">
+
+			<!-- Header -->
+			<header id="header">
+				<div class="inner">
+					<h1>Formulario de Registro</h1>
+					<p>Completa tus datos para acceder al sistema.</p>
+				</div>
+			</header>
+
+			<!-- Main -->
+			<div id="main">
+				<div class="inner">
+					<section>
+						{% if messages %}
+							<ul class="messages">
+								{% for message in messages %}
+									<li class="message {{ message.tags }}">{{ message }}</li>
+								{% endfor %}
+							</ul>
+						{% endif %}
+
+						<form method="POST" action="">
+							{% csrf_token %}
+
+							<div class="fields">
+								<div class="field half">
+									<label for="id_username">Nombre de usuario</label>
+									{{ form.username }}
+								</div>
+
+								<div class="field half">
+									<label for="id_email">Correo electrónico</label>
+									{{ form.email }}
+								</div>
+
+								<div class="field half">
+									<label for="id_first_name">Nombre</label>
+									{{ form.first_name }}
+								</div>
+
+								<div class="field half">
+									<label for="id_last_name">Apellido</label>
+									{{ form.last_name }}
+								</div>
+
+								<div class="field half">
+									<label for="id_telefono">Teléfono</label>
+									{{ form.telefono }}
+								</div>
+
+								<div class="field half">
+									<label for="id_cod_acceso">RUT</label>
+									{{ form.cod_acceso }}
+								</div>
+
+								<div class="field half">
+									<label for="id_password">Contraseña</label>
+									{{ form.password }}
+								</div>
+
+								<div class="field half">
+									<label for="id_confirmar_password">Confirmar contraseña</label>
+									{{ form.confirmar_password }}
+								</div>
+							</div>
+
+							<ul class="actions">
+								<li><input type="submit" value="Registrarme" class="primary" /></li>
+							</ul>
+						</form>
+					</section>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<footer id="footer">
+				<div class="inner">
+					<p class="copyright">&copy; Tu Sitio. Todos los derechos reservados.</p>
+				</div>
+			</footer>
+
+		</div>
+
+		<!-- Scripts -->
+		<script src="{% static 'phantom/assets/js/jquery.min.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/browser.min.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/breakpoints.min.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/util.js' %}"></script>
+		<script src="{% static 'phantom/assets/js/main.js' %}"></script>
+
+	</body>
+</html>
