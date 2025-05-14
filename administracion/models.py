@@ -7,7 +7,7 @@ from django.utils import timezone
 class PerfilUsuario(models.Model):
     id_perfil = models.AutoField(primary_key=True, verbose_name="Id Perfil")
     telefono = models.IntegerField(default=0)
-    cod_acceso = models.IntegerField(default=0)
+    cod_acceso = models.CharField(max_length=50, default='')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     usuario_sist = models.OneToOneField('Usuario', on_delete=models.CASCADE, null=True, blank=True)

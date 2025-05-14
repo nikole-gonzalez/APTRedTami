@@ -6,6 +6,9 @@ from administracion.models import PerfilUsuario, Usuario
 from .forms import RegistroForm
 from .utils import verificar_cuestionario_completo
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 def custom_login(request):
     if request.method == 'POST':
@@ -36,41 +39,22 @@ def custom_logout(request):
     messages.info(request, "Has cerrado sesión correctamente.")
     return redirect('login')  
 
-def autorregistro_view(request):
-    id_manychat = request.GET.get("id")
 
-    if not id_manychat:
-        return render(request, "core/error.html", {"mensaje": "No se recibió un ID de usuario válido."})
-
-    try:
-        usuario = Usuario.objects.get(pk=id_manychat)
-    except Usuario.DoesNotExist:
-        return render(request, "core/error.html", {"mensaje": "Usuario no encontrado en base de datos."})
-
-    if not verificar_cuestionario_completo(id_manychat):
-        return render(request, "core/error.html", {"mensaje": "No has completado el cuestionario requerido para registrarte."})
-
+def registro_view(request):
     if request.method == 'POST':
         form = RegistroForm(request.POST)
         if form.is_valid():
-            user = User.objects.create_user(
-                username=form.cleaned_data['username'],
-                email=form.cleaned_data['email'],
-                first_name=form.cleaned_data['first_name'],
-                last_name=form.cleaned_data['last_name'],
-                password=form.cleaned_data['password']
-            )
-            PerfilUsuario.objects.create(
-                user=user,
-                telefono=form.cleaned_data['telefono'],
-                cod_acceso=form.cleaned_data['cod_acceso'],
-                usuario_sist=usuario
-            )
-            return redirect('panel_usuario')  # Asegúrate de tener esta ruta
-        else:
-            messages.error(request, "Por favor corrige los errores.")
+            user = form.save()
+            login(request, user)
+            messages.success(request, "¡Registro exitoso!")
+            return redirect('pag_informativa')
     else:
-        form = RegistroForm()
-
-    return render(request, 'core/autorregistro.html', {'form': form, 'nombre_usuario': usuario})
-
+        initial_data = {}
+        if request.GET.get('email'):
+            initial_data['email'] = request.GET.get('email')
+        form = RegistroForm(initial=initial_data)
+    
+    return render(request, 'core/registro/registro.html', {
+        'form': form,
+        'manychat_id': request.GET.get('manychat_id', '')
+    })

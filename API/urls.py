@@ -21,7 +21,9 @@ from .views import (
     obtener_usuario,
     consultar_estado_pregunta,
     retorna_genero,
-    verificar_usuario
+    verificar_usuario,
+    cuestionario_completo
+
 )
 
 app_name = 'api'  
@@ -50,4 +52,5 @@ urlpatterns = [
     path('consultar-estado-pregunta/', consultar_estado_pregunta, name='consultar-estado-pregunta'),
     path('retorna-genero/', retorna_genero, name='retorna-genero'),
     path('verificar-usuario/', verificar_usuario, name='verificar-usuario'),
+    path('cuestionariocompleto/', cuestionario_completo, name='cuestionario_completo'),
 ]
