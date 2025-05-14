@@ -14,10 +14,10 @@ def verificar_cuestionario_completo(id_manychat):
     """
 
     REQUISITOS = {
-        'TM': 3,  
+        'TM': 6,  
         'DS': 3,   
         'FRM': 4,  
-        'FRNM': 6  
+        'FRNM': 5 
     }
     
     cache_key = f'quiz_complete_{id_manychat}'
