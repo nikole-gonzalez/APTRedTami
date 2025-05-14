@@ -3,8 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import Group, User 
 from django.contrib.auth.decorators import login_required
 from administracion.models import PerfilUsuario, Usuario
-from .forms import RegistroForm
-from .utils import verificar_cuestionario_completo
+from .forms import *
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -44,10 +43,14 @@ def registro_view(request):
     if request.method == 'POST':
         form = RegistroForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, "¡Registro exitoso!")
-            return redirect('pag_informativa')
+            try:
+                user = form.save()
+                login(request, user)
+                messages.success(request, "¡Registro exitoso!")
+                return redirect('pag_informativa')
+            except forms.ValidationError as e:
+                # Añade el error al formulario sin hacer raise
+                form.add_error(None, e)
     else:
         initial_data = {}
         if request.GET.get('email'):
