@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Registro de Usuario{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Registro de Usuario</h1>
+    <p>Completa el formulario para crear tu cuenta</p>
+</header>
+
+<section>
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" class="alt">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="error">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="row gtr-uniform">
+            <!-- Nombre Completo -->
+            <div class="col-12">
+                {{ form.nombre_completo }}
+                {% if form.nombre_completo.errors %}
+                <small class="error">{{ form.nombre_completo.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Username -->
+            <div class="col-6 col-12-xsmall">
+                {{ form.username }}
+                {% if form.username.errors %}
+                <small class="error">{{ form.username.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Email -->
+            <div class="col-6 col-12-xsmall">
+                {{ form.email }}
+                {% if form.email.errors %}
+                <small class="error">{{ form.email.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- RUT -->
+            <div class="col-6 col-12-xsmall">
+                {{ form.rut }}
+                <small class="text-muted">Formato: 12345678-9</small>
+                {% if form.rut.errors %}
+                <small class="error">{{ form.rut.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Teléfono -->
+            <div class="col-6 col-12-xsmall">
+                {{ form.telefono }}
+                {% if form.telefono.errors %}
+                <small class="error">{{ form.telefono.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Contraseñas -->
+            <div class="col-6 col-12-xsmall">
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                <small class="error">{{ form.password1.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            <div class="col-6 col-12-xsmall">
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                <small class="error">{{ form.password2.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Botón de Registro -->
+            <div class="col-12">
+                <ul class="actions">
+                    <li><button type="submit" class="primary">Registrarse</button></li>
+                    <li><a href="{% url 'login' %}" class="button">¿Ya tienes cuenta? Inicia Sesión</a></li>
+                </ul>
+            </div>
+        </div>
+    </form>
+</section>
+
+{% if manychat_id %}
+<section>
+    <div class="box alt">
+        <div class="row gtr-uniform">
+            <div class="col-12">
+                <span class="image fit"><img src="{% static 'images/manychat-banner.jpg' %}" alt="Registro desde ManyChat" /></span>
+                <p>Estás completando tu registro desde ManyChat. Si tienes problemas, contacta a soporte.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<style>
+    .error {
+        color: #ff3860;
+        font-size: 0.8em;
+        margin-top: -0.5em;
+        margin-bottom: 1em;
+        display: block;
+    }
+    .alert.error {
+        background-color: #ff3860;
+        color: white;
+        padding: 1em;
+        border-radius: 4px;
+        margin-bottom: 1.5em;
+    }
+    .alert.success {
+        background-color: #23d160;
+        color: white;
+        padding: 1em;
+        border-radius: 4px;
+        margin-bottom: 1.5em;
+    }
+    .text-muted {
+        color: #7a7a7a;
+        font-size: 0.8em;
+    }
+    <style>
+    /* Elimina flechas en inputs number */
+    input[type="tel"]::-webkit-outer-spin-button,
+    input[type="tel"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    /* Firefox */
+    input[type="tel"] {
+        -moz-appearance: textfield;
+    }
+    
+    /* Estilo para placeholders de contraseña */
+    input[type="password"]::placeholder {
+        color: #999;
+        opacity: 1;
+    }
+</style>
+</style>
+{% endblock %}

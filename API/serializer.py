@@ -9,6 +9,8 @@ from datetime import datetime
 from fuzzywuzzy import fuzz
 from unidecode import unidecode
 import re 
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 class UsuarioSerializer(serializers.ModelSerializer):
 
@@ -171,9 +173,7 @@ class DivulgacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Divulgacion
         fields = "__all__"
-
-
-
+        
 # ------------ SERIALIZER USUARIOS -------------# 
 
 ''' from rest_framework import serializers

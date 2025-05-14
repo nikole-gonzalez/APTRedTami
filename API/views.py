@@ -1,24 +1,25 @@
 from django.shortcuts import render
-
-def home_api(request):
-    return render(request, 'api/index.html')
-
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.parsers import JSONParser
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 from datetime import date
 import hashlib
-
 from .models import *
 from .serializer import *
+
+def home_api(request):
+    return render(request, 'api/index.html')
 
 # Página principal protegida
 @login_required
@@ -217,3 +218,61 @@ def verificar_usuario(request):
     rut_hash = generar_hash(rut)
     existe = Usuario.objects.filter(RutHash=rut_hash).exists()
     return JsonResponse({"existe": "true" if existe else "false"})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def cuestionario_completo(request):
+    """
+    Verifica si un usuario ha respondido todas las preguntas de todos los tipos
+    """
+    if not request.data or 'id_manychat' not in request.data:
+        return Response(
+            {'error': 'El campo id_manychat es requerido'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    id_manychat = request.data['id_manychat']
+
+    try:
+        usuario = Usuario.objects.get(id_manychat=id_manychat)
+        
+        # Verificar cada tipo de pregunta
+        tipos = ['TM', 'DS', 'FRM', 'FRNM']
+        completo = True
+        
+        for tipo in tipos:
+            if not verificar_tipo_completo(usuario, tipo):
+                completo = False
+                break
+
+        return Response({'completo': completo})
+
+    except ObjectDoesNotExist:
+        return Response(
+            {'completo': False, 'error': 'Usuario no encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': 'Error interno del servidor'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+def verificar_tipo_completo(usuario, tipo):
+    """Verifica si un usuario respondió todas las preguntas de un tipo específico"""
+    if tipo == 'TM':
+        total_preguntas = PregTM.objects.count()
+        respuestas_count = RespTM.objects.filter(id_manychat=usuario).values('id_opc_tm__id_preg_tm').distinct().count()
+    elif tipo == 'DS':
+        total_preguntas = PregDS.objects.count()
+        respuestas_count = RespDS.objects.filter(id_manychat=usuario).values('id_opc_ds__id_preg_ds').distinct().count()
+    elif tipo == 'FRM':
+        total_preguntas = PregFRM.objects.count()
+        respuestas_count = RespFRM.objects.filter(id_manychat=usuario).values('id_opc_frm__id_preg_frm').distinct().count()
+    elif tipo == 'FRNM':
+        total_preguntas = PregFRNM.objects.count()
+        respuestas_count = RespFRNM.objects.filter(id_manychat=usuario).values('id_opc_frnm__id_preg_frnm').distinct().count()
+    else:
+        return False
+
+    return total_preguntas > 0 and respuestas_count == total_preguntas
