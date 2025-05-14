@@ -219,12 +219,9 @@ def verificar_usuario(request):
     existe = Usuario.objects.filter(RutHash=rut_hash).exists()
     return JsonResponse({"existe": "true" if existe else "false"})
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def cuestionario_completo(request):
-    """
-    Verifica si un usuario ha respondido todas las preguntas de todos los tipos
-    """
+#@api_view(['POST'])
+#@permission_classes([AllowAny])
+"""def cuestionario_completo(request):
     if not request.data or 'id_manychat' not in request.data:
         return Response(
             {'error': 'El campo id_manychat es requerido'},
@@ -256,7 +253,34 @@ def cuestionario_completo(request):
         return Response(
             {'error': 'Error interno del servidor'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        ) """
+
+@api_view(['POST'])
+def cuestionario_completo(request):
+    id_manychat = request.data.get('id_manychat')
+    usuario = Usuario.objects.get(id_manychat=id_manychat)
+    
+    # DEBUG: Mostrar estadísticas
+    debug_data = {}
+    tipos = ['TM', 'DS', 'FRM', 'FRNM']
+    
+    for tipo in tipos:
+        total = globals()[f'Preg{tipo}'].objects.count()
+        respuestas = globals()[f'Resp{tipo}'].objects.filter(id_manychat=usuario)
+        preguntas_respondidas = set(respuestas.values_list(f'id_opc_{tipo.lower()}__id_preg_{tipo.lower()}', flat=True))
+        
+        debug_data[tipo] = {
+            'total_preguntas': total,
+            'preguntas_respondidas': list(preguntas_respondidas),
+            'count': len(preguntas_respondidas)
+        }
+    
+    completo = all(len(v['preguntas_respondidas']) == v['total_preguntas'] for v in debug_data.values())
+    
+    return Response({
+        'completo': completo,
+        'debug_data': debug_data  # Solo para diagnóstico
+    })
 
 def verificar_tipo_completo(usuario, tipo):
     """Verifica si un usuario respondió todas las preguntas de un tipo específico"""
