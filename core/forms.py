@@ -16,9 +16,17 @@ class RegistroForm(UserCreationForm):
         validators=[RegexValidator(r'^\d{9,12}$', 'Ingrese un número válido')],
         widget=forms.NumberInput(attrs={'class': 'input', 'placeholder': '912345678'})
     )
-    nombre_completo = forms.CharField(
+    
+    first_name = forms.CharField(
+        label="Nombre",
         max_length=100,
-        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre Completo'})
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre'})
+    )
+    last_name = forms.CharField(
+        label="Apellido",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Apellido'})
+
     )
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={'class': 'input', 'placeholder': 'tucorreo@ejemplo.com'})
@@ -26,7 +34,7 @@ class RegistroForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "email", "rut", "telefono", "password1", "password2")
+        fields = ("username", "first_name", "last_name","email", "rut", "telefono", "password1", "password2")
         widgets = {
             'username': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre de Usuario'}),
             'password1': forms.PasswordInput(attrs={'class': 'input', 'placeholder': 'Contraseña'}),
