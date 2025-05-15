@@ -1923,22 +1923,48 @@ def lista_usuarios(request):
     perfiles = PerfilUsuario.objects.select_related('user','usuario_sist')
     return render (request, 'administracion/lista_usuarios.html', {'perfiles': perfiles})
 
+from django.contrib import messages
+
 def crear_usuario(request):
     if request.method == 'POST':
         form_user = UserForm(request.POST)
         form_perfil = PerfilUsuarioForm(request.POST)
+
         if form_user.is_valid() and form_perfil.is_valid():
+            username = form_user.cleaned_data.get('username')
+
+            # Verifica que username no esté vacío
+            if not username:
+                messages.error(request, 'El nombre de usuario (RUT o identificador único) es obligatorio.')
+                return render(request, 'administracion/form_usuario.html', {
+                    'form_user': form_user,
+                    'form_perfil': form_perfil
+                })
+
+            # VVerifica  que username ya existe
+            if User.objects.filter(username=username).exists():
+                messages.error(request, 'Ya existe un usuario con ese nombre de usuario.')
+                return render(request, 'administracion/form_usuario.html', {
+                    'form_user': form_user,
+                    'form_perfil': form_perfil
+                })
+
+            # Crear el usuario
             user = form_user.save(commit=False)
             user.set_password(form_user.cleaned_data['password'])
             user.save()
+
+            # Crear perfil vinculado
             perfil = form_perfil.save(commit=False)
             perfil.user = user
             perfil.save()
+
             messages.success(request, 'Usuario creado correctamente.')
             return redirect('lista_usuarios')
     else:
         form_user = UserForm()
         form_perfil = PerfilUsuarioForm()
+
     return render(request, 'administracion/form_usuario.html', {
         'form_user': form_user,
         'form_perfil': form_perfil

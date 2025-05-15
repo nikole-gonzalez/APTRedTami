@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Bienvenida {{ perfil.user.first_name }}</h2>
+
+    <h3>Información personal:</h3>
+    <ul>
+        <li>RUT: {{ perfil.usuario_sist.rut_usuario|default:"No especificado"  }}-{{ perfil.usuario_sist.dv_rut|default:"No especificado"  }}</li>
+        <li>Email: {{ perfil.user.email|default:"No especificado"  }}</li>
+        <li>Teléfono: {{ perfil.telefono|default:"No especificado"  }}</li>
+    </ul>
+</div>
+<section>
+    <a class="button" href="{% url 'usuario_index' %}">Volver</a>   
+</section>
+{% endblock %}
+
+
