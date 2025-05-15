@@ -1,221 +1,114 @@
 {% extends 'base.html' %}
-{% load static %}
-
 {% block title %}Registro de Usuario{% endblock %}
-
 {% block content %}
-<header>
-    <h1>Registro de Usuario</h1>
-    <p>Completa el formulario para crear tu cuenta</p>
-</header>
-
-<section>
-    {# Mensajes flash (éxito/error general) #}
-    {% if messages %}
-        {% for message in messages %}
-        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    {% endif %}
-
-    <form method="post" class="alt" novalidate>
-        {% csrf_token %}
-        
-        {# Errores generales del formulario (como cuestionario incompleto o usuario existente) #}
-        {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        </div>
+<section class="wrapper">
+  <div class="inner">
+    <header class="major">
+      <h2>Registro de Usuario</h2>
+    </header>
+    <form method="post" class="form-vertical">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="error">{{ form.username.errors }}</div>
         {% endif %}
-
-        <div class="row gtr-uniform">
-            {# Nombre Completo #}
-            <div class="col-12 {% if form.nombre_completo.errors %}has-error{% endif %}">
-                {{ form.nombre_completo }}
-                {% if form.nombre_completo.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.nombre_completo.errors %}
-                    <small>{{ error }}</small><br>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {# Username #}
-            <div class="col-6 col-12-xsmall {% if form.username.errors %}has-error{% endif %}">
-                {{ form.username }}
-                {% if form.username.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.username.errors %}
-                    <small>{{ error }}</small><br>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {# Email #}
-            <div class="col-6 col-12-xsmall {% if form.email.errors %}has-error{% endif %}">
-                {{ form.email }}
-                {% if form.email.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.email.errors %}
-                    <small>{{ error }}</small><br>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {# RUT #}
-            <div class="col-6 col-12-xsmall {% if form.rut.errors %}has-error{% endif %}">
-                {{ form.rut }}
-                <small class="text-muted">Formato: 12345678-9</small>
-                {% if form.rut.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.rut.errors %}
-                    <small>{{ error }}</small><br>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {# Teléfono #}
-            <div class="col-6 col-12-xsmall {% if form.telefono.errors %}has-error{% endif %}">
-                {{ form.telefono }}
-                {% if form.telefono.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.telefono.errors %}
-                    <small>{{ error }}</small><br>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {# Contraseña #}
-            <div class="col-6 col-12-xsmall {% if form.password1.errors %}has-error{% endif %}">
-                {{ form.password1 }}
-                {% if form.password1.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.password1.errors %}
-                    <small>{{ error }}</small><br>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {# Confirmar Contraseña #}
-            <div class="col-6 col-12-xsmall {% if form.password2.errors %}has-error{% endif %}">
-                {{ form.password2 }}
-                {% if form.password2.errors %}
-                <div class="text-danger mt-1">
-                    {% for error in form.password2.errors %}
-                    <small>{{ error }}</small><br>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {# Botón de Registro #}
-            <div class="col-12">
-                <ul class="actions">
-                    <li><button type="submit" class="primary">Registrarse</button></li>
-                    <li><a href="{% url 'login' %}" class="button">¿Ya tienes cuenta? Inicia Sesión</a></li>
-                </ul>
-            </div>
-        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.first_name.id_for_label }}">Nombre</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}
+          <div class="error">{{ form.first_name.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.last_name.id_for_label }}">Apellido</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}
+          <div class="error">{{ form.last_name.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.email.id_for_label }}">Correo Electrónico</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <div class="error">{{ form.email.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.rut.id_for_label }}">RUT (con guión y dígito verificador)</label>
+        {{ form.rut }}
+        {% if form.rut.errors %}
+          <div class="error">{{ form.rut.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.telefono.id_for_label }}">Número de WhatsApp</label>
+        {{ form.telefono }}
+        {% if form.telefono.errors %}
+          <div class="error">{{ form.telefono.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.password1.id_for_label }}">Contraseña</label>
+        {{ form.password1 }}
+        {% if form.password1.errors %}
+          <div class="error">{{ form.password1.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.password2.id_for_label }}">Confirmar Contraseña</label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+          <div class="error">{{ form.password2.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <ul class="actions">
+        <li><input type="submit" value="Registrarse" class="primary" /></li>
+        <li><a href="{% url 'pag_informativa' %}" class="button">Cancelar</a></li>
+      </ul>
     </form>
+  </div>
 </section>
-
-{% if manychat_id %}
-<section>
-    <div class="box alt">
-        <div class="row gtr-uniform">
-            <div class="col-12">
-                <span class="image fit"><img src="{% static 'images/manychat-banner.jpg' %}" alt="Registro desde ManyChat" /></span>
-                <p>Estás completando tu registro desde ManyChat. Si tienes problemas, contacta a soporte.</p>
-            </div>
-        </div>
-    </div>
-</section>
-{% endif %}
 
 <style>
-    /* Estilos para alertas */
-    .alert {
-        padding: 15px;
-        margin-bottom: 20px;
-        border: 1px solid transparent;
-        border-radius: 4px;
-    }
-    
-    .alert-danger {
-        background-color: #f8d7da;
-        color: #721c24;
-        border-color: #f5c6cb;
-    }
-    
-    .alert-success {
-        background-color: #d4edda;
-        color: #155724;
-        border-color: #c3e6cb;
-    }
-    
-    /* Estilos para campos con errores */
-    .has-error input,
-    .has-error select,
-    .has-error textarea {
-        border-color: #dc3545 !important;
-    }
-    
-    /* Estilos para mensajes de error */
-    .text-danger {
-        color: #dc3545;
-    }
-    
-    .text-danger small {
-        font-size: 0.85em;
-        display: block;
-        margin-top: 5px;
-    }
-    
-    /* Estilos generales */
-    .text-muted {
-        color: #6c757d;
-        font-size: 0.8em;
-    }
-    
-    /* Input numérico */
-    input[type="tel"]::-webkit-outer-spin-button,
-    input[type="tel"]::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    
-    input[type="tel"] {
-        -moz-appearance: textfield;
-    }
-    
-    /* Placeholder contraseña */
-    input[type="password"]::placeholder {
-        color: #999;
-        opacity: 1;
-    }
-    
-    /* Mantén tus estilos existentes */
-    .error {
-        color: #ff3860;
-        font-size: 0.8em;
-        margin-top: -0.5em;
-        margin-bottom: 1em;
-        display: block;
-    }
-    
-    .actions {
-        margin-top: 20px;
-    }
+  .form-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .form-group label {
+    font-weight: bold;
+  }
+  
+  .error {
+    color: #ff3860;
+    font-size: 0.875rem;
+  }
+  
+  .input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
 </style>
 {% endblock %}
