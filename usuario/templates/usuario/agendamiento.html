@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+    {% if perfil.tipo_usuario == 'paciente' %}
+        <h2>Historial de agendamientos</h2>
+        <ul>
+        {% for ag in agendamientos %}
+            <li>{{ ag.fecha_atencion }} a las {{ ag.hora_atencion }} en {{ ag.id_cesfam.nombre_cesfam }}</li>
+        {% empty %}
+            <li>No tienes agendamientos registrados.</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+<section>
+    <a class="button" href="{% url 'usuario_index' %}">Volver</a>   
+</section>
+{% endblock %}

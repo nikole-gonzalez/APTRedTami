@@ -18,7 +18,8 @@ class PerfilUsuario(models.Model):
     )
 
     def __str__(self):
-        return f"{self.user.username} - {self.usuario_sist.rut_usuario}"
+        rut = self.usuario_sist.rut_usuario if self.usuario_sist else "sin_rut"
+        return f"{self.user.username} - {rut}"
 
 class Usuario(models.Model):
     id_manychat = models.CharField(primary_key=True, max_length=20, verbose_name="Id Manychat")

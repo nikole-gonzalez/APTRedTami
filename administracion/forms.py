@@ -7,13 +7,12 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User 
-        fields = ['first_name', 'last_name', 'email', 'password']
+        fields = ['username','first_name', 'last_name', 'email', 'password']
     
-class PerfilUsuarioForm(forms.ModelForm):
+class PerfilUsuarioForm(forms.ModelForm): 
     class Meta:
         model = PerfilUsuario
-        fields = ['telefono', 'cod_acceso', 'usuario_sist', 'tipo_usuario']
-
+        fields = [ 'telefono', 'cod_acceso', 'usuario_sist', 'tipo_usuario']
     def clean(self):
         cleaned_data = super().clean()
         tipo = cleaned_data.get('tipo_usuario')

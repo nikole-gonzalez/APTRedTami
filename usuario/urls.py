@@ -10,5 +10,8 @@ urlpatterns = [
     #Página informativa
     path('pagina_informativa/', views.pag_informativa, name='pag_informativa'),
     path('registro_usuario/', views.registro_usuario, name='registro_usuario'),
+    path('panel_usuario/', views.panel_usuario, name='panel_usuario'),
+    path('eliminar_datos/', views.eliminar_datos_usuario, name='eliminar_datos_usuario'),
+    path('agendamiento/', views.agendamiento, name='agendamiento'),
 
 ]
