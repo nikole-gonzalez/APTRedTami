@@ -6,11 +6,21 @@
     <header class="major">
       <h2>Registro de Usuario</h2>
     </header>
+    
+    {# Mostrar errores generales del formulario #}
+    {% if form.non_field_errors %}
+    <div class="error-message">
+      {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
     <form method="post" class="form-vertical">
       {% csrf_token %}
       
       <div class="form-group">
-        <label for="{{ form.username.id_for_label }}">Username</label>
+        <label for="{{ form.username.id_for_label }}">Nombre de Usuario</label>
         {{ form.username }}
         {% if form.username.errors %}
           <div class="error">{{ form.username.errors }}</div>
@@ -98,9 +108,22 @@
     font-weight: bold;
   }
   
-  .error {
+  .error, .error-message {
     color: #ff3860;
     font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+  
+  .error-message {
+    background: #fff5f5;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    border-left: 3px solid #ff3860;
+  }
+  
+  .error-message p {
+    margin: 0;
   }
   
   .input {
@@ -109,6 +132,11 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 1rem;
+  }
+  
+  .input:focus {
+    border-color: #3273dc;
+    outline: none;
   }
 </style>
 {% endblock %}
