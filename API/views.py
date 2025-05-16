@@ -277,61 +277,42 @@ def verificar_tipo_completo(usuario, tipo):
     return total_preguntas > 0 and respuestas_count == total_preguntas
 
 @api_view(['POST'])
-@csrf_exempt
 def horas_disponibles(request):
-    # Obtener parámetros del body JSON
     try:
         data = request.data
         cesfam_id = data.get('cesfam_id')
-        id_manychat = data.get('id_manychat')
         
-        if not cesfam_id or not id_manychat:
+        if not cesfam_id:
             return Response(
-                {'error': 'Se requieren cesfam_id e id_manychat'}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {'error': 'Se requiere cesfam_id'}, 
+                status=400
             )
             
-    except Exception as e:
-        return Response(
-            {'error': 'Formato de datos inválido'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    # Calcular fecha objetivo (día siguiente)
-    fecha_objetivo = datetime.now().date() + timedelta(days=1)
-    
-    # Manejo de fines de semana (saltar a lunes)
-    if fecha_objetivo.weekday() >= 5:  # 5=sábado, 6=domingo
-        dias_a_sumar = 7 - fecha_objetivo.weekday()
-        fecha_objetivo += timedelta(days=dias_a_sumar)
-    
-    try:
-        # Obtener las 3 primeras horas disponibles
+        # Calcular fecha objetivo (día siguiente)
+        fecha_objetivo = datetime.now().date() + timedelta(days=1)
+        
+        # Manejo de fines de semana (saltar a lunes)
+        if fecha_objetivo.weekday() >= 5:  # 5=sábado, 6=domingo
+            dias_a_sumar = 7 - fecha_objetivo.weekday()
+            fecha_objetivo += timedelta(days=dias_a_sumar)
+        
+        # Obtener horas disponibles
         horas = HoraAgenda.objects.filter(
             fecha=fecha_objetivo,
             estado='disponible',
             cesfam_id=cesfam_id
-        ).order_by('hora')[:3]
+        ).order_by('hora')[:3]  # Limitar a 3 resultados
         
-        # Formatear respuesta
+        # Formatear respuesta simple
         resultados = [
-            {
-                'id_hora': hora.id_hora,
-                'fecha': hora.fecha.strftime('%d/%m/%Y'),
-                'hora': hora.hora.strftime('%H:%M')
-            }
+            f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}"
             for hora in horas
         ]
         
-        return Response({
-            'success': True,
-            'fecha_consulta': fecha_objetivo.strftime('%A %d/%m/%Y'),
-            'horas': resultados,
-            'total_horas': len(resultados)
-        })
+        return Response(resultados)
         
     except Exception as e:
         return Response(
             {'error': str(e)}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status=500
         )
