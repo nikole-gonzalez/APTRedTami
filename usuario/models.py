@@ -47,3 +47,27 @@ class TipoProcedimiento(models.Model):
     def __str__(self):
         return f"{self.nombre_procedimiento})"
 
+class HoraAgenda(models.Model):
+    ESTADOS = (
+        ('disponible', 'Disponible'),
+        ('reservada', 'Reservada')
+    )
+
+    id_hora = models.AutoField(primary_key=True)
+    fecha = models.DateField()
+    hora = models.TimeField()
+    cesfam = models.ForeignKey('Cesfam', on_delete=models.DO_NOTHING, db_column='id_cesfam')
+    estado = models.CharField(max_length=20, choices=ESTADOS)
+    id_manychat = models.CharField(max_length=255, null=True, blank=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'usuario_horas_agenda'
+        managed = False
+        indexes = [
+            models.Index(fields=['fecha', 'hora'], name='idx_fecha_hora'),
+            models.Index(fields=['estado'], name='idx_estado'),
+        ]
+
+    def _str_(self):
+        return f"{self.fecha} {self.hora} - {self.cesfam} ({self.estado})"

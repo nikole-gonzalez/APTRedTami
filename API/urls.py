@@ -22,7 +22,8 @@ from .views import (
     consultar_estado_pregunta,
     retorna_genero,
     verificar_usuario,
-    cuestionario_completo
+    cuestionario_completo,
+    horas_disponibles
 
 )
 
@@ -53,4 +54,5 @@ urlpatterns = [
     path('retorna-genero/', retorna_genero, name='retorna-genero'),
     path('verificar-usuario/', verificar_usuario, name='verificar-usuario'),
     path('cuestionariocompleto/', cuestionario_completo, name='cuestionario_completo'),
+    path('horas-disponibles/', horas_disponibles, name='horas-disponibles'),
 ]
