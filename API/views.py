@@ -348,13 +348,20 @@ def reservar_hora(request):
             )
 
         try:
+            usuario = Usuario.objects.get(id_manychat=manychat_id)
+
             agenda = Agenda.objects.create(
                 fecha_atencion=hora_agenda.fecha,
                 hora_atencion=hora_agenda.hora,
                 requisito_examen=requisito_examen,
                 id_cesfam=hora_agenda.cesfam,
-                id_manychat_id=manychat_id,
+                id_manychat=usuario,
                 id_procedimiento_id=procedimiento_id
+            )
+        except Usuario.DoesNotExist:
+            return Response(
+                {'error': 'Usuario no encontrado'},
+                status=404
             )
         except Exception as e:
             return Response(
@@ -368,7 +375,7 @@ def reservar_hora(request):
                     hora_id,
                     'reservada',
                     manychat_id,
-                    None 
+                    None
                 ])
                 cursor.execute("SELECT @_cambiar_estado_hora_3")
                 row = cursor.fetchone()
@@ -389,7 +396,7 @@ def reservar_hora(request):
                 })
 
         except Exception as e:
-            agenda.delete()  
+            agenda.delete()
             return Response(
                 {'error': f'Error en procedimiento almacenado: {str(e)}'},
                 status=500
