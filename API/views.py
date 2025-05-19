@@ -13,6 +13,7 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import connection
 from datetime import date, datetime, timedelta
 import hashlib
 
