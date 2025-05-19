@@ -343,32 +343,7 @@ def reservar_hora(request):
         try:
             hora_agenda = HoraAgenda.objects.get(id_hora=hora_id)
         except HoraAgenda.DoesNotExist:
-            return Response(
-                {'error': 'La hora solicitada no existe'},
-                status=404
-            )
-
-        try:
-            usuario = Usuario.objects.get(id_manychat=manychat_id)
-
-            agenda = Agenda.objects.create(
-                fecha_atencion=hora_agenda.fecha,
-                hora_atencion=hora_agenda.hora,
-                requisito_examen=requisito_examen,
-                id_cesfam=hora_agenda.cesfam,
-                id_manychat=usuario,
-                id_procedimiento_id=procedimiento_id
-            )
-        except Usuario.DoesNotExist:
-            return Response(
-                {'error': 'Usuario no encontrado'},
-                status=404
-            )
-        except Exception as e:
-            return Response(
-                {'error': f'Error al crear agenda: {str(e)}'},
-                status=500
-            )
+            return Response({'error': 'La hora solicitada no existe'}, status=404)
 
         try:
             with connection.cursor() as cursor:
@@ -383,28 +358,32 @@ def reservar_hora(request):
                 resultado = row[0] if row else 'Error: No se recibió respuesta del procedimiento'
 
                 if not resultado or resultado.startswith('Error'):
-                    agenda.delete()
-                    return Response(
-                        {'error': resultado or 'Error desconocido al cambiar estado'},
-                        status=400
-                    )
+                    return Response({'error': resultado or 'Error desconocido al cambiar estado'}, status=400)
 
-                return Response({
-                    'success': 'Hora reservada correctamente',
-                    'agenda_id': agenda.id_agenda,
-                    'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
-                    'hora': hora_agenda.hora.strftime('%H:%M')
-                })
+            try:
+                usuario = Usuario.objects.get(id_manychat=manychat_id)
+                agenda = Agenda.objects.create(
+                    fecha_atencion=hora_agenda.fecha,
+                    hora_atencion=hora_agenda.hora,
+                    requisito_examen=requisito_examen,
+                    id_cesfam=hora_agenda.cesfam,
+                    id_manychat=usuario,
+                    id_procedimiento_id=procedimiento_id
+                )
+            except Usuario.DoesNotExist:
+                return Response({'error': 'Usuario no encontrado'}, status=404)
+            except Exception as e:
+                return Response({'error': f'Error al crear agenda: {str(e)}'}, status=500)
+
+            return Response({
+                'success': 'Hora reservada correctamente',
+                'agenda_id': agenda.id_agenda,
+                'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
+                'hora': hora_agenda.hora.strftime('%H:%M')
+            })
 
         except Exception as e:
-            agenda.delete()
-            return Response(
-                {'error': f'Error en procedimiento almacenado: {str(e)}'},
-                status=500
-            )
+            return Response({'error': f'Error en procedimiento almacenado: {str(e)}'}, status=500)
 
     except Exception as e:
-        return Response(
-            {'error': f'Error inesperado: {str(e)}'},
-            status=500
-        )
+        return Response({'error': f'Error inesperado: {str(e)}'}, status=500)
