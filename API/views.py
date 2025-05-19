@@ -301,15 +301,20 @@ def horas_disponibles(request):
             fecha=fecha_objetivo,
             estado='disponible',
             cesfam_id=cesfam_id
-        ).order_by('hora')[:3]  # Limitar a 3 resultados
+        ).order_by('hora')[:3]
         
-        # Formatear respuesta simple
-        resultados = [
-            f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}"
-            for hora in horas
-        ]
+        # Formatear respuesta con estructura más completa
+        resultados = [{
+            'hora_id': hora.id_hora,  # Incluimos el ID para uso interno
+            'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
+            'fecha': hora.fecha.strftime('%d/%m/%Y'),
+            'hora': hora.hora.strftime('%H:%M')
+        } for hora in horas]
         
-        return Response(resultados)
+        return Response({
+            'horas_disponibles': resultados,
+            'fecha_consulta': datetime.now().strftime('%d/%m/%Y %H:%M')
+        })
         
     except Exception as e:
         return Response(
