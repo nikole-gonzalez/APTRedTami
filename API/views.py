@@ -303,9 +303,9 @@ def horas_disponibles(request):
             cesfam_id=cesfam_id
         ).order_by('hora')[:3]
         
-        # Formatear respuesta con estructura más completa
+        # Formatear respuesta con hora_id como string
         resultados = [{
-            'hora_id': hora.id_hora,  # Incluimos el ID para uso interno
+            'hora_id': str(hora.id_hora),  # Convertido a string
             'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
             'fecha': hora.fecha.strftime('%d/%m/%Y'),
             'hora': hora.hora.strftime('%H:%M')
