@@ -332,22 +332,21 @@ def reservar_hora(request):
         manychat_id = data.get('manychat_id')
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
-        
+
         if not hora_id or not manychat_id or not procedimiento_id:
             return Response(
-                {'error': 'Se requieren hora_id, manychat_id y procedimiento_id'}, 
+                {'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
                 status=400
             )
-        
+
         try:
             hora_agenda = HoraAgenda.objects.get(id_hora=hora_id)
         except HoraAgenda.DoesNotExist:
             return Response(
-                {'error': 'La hora solicitada no existe'}, 
+                {'error': 'La hora solicitada no existe'},
                 status=404
             )
-        
-        # Crear primero el registro en Agenda
+
         try:
             agenda = Agenda.objects.create(
                 fecha_atencion=hora_agenda.fecha,
@@ -359,47 +358,45 @@ def reservar_hora(request):
             )
         except Exception as e:
             return Response(
-                {'error': f'Error al crear agenda: {str(e)}'}, 
+                {'error': f'Error al crear agenda: {str(e)}'},
                 status=500
             )
-        
-        # Llamar al procedimiento almacenado con manejo de errores
+
         try:
             with connection.cursor() as cursor:
                 cursor.callproc('cambiar_estado_hora', [
                     hora_id,
                     'reservada',
                     manychat_id,
-                    agenda.id_agenda,
-                    None  # Parámetro OUT
+                    None 
                 ])
-                # Obtener el resultado del procedimiento
-                resultado = cursor.fetchone()[0]
-                
+                cursor.execute("SELECT @_cambiar_estado_hora_3")
+                row = cursor.fetchone()
+                resultado = row[0] if row else 'Error: No se recibió respuesta del procedimiento'
+
                 if not resultado or resultado.startswith('Error'):
-                    # Revertir la creación de agenda si falla el procedimiento
                     agenda.delete()
                     return Response(
-                        {'error': resultado or 'Error desconocido al cambiar estado'}, 
+                        {'error': resultado or 'Error desconocido al cambiar estado'},
                         status=400
                     )
-                
+
                 return Response({
                     'success': 'Hora reservada correctamente',
                     'agenda_id': agenda.id_agenda,
                     'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
                     'hora': hora_agenda.hora.strftime('%H:%M')
                 })
-                
+
         except Exception as e:
-            agenda.delete()  # Limpieza en caso de error
+            agenda.delete()  
             return Response(
-                {'error': f'Error en procedimiento almacenado: {str(e)}'}, 
+                {'error': f'Error en procedimiento almacenado: {str(e)}'},
                 status=500
             )
-            
+
     except Exception as e:
         return Response(
-            {'error': f'Error inesperado: {str(e)}'}, 
+            {'error': f'Error inesperado: {str(e)}'},
             status=500
         )
