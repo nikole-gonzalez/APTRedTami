@@ -1,4 +1,5 @@
 from django.urls import path, include
+from .views import reservar_hora
 from rest_framework.routers import DefaultRouter
 from .views import (
     UsuarioViewSet,
@@ -55,4 +56,5 @@ urlpatterns = [
     path('verificar-usuario/', verificar_usuario, name='verificar-usuario'),
     path('cuestionariocompleto/', cuestionario_completo, name='cuestionario_completo'),
     path('horas-disponibles/', horas_disponibles, name='horas-disponibles'),
+    path('reservar-hora/', reservar_hora, name='reservar_hora'),
 ]

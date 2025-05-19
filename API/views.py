@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from usuario.models import HoraAgenda, Agenda, TipoProcedimiento
+from administracion.models import Usuario
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,10 +15,10 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import connection
 from datetime import date, datetime, timedelta
 import hashlib
 
-from usuario.models import HoraAgenda
 from .models import *
 from .serializer import *
 
@@ -301,18 +303,87 @@ def horas_disponibles(request):
             fecha=fecha_objetivo,
             estado='disponible',
             cesfam_id=cesfam_id
-        ).order_by('hora')[:3]  # Limitar a 3 resultados
+        ).order_by('hora')[:3]
         
-        # Formatear respuesta simple
-        resultados = [
-            f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}"
-            for hora in horas
-        ]
+        # Formatear respuesta con hora_id como string
+        resultados = [{
+            'hora_id': str(hora.id_hora),  # Convertido a string
+            'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
+            'fecha': hora.fecha.strftime('%d/%m/%Y'),
+            'hora': hora.hora.strftime('%H:%M')
+        } for hora in horas]
         
-        return Response(resultados)
+        return Response({
+            'horas_disponibles': resultados,
+            'fecha_consulta': datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'cache': False
+        })
         
     except Exception as e:
         return Response(
             {'error': str(e)}, 
             status=500
         )
+
+@api_view(['POST'])
+def reservar_hora(request):
+    try:
+        data = request.data
+        hora_id = data.get('hora_id')
+        manychat_id = data.get('manychat_id')
+        requisito_examen = data.get('requisito_examen', '')
+        procedimiento_id = data.get('procedimiento_id')
+
+        if not hora_id or not manychat_id or not procedimiento_id:
+            return Response(
+                {'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
+                status=400
+            )
+
+        try:
+            hora_agenda = HoraAgenda.objects.get(id_hora=hora_id)
+        except HoraAgenda.DoesNotExist:
+            return Response({'error': 'La hora solicitada no existe'}, status=404)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc('cambiar_estado_hora', [
+                    hora_id,
+                    'reservada',
+                    manychat_id,
+                    None
+                ])
+                cursor.execute("SELECT @_cambiar_estado_hora_3")
+                row = cursor.fetchone()
+                resultado = row[0] if row else 'Error: No se recibió respuesta del procedimiento'
+
+                if not resultado or resultado.startswith('Error'):
+                    return Response({'error': resultado or 'Error desconocido al cambiar estado'}, status=400)
+
+            try:
+                usuario = Usuario.objects.get(id_manychat=manychat_id)
+                agenda = Agenda.objects.create(
+                    fecha_atencion=hora_agenda.fecha,
+                    hora_atencion=hora_agenda.hora,
+                    requisito_examen=requisito_examen,
+                    id_cesfam=hora_agenda.cesfam,
+                    id_manychat=usuario,
+                    id_procedimiento_id=procedimiento_id
+                )
+            except Usuario.DoesNotExist:
+                return Response({'error': 'Usuario no encontrado'}, status=404)
+            except Exception as e:
+                return Response({'error': f'Error al crear agenda: {str(e)}'}, status=500)
+
+            return Response({
+                'success': 'Hora reservada correctamente',
+                'agenda_id': agenda.id_agenda,
+                'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
+                'hora': hora_agenda.hora.strftime('%H:%M')
+            })
+
+        except Exception as e:
+            return Response({'error': f'Error en procedimiento almacenado: {str(e)}'}, status=500)
+
+    except Exception as e:
+        return Response({'error': f'Error inesperado: {str(e)}'}, status=500)
