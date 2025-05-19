@@ -316,3 +316,66 @@ def horas_disponibles(request):
             {'error': str(e)}, 
             status=500
         )
+
+@api_view(['POST'])
+def reservar_hora(request):
+    try:
+        data = request.data
+        hora_id = data.get('hora_id')
+        manychat_id = data.get('manychat_id')
+        requisito_examen = data.get('requisito_examen', '')
+        procedimiento_id = data.get('procedimiento_id')
+        
+        if not hora_id or not manychat_id or not procedimiento_id:
+            return Response(
+                {'error': 'Se requieren hora_id, manychat_id y procedimiento_id'}, 
+                status=400
+            )
+        
+        # Obtener la hora de agenda
+        hora_agenda = HoraAgenda.objects.get(id_hora=hora_id)
+        
+        # Llamar al procedimiento almacenado
+        with connection.cursor() as cursor:
+            cursor.callproc('cambiar_estado_hora', [
+                hora_id,
+                'reservada',
+                manychat_id,
+                None  # Este es el parámetro OUT
+            ])
+            # Obtener el resultado del procedimiento
+            resultado = cursor.fetchone()[0]
+            
+            if resultado.startswith('Error'):
+                return Response(
+                    {'error': resultado}, 
+                    status=400
+                )
+        
+        # Crear el registro en Agenda
+        agenda = Agenda.objects.create(
+            fecha_atencion=hora_agenda.fecha,
+            hora_atencion=hora_agenda.hora,
+            requisito_examen=requisito_examen,
+            id_cesfam=hora_agenda.cesfam,
+            id_manychat_id=manychat_id,
+            id_procedimiento_id=procedimiento_id
+        )
+        
+        return Response({
+            'success': 'Hora reservada correctamente',
+            'agenda_id': agenda.id_agenda,
+            'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
+            'hora': hora_agenda.hora.strftime('%H:%M')
+        })
+        
+    except HoraAgenda.DoesNotExist:
+        return Response(
+            {'error': 'La hora solicitada no existe'}, 
+            status=404
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=500
+        )
