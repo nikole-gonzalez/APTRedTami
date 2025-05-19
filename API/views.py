@@ -315,7 +315,8 @@ def horas_disponibles(request):
         
         return Response({
             'horas_disponibles': resultados,
-            'fecha_consulta': datetime.now().strftime('%d/%m/%Y %H:%M')
+            'fecha_consulta': datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'cache': False
         })
         
     except Exception as e:
