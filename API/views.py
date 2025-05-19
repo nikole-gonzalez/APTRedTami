@@ -338,50 +338,67 @@ def reservar_hora(request):
                 status=400
             )
         
-        # Obtener la hora de agenda
-        hora_agenda = HoraAgenda.objects.get(id_hora=hora_id)
+        try:
+            hora_agenda = HoraAgenda.objects.get(id_hora=hora_id)
+        except HoraAgenda.DoesNotExist:
+            return Response(
+                {'error': 'La hora solicitada no existe'}, 
+                status=404
+            )
         
-        # Llamar al procedimiento almacenado
-        with connection.cursor() as cursor:
-            cursor.callproc('cambiar_estado_hora', [
-                hora_id,
-                'reservada',
-                manychat_id,
-                None  # Este es el parámetro OUT
-            ])
-            # Obtener el resultado del procedimiento
-            resultado = cursor.fetchone()[0]
+        # Crear primero el registro en Agenda
+        try:
+            agenda = Agenda.objects.create(
+                fecha_atencion=hora_agenda.fecha,
+                hora_atencion=hora_agenda.hora,
+                requisito_examen=requisito_examen,
+                id_cesfam=hora_agenda.cesfam,
+                id_manychat_id=manychat_id,
+                id_procedimiento_id=procedimiento_id
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error al crear agenda: {str(e)}'}, 
+                status=500
+            )
+        
+        # Llamar al procedimiento almacenado con manejo de errores
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc('cambiar_estado_hora', [
+                    hora_id,
+                    'reservada',
+                    manychat_id,
+                    agenda.id_agenda,
+                    None  # Parámetro OUT
+                ])
+                # Obtener el resultado del procedimiento
+                resultado = cursor.fetchone()[0]
+                
+                if not resultado or resultado.startswith('Error'):
+                    # Revertir la creación de agenda si falla el procedimiento
+                    agenda.delete()
+                    return Response(
+                        {'error': resultado or 'Error desconocido al cambiar estado'}, 
+                        status=400
+                    )
+                
+                return Response({
+                    'success': 'Hora reservada correctamente',
+                    'agenda_id': agenda.id_agenda,
+                    'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
+                    'hora': hora_agenda.hora.strftime('%H:%M')
+                })
+                
+        except Exception as e:
+            agenda.delete()  # Limpieza en caso de error
+            return Response(
+                {'error': f'Error en procedimiento almacenado: {str(e)}'}, 
+                status=500
+            )
             
-            if resultado.startswith('Error'):
-                return Response(
-                    {'error': resultado}, 
-                    status=400
-                )
-        
-        # Crear el registro en Agenda
-        agenda = Agenda.objects.create(
-            fecha_atencion=hora_agenda.fecha,
-            hora_atencion=hora_agenda.hora,
-            requisito_examen=requisito_examen,
-            id_cesfam=hora_agenda.cesfam,
-            id_manychat_id=manychat_id,
-            id_procedimiento_id=procedimiento_id
-        )
-        
-        return Response({
-            'success': 'Hora reservada correctamente',
-            'agenda_id': agenda.id_agenda,
-            'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
-            'hora': hora_agenda.hora.strftime('%H:%M')
-        })
-        
-    except HoraAgenda.DoesNotExist:
-        return Response(
-            {'error': 'La hora solicitada no existe'}, 
-            status=404
-        )
     except Exception as e:
         return Response(
-            {'error': str(e)}, 
+            {'error': f'Error inesperado: {str(e)}'}, 
             status=500
         )
