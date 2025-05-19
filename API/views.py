@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from usuario.models import HoraAgenda, Agenda, TipoProcedimiento
+from administracion.models import Usuario
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,7 +19,6 @@ from django.db import connection
 from datetime import date, datetime, timedelta
 import hashlib
 
-from usuario.models import HoraAgenda
 from .models import *
 from .serializer import *
 
