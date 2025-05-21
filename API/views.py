@@ -365,7 +365,7 @@ def reservar_hora(request):
 
                 # Verificar disponibilidad
                 cursor.execute("""
-                    SELECT estado, fecha, hora, id_cesfam, agenda_id
+                    SELECT estado, fecha, hora, id_cesfam
                     FROM usuario_horas_agenda 
                     WHERE id_hora = %s 
                     FOR UPDATE
@@ -376,13 +376,13 @@ def reservar_hora(request):
                     cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
                     return Response({'error': 'La hora solicitada no existe'}, status=404)
 
-                estado, fecha, hora, id_cesfam, agenda_id = row
+                estado, fecha, hora, id_cesfam = row
 
-                if estado != 'disponible' or agenda_id is not None:
+                if estado != 'disponible':
                     cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
                     return Response(
                         {
-                            'error': 'La hora ya no está disponible',
+                            'error': f'La hora ya no está disponible (estado: {estado})',
                             'codigo': 'hora_ocupada',
                             'sugerencia': 'Por favor selecciona otra hora'
                         },
@@ -442,13 +442,6 @@ def reservar_hora(request):
                     id_manychat=usuario,
                     id_procedimiento_id=procedimiento_id
                 )
-
-                # Actualizar referencia en HoraAgenda
-                cursor.execute("""
-                    UPDATE usuario_horas_agenda
-                    SET agenda_id = %s
-                    WHERE id_hora = %s
-                """, [agenda.id_agenda, hora_id])
 
                 cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
 
