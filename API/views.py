@@ -401,9 +401,7 @@ def reservar_hora(request):
                 cursor.execute("""
                     SELECT COUNT(*) 
                     FROM usuario_agenda 
-                    WHERE id_manychat_id = (
-                        SELECT id FROM administracion_usuario WHERE id_manychat = %s
-                    )
+                    WHERE id_manychat_id = %s 
                     AND fecha_atencion = %s 
                     AND hora_atencion = %s
                 """, [manychat_id, fecha, hora])
