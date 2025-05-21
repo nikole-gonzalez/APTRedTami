@@ -19,7 +19,8 @@ from django.db import connection, transaction
 from datetime import date, datetime, timedelta
 from django.utils import timezone
 from django.utils.timezone import make_aware
-
+import requests
+import logging
 import hashlib
 
 from .models import *
@@ -281,6 +282,59 @@ def verificar_tipo_completo(usuario, tipo):
 
     return total_preguntas > 0 and respuestas_count == total_preguntas
 
+logger = logging.getLogger(__name__)
+
+
+FERIADOS_FIJOS = [
+    "01-01",  
+    "01-05",
+    "21-05",
+    "20-06",
+    "29-06",
+    "16-07",
+    "15-08",
+    "18-09",  
+    "19-09",  
+    "25-12",  
+]
+
+def es_feriado(fecha):
+    """
+    Verifica si una fecha es feriado en Chile
+    """
+    # Verificar feriados fijos
+    if fecha.strftime("%d-%m") in FERIADOS_FIJOS:
+        return True
+    
+    # Opcional: Consultar API de feriados (recomendado para feriados variables)
+    try:
+        año = fecha.year
+        response = requests.get(f'https://api.victorsanmartin.com/feriados/en/{año}')
+        if response.status_code == 200:
+            feriados = response.json()
+            return any(f['date'] == fecha.strftime("%Y-%m-%d") for f in feriados)
+    except Exception as e:
+        logger.error(f"Error al consultar API de feriados: {str(e)}")
+    
+    return False
+
+def obtener_dia_habil_siguiente(fecha):
+    """
+    Obtiene el siguiente día hábil (no fin de semana ni feriado)
+    """
+    dias_saltados = 0
+    while True:
+        nueva_fecha = fecha + timedelta(days=1)
+        # Saltar fines de semana (5=sábado, 6=domingo)
+        if nueva_fecha.weekday() >= 5:
+            fecha = nueva_fecha
+            continue
+        # Saltar feriados
+        if es_feriado(nueva_fecha):
+            fecha = nueva_fecha
+            continue
+        return nueva_fecha
+
 @api_view(['POST'])
 def horas_disponibles(request):
     try:
@@ -292,37 +346,57 @@ def horas_disponibles(request):
                 {'error': 'Se requiere cesfam_id'}, 
                 status=400
             )
+        
+        # Obtener fecha actual
+        hoy = datetime.now().date()
+        fecha_busqueda = hoy
+        
+        # Lista para acumular resultados
+        horas_disponibles = []
+        dias_buscados = 0
+        max_dias_busqueda = 14  # Límite para evitar bucles infinitos
+        
+        while len(horas_disponibles) < 3 and dias_buscados < max_dias_busqueda:
+            # Si es fin de semana o feriado, saltar al siguiente día hábil
+            if fecha_busqueda.weekday() >= 5 or es_feriado(fecha_busqueda):
+                fecha_busqueda = obtener_dia_habil_siguiente(fecha_busqueda)
+                dias_buscados += 1
+                continue
             
-        # Calcular fecha objetivo (día siguiente)
-        fecha_objetivo = datetime.now().date() + timedelta(days=1)
-        
-        # Manejo de fines de semana (saltar a lunes)
-        if fecha_objetivo.weekday() >= 5:  # 5=sábado, 6=domingo
-            dias_a_sumar = 7 - fecha_objetivo.weekday()
-            fecha_objetivo += timedelta(days=dias_a_sumar)
-        
-        horas = HoraAgenda.objects.filter(
-            fecha=fecha_objetivo,
-            estado='disponible',
-            cesfam_id=cesfam_id
-        ).order_by('hora')[:3]
-        
-        resultados = [{
-            'hora_id': str(hora.id_hora), 
-            'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
-            'fecha': hora.fecha.strftime('%d/%m/%Y'),
-            'hora': hora.hora.strftime('%H:%M')
-        } for hora in horas]
+            # Buscar horas disponibles para este día
+            horas_del_dia = HoraAgenda.objects.filter(
+                fecha=fecha_busqueda,
+                estado='disponible',
+                cesfam_id=cesfam_id
+            ).order_by('hora')
+            
+            # Agregar a los resultados
+            for hora in horas_del_dia:
+                if len(horas_disponibles) >= 3:
+                    break
+                    
+                horas_disponibles.append({
+                    'hora_id': str(hora.id_hora), 
+                    'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
+                    'fecha': hora.fecha.strftime('%d/%m/%Y'),
+                    'hora': hora.hora.strftime('%H:%M'),
+                    'dia': 'Hoy' if hora.fecha == hoy else 'Próximos días'
+                })
+            
+            # Pasar al siguiente día
+            fecha_busqueda += timedelta(days=1)
+            dias_buscados += 1
         
         return Response({
-            'horas_disponibles': resultados,
+            'horas_disponibles': horas_disponibles[:3],  # Aseguramos máximo 3
             'fecha_consulta': datetime.now().strftime('%d/%m/%Y %H:%M'),
             'cache': False
         })
         
     except Exception as e:
+        logger.error(f"Error en horas_disponibles: {str(e)}", exc_info=True)
         return Response(
-            {'error': str(e)}, 
+            {'error': 'Error al obtener horas disponibles'}, 
             status=500
         )
 
