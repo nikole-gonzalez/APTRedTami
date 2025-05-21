@@ -411,90 +411,120 @@ from rest_framework.response import Response
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
+@transaction.atomic
 def reservar_hora(request):
     try:
         data = request.data
-        logger.debug(f"Datos recibidos para reserva: {data}")
-        
         hora_id = data.get('hora_id')
         manychat_id = data.get('manychat_id')
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
 
-        # Validación de datos básica
+        # Validaciones básicas
         if not all([hora_id, manychat_id, procedimiento_id]):
-            error_msg = 'Faltan campos requeridos: hora_id, manychat_id o procedimiento_id'
-            logger.warning(error_msg)
-            return Response({'success': "false", 'error': error_msg}, status=400)
+            return Response(
+                {'success': "false", 'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
+                status=400
+            )
 
-        # Validación de tipos de datos
-        try:
-            # Verificar si hora_id tiene formato de template variable
-            if isinstance(hora_id, str) and hora_id.startswith('{{') and hora_id.endswith('}}'):
-                raise ValueError("Formato de variable no válido para hora_id")
-                
-            hora_id_int = int(hora_id)
-            procedimiento_id_int = int(procedimiento_id)
-        except (ValueError, TypeError) as e:
-            error_msg = f'IDs deben ser números enteros válidos: {str(e)}'
-            logger.warning(f"{error_msg}. Valor recibido: hora_id={hora_id}, procedimiento_id={procedimiento_id}")
-            return Response({'success': "false", 'error': error_msg}, status=400)
-
+        # Bloquea y obtiene datos de la hora
         with connection.cursor() as cursor:
-            try:
-                logger.info(f"Iniciando reserva para hora_id: {hora_id_int}, manychat_id: {manychat_id}")
-                
-                # Llamada al procedimiento almacenado
-                cursor.callproc('reservar_hora_segura', [
-                    hora_id_int,
-                    manychat_id,
-                    procedimiento_id_int,
-                    requisito_examen,
-                    None,  # OUT p_resultado
-                    None   # OUT p_agenda_id
-                ])
-                
-                # Obtener resultados del procedimiento
-                cursor.execute("SELECT @_reservar_hora_segura_4, @_reservar_hora_segura_5")
-                resultado, agenda_id = cursor.fetchone()
-                logger.debug(f"Resultado del procedimiento: {resultado}, Agenda ID: {agenda_id}")
+            # 1. Bloquear y verificar la hora
+            cursor.execute("""
+                SELECT estado, fecha, hora, id_cesfam 
+                FROM usuario_horas_agenda 
+                WHERE id_hora = %s 
+                FOR UPDATE
+            """, [hora_id])
+            row = cursor.fetchone()
 
-                if resultado == 'OK':
-                    # Invalidar caché de horas disponibles
-                    cursor.execute("""
-                        SELECT id_cesfam FROM usuario_horas_agenda 
-                        WHERE id_hora = %s
-                    """, [hora_id_int])
-                    cesfam_row = cursor.fetchone()
-                    
-                    if cesfam_row:
-                        cesfam_id = cesfam_row[0]
-                        cache_key = f'horas_disponibles_{cesfam_id}'
-                        cache.delete(cache_key)
-                        logger.info(f"Cache invalidado para CESFAM ID: {cesfam_id}")
-                    
-                    return Response({
-                        'success': "true",
-                        'agenda_id': agenda_id,
-                        'message': 'Hora reservada correctamente'
-                    })
-                else:
-                    logger.warning(f"Error en reserva: {resultado}")
-                    return Response({
-                        'success': "false",
-                        'error': resultado or 'Error al reservar hora'
-                    }, status=400)
+            if not row:
+                return Response({'success': "false", 'error': 'La hora solicitada no existe'}, status=404)
 
-            except Exception as e:
-                logger.error(f"Error en transacción de base de datos: {str(e)}", exc_info=True)
-                return Response({
-                    'success': "false",
-                    'error': 'Error al procesar la reserva en base de datos'
-                }, status=500)
+            estado, fecha, hora, id_cesfam = row
+
+            # 2. Validar disponibilidad
+            if estado != 'disponible':
+                return Response(
+                    {'success': "false", 'error': f'La hora ya no está disponible (estado: {estado})'},
+                    status=409
+                )
+
+            # 3. Verificar que no sea una hora pasada
+            hora_datetime = datetime.combine(fecha, hora)
+            if hora_datetime < timezone.now():
+                return Response(
+                    {'success': "false", 'error': 'No se puede reservar una hora pasada'},
+                    status=400
+                )
+
+            # 4. Verificar reservas existentes del usuario en mismo horario
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM usuario_agenda 
+                WHERE id_manychat_id IN (
+                    SELECT id FROM administracion_usuario 
+                    WHERE id_manychat = %s
+                )
+                AND fecha_atencion = %s 
+                AND hora_atencion = %s
+            """, [manychat_id, fecha, hora])
+            
+            if cursor.fetchone()[0] > 0:
+                return Response(
+                    {'success': "false", 'error': 'Ya tienes una reserva en este mismo horario'},
+                    status=400
+                )
+
+            # 5. Llamar al procedimiento almacenado original
+            cursor.callproc('cambiar_estado_hora', [
+                hora_id,
+                'reservada',
+                manychat_id,
+                None  # OUT parameter
+            ])
+            cursor.execute("SELECT @_cambiar_estado_hora_3")
+            resultado = cursor.fetchone()[0]
+            
+            if not resultado or resultado.startswith('Error'):
+                return Response(
+                    {'success': "false", 'error': resultado or 'Error al cambiar estado de la hora'},
+                    status=400
+                )
+
+        # 6. Crear registro en Agenda
+        try:
+            usuario = Usuario.objects.get(id_manychat=manychat_id)
+            agenda = Agenda.objects.create(
+                fecha_atencion=fecha,
+                hora_atencion=hora,
+                requisito_examen=requisito_examen,
+                id_cesfam_id=id_cesfam,
+                id_manychat=usuario,
+                id_procedimiento_id=procedimiento_id
+            )
+
+            # 7. OPCIONAL: Buscar hora relacionada (sin usar relación directa)
+            hora_relacionada = HoraAgenda.objects.filter(
+                id_hora=hora_id
+            ).first()
+
+            return Response({
+                'success': "true",
+                'message': 'Hora reservada correctamente',
+                'agenda_id': agenda.id_agenda,
+                'fecha': fecha.strftime('%d/%m/%Y'),
+                'hora': hora.strftime('%H:%M'),
+                'hora_relacionada': {
+                    'id': hora_relacionada.id_hora if hora_relacionada else None,
+                    'estado': hora_relacionada.estado if hora_relacionada else None
+                }
+            })
+
+        except Usuario.DoesNotExist:
+            return Response({'success': "false", 'error': 'Usuario no encontrado'}, status=404)
+        except Exception as e:
+            return Response({'success': "false", 'error': f'Error al crear agenda: {str(e)}'}, status=500)
 
     except Exception as e:
-        logger.critical(f"Error inesperado en reservar_hora: {str(e)}", exc_info=True)
-        return Response({
-            'success': "false",
-            'error': 'Error interno del servidor'
-        }, status=500)
+        return Response({'success': "false", 'error': f'Error inesperado: {str(e)}'}, status=500)
