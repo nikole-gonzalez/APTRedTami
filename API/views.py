@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.cache import cache
-from django.db import connection, transaction
+from django.db import connection, transaction, DatabaseError
 from datetime import date, datetime, timedelta
 from django.utils import timezone
 from django.utils.timezone import make_aware
@@ -400,24 +400,7 @@ def horas_disponibles(request):
             {'error': 'Error al obtener horas disponibles'}, 
             status=500
         )
-logger = logging.getLogger(__name__)
-
-import logging
-from django.db import connection
-from django.core.cache import cache
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-logger = logging.getLogger(__name__)
-
-from django.db import transaction, connection, DatabaseError
-from django.utils import timezone
-from datetime import datetime
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Agenda, Usuario
-import logging
-
+    
 # Configuración de logging
 logger = logging.getLogger(__name__)
 
