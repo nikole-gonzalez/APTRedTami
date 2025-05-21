@@ -15,8 +15,11 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import connection
+from django.db import connection, transaction
 from datetime import date, datetime, timedelta
+from django.utils import timezone
+from django.utils.timezone import make_aware
+
 import hashlib
 
 from .models import *
@@ -298,16 +301,14 @@ def horas_disponibles(request):
             dias_a_sumar = 7 - fecha_objetivo.weekday()
             fecha_objetivo += timedelta(days=dias_a_sumar)
         
-        # Obtener horas disponibles
         horas = HoraAgenda.objects.filter(
             fecha=fecha_objetivo,
             estado='disponible',
             cesfam_id=cesfam_id
         ).order_by('hora')[:3]
         
-        # Formatear respuesta con hora_id como string
         resultados = [{
-            'hora_id': str(hora.id_hora),  # Convertido a string
+            'hora_id': str(hora.id_hora), 
             'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
             'fecha': hora.fecha.strftime('%d/%m/%Y'),
             'hora': hora.hora.strftime('%H:%M')
@@ -326,6 +327,7 @@ def horas_disponibles(request):
         )
 
 @api_view(['POST'])
+@transaction.atomic
 def reservar_hora(request):
     try:
         data = request.data
@@ -334,56 +336,98 @@ def reservar_hora(request):
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
 
-        if not hora_id or not manychat_id or not procedimiento_id:
+        if not all([hora_id, manychat_id, procedimiento_id]):
             return Response(
                 {'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
                 status=400
             )
 
-        try:
-            hora_agenda = HoraAgenda.objects.get(id_hora=hora_id)
-        except HoraAgenda.DoesNotExist:
-            return Response({'error': 'La hora solicitada no existe'}, status=404)
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT estado, fecha, hora, id_cesfam 
+                FROM usuario_horas_agenda 
+                WHERE id_hora = %s 
+                FOR UPDATE
+            """, [hora_id])
+            row = cursor.fetchone()
 
-        try:
-            with connection.cursor() as cursor:
-                cursor.callproc('cambiar_estado_hora', [
-                    hora_id,
-                    'reservada',
-                    manychat_id,
-                    None
-                ])
-                cursor.execute("SELECT @_cambiar_estado_hora_3")
-                row = cursor.fetchone()
-                resultado = row[0] if row else 'Error: No se recibió respuesta del procedimiento'
+            if not row:
+                return Response({'error': 'La hora solicitada no existe'}, status=404)
 
-                if not resultado or resultado.startswith('Error'):
-                    return Response({'error': resultado or 'Error desconocido al cambiar estado'}, status=400)
+            estado, fecha, hora, id_cesfam = row
 
-            try:
-                usuario = Usuario.objects.get(id_manychat=manychat_id)
-                agenda = Agenda.objects.create(
-                    fecha_atencion=hora_agenda.fecha,
-                    hora_atencion=hora_agenda.hora,
-                    requisito_examen=requisito_examen,
-                    id_cesfam=hora_agenda.cesfam,
-                    id_manychat=usuario,
-                    id_procedimiento_id=procedimiento_id
+            if estado != 'disponible':
+                return Response(
+                    {'error': f'La hora ya no está disponible (estado: {estado})'},
+                    status=409
                 )
-            except Usuario.DoesNotExist:
-                return Response({'error': 'Usuario no encontrado'}, status=404)
-            except Exception as e:
-                return Response({'error': f'Error al crear agenda: {str(e)}'}, status=500)
+            
+            hora_datetime = make_aware(datetime.combine(fecha, hora))
+            if hora_datetime < timezone.now():
+                return Response(
+                    {'error': 'No se puede reservar una hora pasada'},
+                    status=400
+                )
+            
+            cursor.execute("""
+            SELECT COUNT(*) 
+            FROM usuario_agenda 
+            WHERE id_manychat_id = %s
+            AND fecha_atencion = %s 
+            AND hora_atencion = %s
+        """, [manychat_id, fecha, hora])
+            
+            if cursor.fetchone()[0] > 0:
+                return Response(
+                    {'error': 'Ya tienes una reserva en este mismo horario'},
+                    status=400
+                )
+
+            cursor.callproc('cambiar_estado_hora', [
+                hora_id,
+                'reservada',
+                manychat_id,
+                None  
+            ])
+            cursor.execute("SELECT @_cambiar_estado_hora_3")
+            resultado = cursor.fetchone()[0]
+            
+            if not resultado or resultado.startswith('Error'):
+                return Response(
+                    {'error': resultado or 'Error al cambiar estado de la hora'},
+                    status=400
+                )
+
+        try:
+            usuario = Usuario.objects.get(id_manychat=manychat_id)
+            agenda = Agenda.objects.create(
+                fecha_atencion=fecha,
+                hora_atencion=hora,
+                requisito_examen=requisito_examen,
+                id_cesfam_id=id_cesfam,
+                id_manychat=usuario,
+                id_procedimiento_id=procedimiento_id
+            )
+
+            hora_relacionada = HoraAgenda.objects.filter(
+                id_hora=hora_id
+            ).first()
 
             return Response({
                 'success': 'Hora reservada correctamente',
                 'agenda_id': agenda.id_agenda,
-                'fecha': hora_agenda.fecha.strftime('%d/%m/%Y'),
-                'hora': hora_agenda.hora.strftime('%H:%M')
+                'fecha': fecha.strftime('%d/%m/%Y'),
+                'hora': hora.strftime('%H:%M'),
+                'hora_relacionada': {
+                    'id': hora_relacionada.id_hora if hora_relacionada else None,
+                    'estado': hora_relacionada.estado if hora_relacionada else None
+                }
             })
 
+        except Usuario.DoesNotExist:
+            return Response({'error': 'Usuario no encontrado'}, status=404)
         except Exception as e:
-            return Response({'error': f'Error en procedimiento almacenado: {str(e)}'}, status=500)
+            return Response({'error': f'Error al crear agenda: {str(e)}'}, status=500)
 
     except Exception as e:
         return Response({'error': f'Error inesperado: {str(e)}'}, status=500)
