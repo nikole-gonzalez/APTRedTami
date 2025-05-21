@@ -458,7 +458,7 @@ def reservar_hora(request):
                     )
 
                 # 3. Verificar que no sea una hora pasada
-                hora_datetime = datetime.combine(fecha, hora)
+                hora_datetime = make_aware(datetime.combine(fecha, hora))
                 if hora_datetime < timezone.now():
                     return Response(
                         {
