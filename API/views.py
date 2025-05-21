@@ -336,98 +336,140 @@ def reservar_hora(request):
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
 
+        # Validaciones básicas
         if not all([hora_id, manychat_id, procedimiento_id]):
             return Response(
                 {'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
                 status=400
             )
 
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT estado, fecha, hora, id_cesfam 
-                FROM usuario_horas_agenda 
-                WHERE id_hora = %s 
-                FOR UPDATE
-            """, [hora_id])
-            row = cursor.fetchone()
-
-            if not row:
-                return Response({'error': 'La hora solicitada no existe'}, status=404)
-
-            estado, fecha, hora, id_cesfam = row
-
-            if estado != 'disponible':
-                return Response(
-                    {'error': f'La hora ya no está disponible (estado: {estado})'},
-                    status=409
-                )
-            
-            hora_datetime = make_aware(datetime.combine(fecha, hora))
-            if hora_datetime < timezone.now():
-                return Response(
-                    {'error': 'No se puede reservar una hora pasada'},
-                    status=400
-                )
-            
-            cursor.execute("""
-            SELECT COUNT(*) 
-            FROM usuario_agenda 
-            WHERE id_manychat_id = %s
-            AND fecha_atencion = %s 
-            AND hora_atencion = %s
-        """, [manychat_id, fecha, hora])
-            
-            if cursor.fetchone()[0] > 0:
-                return Response(
-                    {'error': 'Ya tienes una reserva en este mismo horario'},
-                    status=400
-                )
-
-            cursor.callproc('cambiar_estado_hora', [
-                hora_id,
-                'reservada',
-                manychat_id,
-                None  
-            ])
-            cursor.execute("SELECT @_cambiar_estado_hora_3")
-            resultado = cursor.fetchone()[0]
-            
-            if not resultado or resultado.startswith('Error'):
-                return Response(
-                    {'error': resultado or 'Error al cambiar estado de la hora'},
-                    status=400
-                )
-
         try:
-            usuario = Usuario.objects.get(id_manychat=manychat_id)
-            agenda = Agenda.objects.create(
-                fecha_atencion=fecha,
-                hora_atencion=hora,
-                requisito_examen=requisito_examen,
-                id_cesfam_id=id_cesfam,
-                id_manychat=usuario,
-                id_procedimiento_id=procedimiento_id
+            hora_id = int(hora_id)
+            procedimiento_id = int(procedimiento_id)
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'hora_id y procedimiento_id deben ser números válidos'},
+                status=400
             )
 
-            hora_relacionada = HoraAgenda.objects.filter(
-                id_hora=hora_id
-            ).first()
+        # Usar lock de base de datos para prevenir reservas simultáneas
+        with connection.cursor() as cursor:
+            try:
+                # Adquirir lock exclusivo para esta reserva
+                cursor.execute("SELECT GET_LOCK(%s, 5)", [f'hora_reserva_{hora_id}'])
+                if cursor.fetchone()[0] != 1:
+                    return Response(
+                        {'error': 'La hora está siendo reservada por otro usuario. Intenta nuevamente.'},
+                        status=409
+                    )
 
-            return Response({
-                'success': 'Hora reservada correctamente',
-                'agenda_id': agenda.id_agenda,
-                'fecha': fecha.strftime('%d/%m/%Y'),
-                'hora': hora.strftime('%H:%M'),
-                'hora_relacionada': {
-                    'id': hora_relacionada.id_hora if hora_relacionada else None,
-                    'estado': hora_relacionada.estado if hora_relacionada else None
-                }
-            })
+                # Verificar disponibilidad
+                cursor.execute("""
+                    SELECT estado, fecha, hora, id_cesfam, agenda_id
+                    FROM usuario_horas_agenda 
+                    WHERE id_hora = %s 
+                    FOR UPDATE
+                """, [hora_id])
+                row = cursor.fetchone()
 
-        except Usuario.DoesNotExist:
-            return Response({'error': 'Usuario no encontrado'}, status=404)
-        except Exception as e:
-            return Response({'error': f'Error al crear agenda: {str(e)}'}, status=500)
+                if not row:
+                    cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
+                    return Response({'error': 'La hora solicitada no existe'}, status=404)
 
+                estado, fecha, hora, id_cesfam, agenda_id = row
+
+                if estado != 'disponible' or agenda_id is not None:
+                    cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
+                    return Response(
+                        {
+                            'error': 'La hora ya no está disponible',
+                            'codigo': 'hora_ocupada',
+                            'sugerencia': 'Por favor selecciona otra hora'
+                        },
+                        status=409
+                    )
+
+                hora_datetime = make_aware(datetime.combine(fecha, hora))
+                if hora_datetime < timezone.now():
+                    cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
+                    return Response(
+                        {'error': 'No se puede reservar una hora pasada'},
+                        status=400
+                    )
+
+                # Verificar si el usuario ya tiene reserva en este horario
+                cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM usuario_agenda 
+                    WHERE id_manychat_id = (
+                        SELECT id FROM administracion_usuario WHERE id_manychat = %s
+                    )
+                    AND fecha_atencion = %s 
+                    AND hora_atencion = %s
+                """, [manychat_id, fecha, hora])
+                
+                if cursor.fetchone()[0] > 0:
+                    cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
+                    return Response(
+                        {'error': 'Ya tienes una reserva en este mismo horario'},
+                        status=400
+                    )
+
+                # Llamar al procedimiento almacenado
+                cursor.callproc('cambiar_estado_hora', [
+                    hora_id,
+                    'reservada',
+                    manychat_id,
+                    None
+                ])
+                cursor.execute("SELECT @_cambiar_estado_hora_3")
+                resultado = cursor.fetchone()[0]
+                
+                if not resultado or resultado.startswith('Error'):
+                    cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
+                    return Response(
+                        {'error': resultado or 'Error al cambiar estado de la hora'},
+                        status=400
+                    )
+
+                # Crear registro en Agenda
+                usuario = Usuario.objects.get(id_manychat=manychat_id)
+                agenda = Agenda.objects.create(
+                    fecha_atencion=fecha,
+                    hora_atencion=hora,
+                    requisito_examen=requisito_examen,
+                    id_cesfam_id=id_cesfam,
+                    id_manychat=usuario,
+                    id_procedimiento_id=procedimiento_id
+                )
+
+                # Actualizar referencia en HoraAgenda
+                cursor.execute("""
+                    UPDATE usuario_horas_agenda
+                    SET agenda_id = %s
+                    WHERE id_hora = %s
+                """, [agenda.id_agenda, hora_id])
+
+                cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
+
+                return Response({
+                    'success': 'Hora reservada correctamente',
+                    'agenda_id': agenda.id_agenda,
+                    'fecha': fecha.strftime('%d/%m/%Y'),
+                    'hora': hora.strftime('%H:%M')
+                })
+
+            except Exception as e:
+                cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
+                raise
+
+    except Usuario.DoesNotExist:
+        return Response({'error': 'Usuario no encontrado'}, status=404)
     except Exception as e:
-        return Response({'error': f'Error inesperado: {str(e)}'}, status=500)
+        return Response(
+            {
+                'error': 'Ocurrió un error al procesar tu solicitud',
+                'detalle': str(e)
+            },
+            status=500
+        )
