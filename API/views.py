@@ -405,54 +405,76 @@ def horas_disponibles(request):
 def reservar_hora(request):
     try:
         data = request.data
+        logger.debug(f"Datos recibidos: {data}")
+        
         hora_id = data.get('hora_id')
         manychat_id = data.get('manychat_id')
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
 
+        # Validación de datos
         if not all([hora_id, manychat_id, procedimiento_id]):
-            return Response(
-                {'success': "false", 'error': 'Datos incompletos'},
-                status=400
-            )
+            error_msg = 'Datos incompletos. Se requieren: hora_id, manychat_id y procedimiento_id'
+            logger.warning(error_msg)
+            return Response({'success': "false", 'error': error_msg}, status=400)
+
+        try:
+            hora_id = int(hora_id)
+            procedimiento_id = int(procedimiento_id)
+        except (ValueError, TypeError) as e:
+            error_msg = f'IDs inválidos: {str(e)}'
+            logger.warning(error_msg)
+            return Response({'success': "false", 'error': error_msg}, status=400)
 
         with connection.cursor() as cursor:
-            cursor.callproc('reservar_hora_segura', [
-                hora_id,
-                manychat_id,
-                procedimiento_id,
-                requisito_examen,
-                None,  # OUT p_resultado
-                None   # OUT p_agenda_id
-            ])
-            
-            # Obtener resultados
-            cursor.execute("SELECT @_reservar_hora_segura_4, @_reservar_hora_segura_5")
-            resultado, agenda_id = cursor.fetchone()
-
-            if resultado == 'OK':
-                # Invalidar caché de horas disponibles
-                cursor.execute("""
-                    SELECT id_cesfam FROM usuario_horas_agenda 
-                    WHERE id_hora = %s
-                """, [hora_id])
-                cesfam_id = cursor.fetchone()[0]
-                cache.delete(f'horas_disponibles_{cesfam_id}')
+            try:
+                logger.debug(f"Iniciando reserva para hora_id: {hora_id}")
                 
-                return Response({
-                    'success': "true",
-                    'agenda_id': agenda_id,
-                    'message': 'Hora reservada correctamente'
-                })
-            else:
-                return Response({
-                    'success': "false",
-                    'error': resultado or 'Error al reservar'
-                }, status=400)
+                # Llamada al procedimiento almacenado
+                cursor.callproc('reservar_hora_segura', [
+                    hora_id,
+                    manychat_id,
+                    procedimiento_id,
+                    requisito_examen,
+                    None,  # OUT p_resultado
+                    None   # OUT p_agenda_id
+                ])
+                
+                # Obtener resultados
+                cursor.execute("SELECT @_reservar_hora_segura_4, @_reservar_hora_segura_5")
+                resultado, agenda_id = cursor.fetchone()
+                logger.debug(f"Resultado del procedimiento: {resultado}, Agenda ID: {agenda_id}")
+
+                if resultado == 'OK':
+                    # Invalidar caché
+                    cursor.execute("SELECT id_cesfam FROM usuario_horas_agenda WHERE id_hora = %s", [hora_id])
+                    row = cursor.fetchone()
+                    if row:
+                        cesfam_id = row[0]
+                        cache_key = f'horas_disponibles_{cesfam_id}'
+                        cache.delete(cache_key)
+                        logger.debug(f"Cache invalidado para cesfam_id: {cesfam_id}")
+                    
+                    return Response({
+                        'success': "true",
+                        'agenda_id': agenda_id,
+                        'message': 'Hora reservada correctamente'
+                    })
+                else:
+                    error_msg = resultado or 'Error al reservar hora'
+                    logger.warning(error_msg)
+                    return Response({'success': "false", 'error': error_msg}, status=400)
+
+            except Exception as e:
+                logger.error(f"Error en transacción: {str(e)}", exc_info=True)
+                return Response(
+                    {'success': "false", 'error': 'Error al procesar la reserva'},
+                    status=500
+                )
 
     except Exception as e:
-        logger.error(f"Error en reserva: {str(e)}")
+        logger.critical(f"Error inesperado: {str(e)}", exc_info=True)
         return Response(
-            {'success': "false", 'error': 'Error en el servidor'},
+            {'success': "false", 'error': 'Error interno del servidor'},
             status=500
         )
