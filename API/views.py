@@ -339,7 +339,7 @@ def reservar_hora(request):
         # Validaciones básicas
         if not all([hora_id, manychat_id, procedimiento_id]):
             return Response(
-                {'success': False, 'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
+                {'success': "false", 'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
                 status=400
             )
 
@@ -348,7 +348,7 @@ def reservar_hora(request):
             procedimiento_id = int(procedimiento_id)
         except (ValueError, TypeError):
             return Response(
-                {'success': False, 'error': 'hora_id y procedimiento_id deben ser números válidos'},
+                {'success': "false", 'error': 'hora_id y procedimiento_id deben ser números válidos'},
                 status=400
             )
 
@@ -358,7 +358,7 @@ def reservar_hora(request):
                 cursor.execute("SELECT GET_LOCK(%s, 5)", [f'hora_reserva_{hora_id}'])
                 if cursor.fetchone()[0] != 1:
                     return Response(
-                        {'success': False, 'error': 'La hora está siendo reservada por otro usuario. Intenta nuevamente.'},
+                        {'success': "false", 'error': 'La hora está siendo reservada por otro usuario. Intenta nuevamente.'},
                         status=409
                     )
 
@@ -373,7 +373,7 @@ def reservar_hora(request):
 
                 if not row:
                     cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
-                    return Response({'success': False, 'error': 'La hora solicitada no existe'}, status=404)
+                    return Response({'success': "false", 'error': 'La hora solicitada no existe'}, status=404)
 
                 estado, fecha, hora, id_cesfam = row
 
@@ -381,7 +381,7 @@ def reservar_hora(request):
                     cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
                     return Response(
                         {
-                            'success': False,
+                            'success': "false",
                             'error': f'La hora ya no está disponible (estado: {estado})',
                             'codigo': 'hora_ocupada',
                             'sugerencia': 'Por favor selecciona otra hora'
@@ -393,7 +393,7 @@ def reservar_hora(request):
                 if hora_datetime < timezone.now():
                     cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
                     return Response(
-                        {'success': False, 'error': 'No se puede reservar una hora pasada'},
+                        {'success': "false", 'error': 'No se puede reservar una hora pasada'},
                         status=400
                     )
 
@@ -409,7 +409,7 @@ def reservar_hora(request):
                 if cursor.fetchone()[0] > 0:
                     cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
                     return Response(
-                        {'success': False, 'error': 'Ya tienes una reserva en este mismo horario'},
+                        {'success': "false", 'error': 'Ya tienes una reserva en este mismo horario'},
                         status=400
                     )
 
@@ -426,7 +426,7 @@ def reservar_hora(request):
                 if not resultado or resultado.startswith('Error'):
                     cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
                     return Response(
-                        {'success': False, 'error': resultado or 'Error al cambiar estado de la hora'},
+                        {'success': "false", 'error': resultado or 'Error al cambiar estado de la hora'},
                         status=400
                     )
 
@@ -444,7 +444,7 @@ def reservar_hora(request):
                 cursor.execute("SELECT RELEASE_LOCK(%s)", [f'hora_reserva_{hora_id}'])
 
                 return Response({
-                    'success': True,
+                    'success': "true",
                     'message': 'Hora reservada correctamente',
                     'agenda_id': agenda.id_agenda,
                     'fecha': fecha.strftime('%d/%m/%Y'),
@@ -456,11 +456,11 @@ def reservar_hora(request):
                 raise
 
     except Usuario.DoesNotExist:
-        return Response({'success': False, 'error': 'Usuario no encontrado'}, status=404)
+        return Response({'success': "false", 'error': 'Usuario no encontrado'}, status=404)
     except Exception as e:
         return Response(
             {
-                'success': False,
+                'success': "false",
                 'error': 'Ocurrió un error al procesar tu solicitud',
                 'detalle': str(e)
             },
