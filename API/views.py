@@ -410,89 +410,167 @@ from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
+from django.db import transaction, connection, DatabaseError
+from django.utils import timezone
+from datetime import datetime
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import Agenda, Usuario
+import logging
+
+# Configuración de logging
+logger = logging.getLogger(__name__)
+
 @api_view(['POST'])
 @transaction.atomic
 def reservar_hora(request):
     try:
+        # 1. Obtener y validar datos básicos
         data = request.data
         hora_id = data.get('hora_id')
         manychat_id = data.get('manychat_id')
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
 
-        # Validaciones básicas
+        # Validación de campos requeridos
         if not all([hora_id, manychat_id, procedimiento_id]):
+            logger.warning('Faltan campos requeridos en la solicitud')
             return Response(
-                {'success': "false", 'error': 'Se requieren hora_id, manychat_id y procedimiento_id'},
+                {
+                    'success': "false",
+                    'error': 'Datos incompletos',
+                    'detalle': 'Se requieren hora_id, manychat_id y procedimiento_id',
+                    'codigo_error': 'DATOS_INCOMPLETOS'
+                },
                 status=400
             )
 
-        # Bloquea y obtiene datos de la hora
+        # 2. Validar formato de IDs
+        try:
+            hora_id = int(hora_id)
+            procedimiento_id = int(procedimiento_id)
+        except (ValueError, TypeError):
+            logger.error('IDs con formato inválido')
+            return Response(
+                {
+                    'success': "false",
+                    'error': 'IDs inválidos',
+                    'detalle': 'hora_id y procedimiento_id deben ser números',
+                    'codigo_error': 'ID_INVALIDO'
+                },
+                status=400
+            )
+
+        # 3. Verificar existencia y disponibilidad de la hora
         with connection.cursor() as cursor:
-            # 1. Bloquear y verificar la hora
-            cursor.execute("""
-                SELECT estado, fecha, hora, id_cesfam 
-                FROM usuario_horas_agenda 
-                WHERE id_hora = %s 
-                FOR UPDATE
-            """, [hora_id])
-            row = cursor.fetchone()
+            try:
+                # Verificar si la hora existe
+                cursor.execute("""
+                    SELECT estado, fecha, hora, id_cesfam 
+                    FROM usuario_horas_agenda 
+                    WHERE id_hora = %s
+                    FOR UPDATE
+                """, [hora_id])
+                
+                row = cursor.fetchone()
+                if not row:
+                    logger.warning(f'Hora no encontrada: {hora_id}')
+                    return Response(
+                        {
+                            'success': "false",
+                            'error': 'La hora solicitada no existe',
+                            'sugerencia': 'Verifica el ID o intenta con otra hora',
+                            'codigo_error': 'HORA_NO_ENCONTRADA'
+                        },
+                        status=404
+                    )
 
-            if not row:
-                return Response({'success': "false", 'error': 'La hora solicitada no existe'}, status=404)
+                estado, fecha, hora, id_cesfam = row
 
-            estado, fecha, hora, id_cesfam = row
+                # Validar disponibilidad
+                if estado != 'disponible':
+                    logger.warning(f'Hora no disponible. Estado actual: {estado}')
+                    return Response(
+                        {
+                            'success': "false",
+                            'error': f'La hora ya no está disponible (estado: {estado})',
+                            'codigo_error': 'HORA_NO_DISPONIBLE'
+                        },
+                        status=409
+                    )
 
-            # 2. Validar disponibilidad
-            if estado != 'disponible':
+                # 4. Validar que no sea una hora pasada (CORRECCIÓN DEL ERROR)
+                hora_datetime_naive = datetime.combine(fecha, hora)
+                hora_datetime_aware = timezone.make_aware(hora_datetime_naive)
+                
+                if hora_datetime_aware < timezone.now():
+                    logger.warning('Intento de reservar hora pasada')
+                    return Response(
+                        {
+                            'success': "false",
+                            'error': 'No se puede reservar una hora pasada',
+                            'codigo_error': 'HORA_PASADA'
+                        },
+                        status=400
+                    )
+
+                # 5. Verificar reservas existentes del usuario
+                cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM usuario_agenda 
+                    WHERE id_manychat_id IN (
+                        SELECT id FROM administracion_usuario 
+                        WHERE id_manychat = %s
+                    )
+                    AND fecha_atencion = %s 
+                    AND hora_atencion = %s
+                """, [manychat_id, fecha, hora])
+                
+                if cursor.fetchone()[0] > 0:
+                    logger.warning('Usuario ya tiene reserva en este horario')
+                    return Response(
+                        {
+                            'success': "false",
+                            'error': 'Ya tienes una reserva en este mismo horario',
+                            'codigo_error': 'RESERVA_DUPLICADA'
+                        },
+                        status=400
+                    )
+
+                # 6. Llamar al procedimiento almacenado
+                cursor.callproc('cambiar_estado_hora', [
+                    hora_id,
+                    'reservada',
+                    manychat_id,
+                    None  # OUT parameter
+                ])
+                cursor.execute("SELECT @_cambiar_estado_hora_3")
+                resultado = cursor.fetchone()[0]
+                
+                if not resultado or resultado.startswith('Error'):
+                    logger.error(f'Error en procedimiento almacenado: {resultado}')
+                    return Response(
+                        {
+                            'success': "false",
+                            'error': resultado or 'Error al cambiar estado de la hora',
+                            'codigo_error': 'ERROR_PROCESAMIENTO'
+                        },
+                        status=400
+                    )
+
+            except DatabaseError as db_error:
+                logger.error(f'Error de base de datos: {str(db_error)}')
                 return Response(
-                    {'success': "false", 'error': f'La hora ya no está disponible (estado: {estado})'},
-                    status=409
+                    {
+                        'success': "false",
+                        'error': 'Error al consultar la base de datos',
+                        'detalle': str(db_error),
+                        'codigo_error': 'ERROR_BD'
+                    },
+                    status=500
                 )
 
-            # 3. Verificar que no sea una hora pasada
-            hora_datetime = datetime.combine(fecha, hora)
-            if hora_datetime < timezone.now():
-                return Response(
-                    {'success': "false", 'error': 'No se puede reservar una hora pasada'},
-                    status=400
-                )
-
-            # 4. Verificar reservas existentes del usuario en mismo horario
-            cursor.execute("""
-                SELECT COUNT(*) 
-                FROM usuario_agenda 
-                WHERE id_manychat_id IN (
-                    SELECT id FROM administracion_usuario 
-                    WHERE id_manychat = %s
-                )
-                AND fecha_atencion = %s 
-                AND hora_atencion = %s
-            """, [manychat_id, fecha, hora])
-            
-            if cursor.fetchone()[0] > 0:
-                return Response(
-                    {'success': "false", 'error': 'Ya tienes una reserva en este mismo horario'},
-                    status=400
-                )
-
-            # 5. Llamar al procedimiento almacenado original
-            cursor.callproc('cambiar_estado_hora', [
-                hora_id,
-                'reservada',
-                manychat_id,
-                None  # OUT parameter
-            ])
-            cursor.execute("SELECT @_cambiar_estado_hora_3")
-            resultado = cursor.fetchone()[0]
-            
-            if not resultado or resultado.startswith('Error'):
-                return Response(
-                    {'success': "false", 'error': resultado or 'Error al cambiar estado de la hora'},
-                    status=400
-                )
-
-        # 6. Crear registro en Agenda
+        # 7. Crear registro en Agenda
         try:
             usuario = Usuario.objects.get(id_manychat=manychat_id)
             agenda = Agenda.objects.create(
@@ -504,27 +582,61 @@ def reservar_hora(request):
                 id_procedimiento_id=procedimiento_id
             )
 
-            # 7. OPCIONAL: Buscar hora relacionada (sin usar relación directa)
-            hora_relacionada = HoraAgenda.objects.filter(
-                id_hora=hora_id
-            ).first()
+            # 8. Actualizar campo agenda_id en la tabla
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE usuario_horas_agenda
+                    SET agenda_id = %s
+                    WHERE id_hora = %s
+                """, [agenda.id_agenda, hora_id])
 
-            return Response({
+            # 9. Preparar respuesta exitosa
+            response_data = {
                 'success': "true",
-                'message': 'Hora reservada correctamente',
+                'mensaje': 'Hora reservada correctamente',
                 'agenda_id': agenda.id_agenda,
                 'fecha': fecha.strftime('%d/%m/%Y'),
                 'hora': hora.strftime('%H:%M'),
-                'hora_relacionada': {
-                    'id': hora_relacionada.id_hora if hora_relacionada else None,
-                    'estado': hora_relacionada.estado if hora_relacionada else None
+                'detalles': {
+                    'cesfam_id': id_cesfam,
+                    'procedimiento_id': procedimiento_id,
+                    'usuario_id': usuario.id
                 }
-            })
+            }
+
+            logger.info(f'Reserva exitosa. Agenda ID: {agenda.id_agenda}')
+            return Response(response_data, status=201)
 
         except Usuario.DoesNotExist:
-            return Response({'success': "false", 'error': 'Usuario no encontrado'}, status=404)
+            logger.error(f'Usuario no encontrado: {manychat_id}')
+            return Response(
+                {
+                    'success': "false",
+                    'error': 'Usuario no encontrado',
+                    'codigo_error': 'USUARIO_NO_ENCONTRADO'
+                },
+                status=404
+            )
         except Exception as e:
-            return Response({'success': "false", 'error': f'Error al crear agenda: {str(e)}'}, status=500)
+            logger.error(f'Error al crear agenda: {str(e)}')
+            return Response(
+                {
+                    'success': "false",
+                    'error': 'Error al crear la reserva',
+                    'detalle': str(e),
+                    'codigo_error': 'ERROR_CREACION_AGENDA'
+                },
+                status=500
+            )
 
     except Exception as e:
-        return Response({'success': "false", 'error': f'Error inesperado: {str(e)}'}, status=500)
+        logger.critical(f'Error inesperado: {str(e)}', exc_info=True)
+        return Response(
+            {
+                'success': "false",
+                'error': 'Error inesperado en el servidor',
+                'detalle': str(e),
+                'codigo_error': 'ERROR_INTERNO'
+            },
+            status=500
+        )
