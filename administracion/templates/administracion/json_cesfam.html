@@ -19,10 +19,15 @@
             <td>{{ cesfam.nombre_cesfam }}</td>
             <td>{{ cesfam.num_horas }}</td>
             <td>
-              <a href="{% url 'descargar_json_cesfam' cesfam.id_cesfam %}" 
-                class="button {% if not cesfam.num_horas %}disabled{% endif %}">
-                Descargar JSON
-              </a>
+                {% if cesfam.num_horas %}
+                  <button class="button descargar-json"
+                    data-id="{{ cesfam.id_cesfam }}"
+                    data-nombre="{{ cesfam.nombre_cesfam|escapejs }}">
+                    Descargar JSON
+                  </button>
+                {% else %}
+                    <button class="button disabled" disabled>Descargar JSON</button>
+                {% endif %}
             </td>
         </tr>
         {% empty %}
@@ -32,14 +37,60 @@
         {% endfor %}
     </tbody>
 </table>
-<section>
-  <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
+
+<section style="margin-top: 2em;">
+    <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
 </section>
+
+<!-- Mensaje de éxito -->
+<div id="mensaje-exito" style="display:none; margin-top:1em;" class="alert alert-success">
+    El archivo se ha descargado con éxito.
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const botones = document.querySelectorAll(".descargar-json");
+    botones.forEach(boton => {
+      boton.addEventListener("click", () => {
+        const id = boton.getAttribute("data-id");
+        const nombre = boton.getAttribute("data-nombre");
+        descargarArchivo(id, nombre);
+      });
+    });
+  });
+
+  function descargarArchivo(cesfamId, nombreCesfam) {
+    const url = `/json_cesfam/${cesfamId}/`;
+
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = "";
+    enlace.style.display = "none";
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+
+    const mensaje = document.getElementById("mensaje-exito");
+    mensaje.innerText = `El archivo de "${nombreCesfam}" se ha descargado con éxito.`;
+    mensaje.style.display = "block";
+    setTimeout(() => {
+      mensaje.style.display = "none";
+    }, 5000);
+  }
+</script>
 
 <style>
   .button.disabled {
-  pointer-events: none;
-  opacity: 0.6;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  .alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 10px;
+    border-radius: 8px;
+    color: #155724;
   }
 </style>
 {% endblock %}
