@@ -19,10 +19,10 @@
             <td>{{ cesfam.nombre_cesfam }}</td>
             <td>{{ cesfam.num_horas }}</td>
             <td>
-                <a href="{% url 'descargar_json_cesfam' cesfam.id_cesfam %}" 
-                   class="btn btn-primary btn-sm {% if not cesfam.num_horas %}disabled{% endif %}">
-                   Descargar JSON
-                </a>
+              <a href="{% url 'descargar_json_cesfam' cesfam.id_cesfam %}" 
+                class="button {% if not cesfam.num_horas %}disabled{% endif %}">
+                Descargar JSON
+              </a>
             </td>
         </tr>
         {% empty %}
@@ -32,8 +32,13 @@
         {% endfor %}
     </tbody>
 </table>
-
-<a href="{% url 'opc_vis_agenda' %}" class="btn btn-secondary mt-3">
-    ← Volver al menú
-</a>
+<section>
+  <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
+</section>
+<style>
+  .button.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+</style>
 {% endblock %}
