@@ -25,7 +25,8 @@ from .views import (
     cuestionario_completo,
     horas_disponibles,
     reservar_hora, 
-    verificar_reserva
+    verificar_reserva,
+    enviar_recordatorios_pendientes
 
 )
 
@@ -59,4 +60,5 @@ urlpatterns = [
     path('horas-disponibles/', horas_disponibles, name='horas-disponibles'),
     path('reservar-hora/', reservar_hora, name='reservar_hora'),
     path('verificar-reserva/', verificar_reserva, name='verificar_reserva'),
+    path('enviar-recordatorios/', enviar_recordatorios_pendientes, name='enviar_recordatorios'),
 ]
