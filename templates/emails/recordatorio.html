@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .card { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Recordatorio de Cita Médica</h2>
+    </div>
+    
+    <div class="card">
+        <p><strong>Fecha:</strong> {{ fecha }}</p>
+        <p><strong>Hora:</strong> {{ hora }}</p>
+        <p><strong>Centro:</strong> {{ cesfam }}</p>
+        <p><strong>Requisitos:</strong><br>{{ requisitos }}</p>
+    </div>
+    
+    <p>Por favor presente este recordatorio al llegar.</p>
+</body>
+</html>

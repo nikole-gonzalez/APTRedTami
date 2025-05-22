@@ -1,0 +1,10 @@
+Recordatorio de Cita Médica
+
+Fecha: {{ fecha }}
+Hora: {{ hora }}
+Centro: {{ cesfam }}
+
+Requisitos:
+{{ requisitos }}
+
+Por favor presente este recordatorio al llegar.

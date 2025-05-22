@@ -2,15 +2,14 @@ name: Enviar Recordatorios
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Se ejecuta cada 15 minutos
-
+    - cron: '*/15 * * * *' 
 jobs:
   enviar:
     runs-on: ubuntu-latest
     steps:
-      - name: Llamar al endpoint de recordatorios
+      - name: Enviar solicitud
         run: |
           curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.API_TOKEN }}" \
+            -H "Authorization: Token ${{ secrets.API_TOKEN }}" \  # Repository Secret
             -H "Content-Type: application/json" \
-            "https://tudominio.com/api/recordatorios/enviar/"
+            "https://${{ secrets.PYTHONANYWHERE_USER }}.pythonanywhere.com/API/enviar-recordatorios/"

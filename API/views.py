@@ -1,6 +1,5 @@
 import json
-from django.shortcuts import render
-from usuario.models import HoraAgenda, Agenda, TipoProcedimiento
+from usuario.models import HoraAgenda, Agenda, Recordatorio
 from administracion.models import Usuario
 from rest_framework import viewsets
 from rest_framework.views import APIView
@@ -10,13 +9,16 @@ from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.parsers import JSONParser
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from django.conf import settings
+from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.cache import cache
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string 
 from django.db import connection, transaction, DatabaseError
 from datetime import date, datetime, timedelta
 from django.utils import timezone
@@ -24,7 +26,6 @@ from django.utils.timezone import make_aware
 import requests
 import logging
 import hashlib
-
 from .models import *
 from .serializer import *
 
@@ -411,14 +412,14 @@ def reservar_hora(request):
         manychat_id = data.get('manychat_id')
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
+        email_paciente = data.get('email') 
 
-        # Validaciones básicas
-        if not all([hora_id, manychat_id, procedimiento_id]):
+        if not all([hora_id, manychat_id, procedimiento_id, email_paciente]):
             return Response(
                 {
                     'success': "false",
                     'error': 'Datos incompletos',
-                    'detalle': 'Se requieren hora_id, manychat_id y procedimiento_id',
+                    'detalle': 'Se requieren hora_id, manychat_id, procedimiento_id y email',
                     'codigo_error': 'DATOS_INCOMPLETOS'
                 },
                 status=400
@@ -426,7 +427,6 @@ def reservar_hora(request):
 
         with connection.cursor() as cursor:
             try:
-                # 1. Verificar si la hora existe (usando nombre correcto de columna)
                 cursor.execute("""
                     SELECT estado, fecha, hora, id_cesfam 
                     FROM usuario_horas_agenda 
@@ -447,7 +447,6 @@ def reservar_hora(request):
 
                 estado, fecha, hora, id_cesfam = row
 
-                # 2. Validar disponibilidad
                 if estado != 'disponible':
                     return Response(
                         {
@@ -458,7 +457,7 @@ def reservar_hora(request):
                         status=409
                     )
 
-                # 3. Verificar que no sea una hora pasada
+                
                 hora_datetime = make_aware(datetime.combine(fecha, hora))
                 if hora_datetime < timezone.now():
                     return Response(
@@ -469,8 +468,7 @@ def reservar_hora(request):
                         },
                         status=400
                     )
-
-                # 4. Verificar reservas existentes (usando id_manychat correctamente)
+                
                 cursor.execute("""
                     SELECT COUNT(*) 
                     FROM usuario_agenda 
@@ -489,12 +487,11 @@ def reservar_hora(request):
                         status=400
                     )
 
-                # 5. Llamar al procedimiento almacenado
                 cursor.callproc('cambiar_estado_hora', [
                     hora_id,
                     'reservada',
                     manychat_id,
-                    None  # OUT parameter
+                    None  
                 ])
                 cursor.execute("SELECT @_cambiar_estado_hora_3")
                 resultado = cursor.fetchone()[0]
@@ -508,8 +505,6 @@ def reservar_hora(request):
                         },
                         status=400
                     )
-
-                # 6. Crear registro en Agenda
                 try:
                     usuario = Usuario.objects.get(id_manychat=manychat_id)
                     agenda = Agenda.objects.create(
@@ -521,13 +516,20 @@ def reservar_hora(request):
                         id_procedimiento_id=procedimiento_id
                     )
 
-                    # 7. Actualizar campo agenda_id en usuario_horas_agenda
                     cursor.execute("""
                         UPDATE usuario_horas_agenda
                         SET agenda_id = %s
                         WHERE id_hora = %s
                     """, [agenda.id_agenda, hora_id])
 
+                    from .models import Recordatorio  
+                    fecha_recordatorio = hora_datetime - timedelta(hours=6)
+                    Recordatorio.objects.create(
+                        agenda=agenda,
+                        email=email_paciente,
+                        fecha_programada=fecha_recordatorio
+                    )
+    
                     return Response({
                         'success': "true",
                         'mensaje': 'Hora reservada correctamente',
@@ -577,6 +579,7 @@ def reservar_hora(request):
             },
             status=500
         )
+    
 @csrf_exempt
 @api_view(['POST'])
 def verificar_reserva(request):
@@ -603,3 +606,54 @@ def verificar_reserva(request):
             
     except Exception as e:
         return JsonResponse({"reservado": "false", "error": str(e)}, status=500)
+    
+
+@csrf_exempt
+@api_view(['POST'])
+def enviar_recordatorios_pendientes(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or auth_header != f'Token {settings.GITHUB_WEBHOOK_TOKEN}':
+        return Response(
+            {'error': 'No autorizado'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    ahora = datetime.now()
+    margen = timedelta(minutes=15)  
+    
+    recordatorios = Recordatorio.objects.filter(
+        fecha_programada__range=[ahora - margen, ahora + margen],
+        enviado=False
+    ).select_related('agenda', 'agenda__id_cesfam')
+    
+    # 2. Procesar cada uno
+    for recordatorio in recordatorios:
+        enviar_email_recordatorio(recordatorio)
+        recordatorio.enviado = True
+        recordatorio.save()
+    
+    return JsonResponse({
+        'status': 'success',
+        'enviados': len(recordatorios)
+    })
+
+def enviar_email_recordatorio(recordatorio):
+    agenda = recordatorio.agenda
+    context = {
+        'fecha': agenda.fecha_atencion.strftime('%d/%m/%Y'),
+        'hora': agenda.hora_atencion.strftime('%H:%M'),
+        'cesfam': agenda.id_cesfam.nombre,
+        'requisitos': agenda.requisito_examen
+    }
+    
+    email = EmailMultiAlternatives(
+        subject=f"Recordatorio: Cita en {agenda.id_cesfam.nombre}",
+        body=render_to_string('emails/recordatorio.txt', context),
+        from_email='no-reply@cesfam.cl',
+        to=[recordatorio.email],
+    )
+    email.attach_alternative(
+        render_to_string('emails/recordatorio.html', context),
+        "text/html"
+    )
+    email.send()
