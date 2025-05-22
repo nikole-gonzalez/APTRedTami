@@ -11,7 +11,11 @@ urlpatterns = [
     #Opciones Home
     path('respuestas/', views.respuestas, name='respuestas'),
     path('reportes/', views.reportes, name='reportes'),
-    path('agenda/', views.agenda, name='agenda'),
+    path('opc_vis_agenda/', views.opc_vis_agenda, name='opc_vis_agenda'),
+    
+    #Visualizaciones de agenda
+    path('historial_agendamientos/', views.historial_agendamientos, name='historial_agendamientos'),
+    path('json_cesfam/', views.json_cesfam, name='json_cesfam'),
     
     #Opciones respuestas
     path('datos_perfil/', views.datos_perfil, name="datos_perfil"),
@@ -50,8 +54,7 @@ urlpatterns = [
   
   
   
-    # Descargar en PDF
-
+    #Descargar en PDF
     path('crear_pdf_datos_frm1/', views.crear_pdf_datos_frm1, name='crear_pdf_datos_frm1'),
     path('crear_pdf_datos_frm2/', views.crear_pdf_datos_frm2, name='crear_pdf_datos_frm2'),
     path('crear_pdf_datos_frnm1/', views.crear_pdf_datos_frnm1, name='crear_pdf_datos_frnm1'),
@@ -61,5 +64,8 @@ urlpatterns = [
     path('crear_pdf_listado_priorizado/', views.crear_pdf_listado_priorizado, name="crear_pdf_listado_priorizado"),
     path('crear_pdf_preg_especialista/', views.crear_pdf_preg_especialista, name="crear_pdf_preg_especialista"),
 
+    #Historial agendamientos
+    path('descargar-json/<int:cesfam_id>/', views.generar_json_por_cesfam, name='descargar_json_por_cesfam'),
+    path('descargas-json/', views.lista_descargas, name='lista_descargas'),
 
 ]
