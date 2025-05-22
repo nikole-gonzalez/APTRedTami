@@ -2035,38 +2035,59 @@ def generar_json_por_cesfam(request, cesfam_id):
     try:
         cesfam = Cesfam.objects.get(id_cesfam=cesfam_id)
         agendas = Agenda.objects.filter(id_cesfam=cesfam_id).select_related(
-            'id_manychat', 'id_procedimiento'
+            'id_manychat', 'id_procedimiento', 'id_manychat__perfilusuario__user'
         )
+        
+        if not agendas.exists():
+            return JsonResponse({"error": "No hay horas agendadas para este CESFAM"}, status=404)
         
         datos_agendas = []
         for agenda in agendas:
-            nombre_paciente = (
-                f"{agenda.id_manychat.user.first_name} {agenda.id_manychat.user.last_name}"
-                if agenda.id_manychat.user.first_name
-                else "Paciente Sin Nombre"
-            )
+            nombre_paciente = "Paciente No Registrado"
+            rut_paciente = f"{agenda.id_manychat.rut_usuario}-{agenda.id_manychat.dv_rut}" if agenda.id_manychat.rut_usuario else "Sin RUT"
+            
+            try:
+                if hasattr(agenda.id_manychat, 'perfilusuario') and agenda.id_manychat.perfilusuario.user:
+                    user = agenda.id_manychat.perfilusuario.user
+                    nombre_paciente = user.get_full_name() or f"{user.first_name} {user.last_name}".strip()
+            except Exception:
+                pass
+            
+            if nombre_paciente == "Paciente No Registrado":
+                nombre_paciente = getattr(agenda.id_manychat, 'nombre_whatsapp', "Paciente ManyChat")
             
             datos_agendas.append({
-                "rut": f"{agenda.id_manychat.rut_usuario}-{agenda.id_manychat.dv_rut}",
+                "rut": rut_paciente,
                 "nombre": nombre_paciente,
-                "fecha": agenda.fecha_atencion.strftime("%Y-%m-%d"),
+                "fecha": agenda.fecha_atencion.strftime("%d-%m-%Y"),
                 "hora": agenda.hora_atencion.strftime("%H:%M"),
                 "procedimiento": agenda.id_procedimiento.nombre_procedimiento,
-                "manychat_id": agenda.id_manychat.id_manychat  
+                "contacto": str(agenda.id_manychat.num_whatsapp),
+                "manychat_id": agenda.id_manychat.id_manychat,
+                "tipo_usuario": "registrado" if hasattr(agenda.id_manychat, 'perfilusuario') else "no_registrado"
             })
         
         response_data = {
-            "cesfam": cesfam.nombre_cesfam,
-            "fecha_generacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "total_horas": len(datos_agendas),
+            "metadata": {
+                "sistema": "APTRedTami",
+                "version": "1.0",
+                "fecha_generacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "total_horas": len(datos_agendas),
+                "horas_registradas": len([a for a in datos_agendas if a['tipo_usuario'] == "registrado"])
+            },
+            "cesfam": {
+                "id": cesfam.id_cesfam,
+                "nombre": cesfam.nombre_cesfam,
+                "comuna": cesfam.cod_comuna.nombre_comuna
+            },
             "horas_agendadas": datos_agendas
         }
-        
+
         response = HttpResponse(
             json.dumps(response_data, indent=2, ensure_ascii=False),
-            content_type='application/json'
+            content_type='application/json; charset=utf-8'
         )
-        response['Content-Disposition'] = f'attachment; filename="horas_cesfam_{cesfam_id}.json"'
+        response['Content-Disposition'] = f'attachment; filename="horas_cesfam_{cesfam.id_cesfam}_{datetime.now().strftime("%Y%m%d")}.json"'
         return response
 
     except Cesfam.DoesNotExist:
