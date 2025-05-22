@@ -1,32 +1,16 @@
 {% extends 'base.html' %}
 
-{% block title %}Descarga de Horarios por CESFAM{% endblock %}
+{% block title %}Historial de agendamiento de las usuarias{% endblock %}
 
 {% block content %}
-<h2>Descargar horarios agendados por CESFAM</h2>
 
-<table>
-    <thead>
-        <tr>
-            <th>Nombre CESFAM</th>
-            <th>Descargar</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for cesfam in cesfams %}
-        <tr>
-            <td>{{ cesfam.nombre_cesfam }}</td>
-            <td>
-                <a href="{% url 'json_cesfam' cesfam.id %}" class="button">Descargar</a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="2">No hay CESFAM disponibles.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h2>Agendamientos de las usuarias</h2>
+<section>
+    <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
+</section>
 
-<a href="{% url 'opc_vis_agenda' %}" class="button">Volver</a>
+<section>
+    <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
+</section>
+
 {% endblock %}

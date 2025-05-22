@@ -1,35 +1,32 @@
 {% extends 'base.html' %}
 
-{% block title %}Preguntas A Especialistas{% endblock %}
+{% block title %}Descarga de Horarios por CESFAM{% endblock %}
 
 {% block content %}
+<h2>Descargar horarios agendados por CESFAM</h2>
 
-<h2>Descargar JSON por CESFAM</h2>
-<section>
-    <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
-</section>
 <table>
-  <thead>
-    <tr>
-      <th>Nombre CESFAM</th>
-      <th>Descargar</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for cesfam in cesfams %}
-    <tr>
-      <td>{{ cesfam.nombre_cesfam }}</td>
-      <td>
-        <a href="{% url 'descargar_json_por_cesfam' cesfam.id_cesfam %}" class="button is-primary">
-          Descargar JSON
-        </a>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
+    <thead>
+        <tr>
+            <th>Nombre CESFAM</th>
+            <th>Descargar</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cesfam in cesfams %}
+        <tr>
+            <td>{{ cesfam.nombre_cesfam }}</td>
+            <td>
+                <a href="{% url 'json_cesfam' cesfam.id %}" class="button">Descargar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="2">No hay CESFAM disponibles.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
-<section>
-    <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
-</section>
 
+<a href="{% url 'opc_vis_agenda' %}" class="button">Volver</a>
 {% endblock %}
