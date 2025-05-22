@@ -594,17 +594,12 @@ def verificar_reserva(request):
             return JsonResponse({"reservado": "false", "error": "Slot not found"})
         
         reservado = hora_agenda.estado == 'reservada' and hora_agenda.id_manychat == id_manychat
-        
-        # Respuesta dual (compatible con ManyChat y sistemas JSON)
-        if 'application/json' in request.headers.get('Accept', ''):
-            return JsonResponse({
-                "reservado": reservado,
-                "hora_id": hora_id,
-                "id_manychat": id_manychat
-            })
-        else:
-            return HttpResponse("true" if reservado else "false", 
-                             content_type="text/plain")
+
+        return JsonResponse({
+            "reservado": "true" if reservado else "false",
+            "hora_id": str(hora_id),
+            "id_manychat": str(id_manychat)
+        })
             
     except Exception as e:
         return JsonResponse({"reservado": "false", "error": str(e)}, status=500)
