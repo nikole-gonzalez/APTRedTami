@@ -577,8 +577,8 @@ def reservar_hora(request):
             },
             status=500
         )
-    
-api_view(['POST'])
+@csrf_exempt 
+@api_view(['POST'])
 def verificar_reserva(request):
     try:
         data = json.loads(request.body)
