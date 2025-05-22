@@ -309,18 +309,6 @@ def es_feriado(fecha):
     if fecha.strftime("%d-%m") in FERIADOS_FIJOS:
         return True
     
-    # Opcional: Consultar API de feriados (recomendado para feriados variables)
-    try:
-        año = fecha.year
-        response = requests.get(f'https://api.victorsanmartin.com/feriados/en/{año}')
-        if response.status_code == 200:
-            feriados = response.json()
-            return any(f['date'] == fecha.strftime("%Y-%m-%d") for f in feriados)
-    except Exception as e:
-        logger.error(f"Error al consultar API de feriados: {str(e)}")
-    
-    return False
-
 def obtener_dia_habil_siguiente(fecha):
     """
     Obtiene el siguiente día hábil (no fin de semana ni feriado)
