@@ -611,8 +611,11 @@ def verificar_reserva(request):
 @csrf_exempt
 @api_view(['POST'])
 def enviar_recordatorios_pendientes(request):
+    # Verificación de autenticación más robusta
     auth_header = request.headers.get('Authorization')
-    if not auth_header or auth_header != f'Token {settings.GITHUB_WEBHOOK_TOKEN}':
+    expected_token = f'Token {settings.GITHUB_WEBHOOK_TOKEN}'.strip()
+    
+    if not auth_header or not auth_header.strip() == expected_token:
         return Response(
             {'error': 'No autorizado'}, 
             status=status.HTTP_401_UNAUTHORIZED
@@ -621,20 +624,28 @@ def enviar_recordatorios_pendientes(request):
     ahora = datetime.now()
     margen = timedelta(minutes=15)  
     
+    # 1. Obtener recordatorios pendientes en el margen de tiempo
     recordatorios = Recordatorio.objects.filter(
         fecha_programada__range=[ahora - margen, ahora + margen],
         enviado=False
     ).select_related('agenda', 'agenda__id_cesfam')
     
-    # 2. Procesar cada uno
+    # 2. Procesar cada recordatorio
+    enviados = 0
     for recordatorio in recordatorios:
-        enviar_email_recordatorio(recordatorio)
-        recordatorio.enviado = True
-        recordatorio.save()
+        try:
+            enviar_email_recordatorio(recordatorio)
+            recordatorio.enviado = True
+            recordatorio.save()
+            enviados += 1
+        except Exception as e:
+            # Loggear el error si es necesario
+            continue
     
     return JsonResponse({
         'status': 'success',
-        'enviados': len(recordatorios)
+        'enviados': enviados,
+        'fallidos': len(recordatorios) - enviados
     })
 
 def enviar_email_recordatorio(recordatorio):
