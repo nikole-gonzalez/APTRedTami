@@ -577,35 +577,28 @@ def reservar_hora(request):
             },
             status=500
         )
-    
+@csrf_exempt
 @api_view(['POST'])
 def verificar_reserva(request):
     try:
-        # Obtener datos del cuerpo de la solicitud
         data = json.loads(request.body)
         hora_id = data.get('hora_id')
         id_manychat = data.get('id_manychat')
         
         if not all([hora_id, id_manychat]):
-            return JsonResponse({"reservado": "false", "error": "Faltan parámetros"}, status=400)
+            return JsonResponse({"reservado": "false", "error": "Missing parameters"}, status=400)
         
-        # Buscar la hora en la agenda por ID
-        hora_agenda = HoraAgenda.objects.filter(
-            id_hora=hora_id
-        ).first()
+        hora_agenda = HoraAgenda.objects.filter(id_hora=hora_id).first()
         
         if not hora_agenda:
-            return JsonResponse({"reservado": "false", "error": "Hora no encontrada"})
+            return JsonResponse({"reservado": "false", "error": "Slot not found"})
         
-        # Verificar reserva
         reservado = hora_agenda.estado == 'reservada' and hora_agenda.id_manychat == id_manychat
+
         return JsonResponse({
-            "reservado": reservado,
-            "detalle": {
-                "hora_id": hora_id,
-                "estado": hora_agenda.estado,
-                "es_tu_reserva": hora_agenda.id_manychat == id_manychat
-            }
+            "reservado": "true" if reservado else "false",
+            "hora_id": str(hora_id),
+            "id_manychat": str(id_manychat)
         })
             
     except Exception as e:
