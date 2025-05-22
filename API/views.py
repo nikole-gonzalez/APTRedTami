@@ -578,35 +578,26 @@ def reservar_hora(request):
             status=500
         )
     
-@api_view(['POST'])
+api_view(['POST'])
 def verificar_reserva(request):
     try:
-        # Obtener datos del cuerpo de la solicitud
         data = json.loads(request.body)
         hora_id = data.get('hora_id')
         id_manychat = data.get('id_manychat')
         
         if not all([hora_id, id_manychat]):
-            return JsonResponse({"reservado": "false", "error": "Faltan parámetros"}, status=400)
+            return HttpResponse("false", content_type="text/plain")
         
-        # Buscar la hora en la agenda por ID
-        hora_agenda = HoraAgenda.objects.filter(
-            id_hora=hora_id
-        ).first()
+        hora_agenda = HoraAgenda.objects.filter(id_hora=hora_id).first()
         
         if not hora_agenda:
-            return JsonResponse({"reservado": "false", "error": "Hora no encontrada"})
+            return HttpResponse("false", content_type="text/plain")
         
-        # Verificar reserva
-        reservado = hora_agenda.estado == 'reservada' and hora_agenda.id_manychat == id_manychat
-        return JsonResponse({
-            "reservado": reservado,
-            "detalle": {
-                "hora_id": hora_id,
-                "estado": hora_agenda.estado,
-                "es_tu_reserva": hora_agenda.id_manychat == id_manychat
-            }
-        })
+        # Respuesta en texto plano (compatible con ManyChat)
+        if hora_agenda.estado == 'reservada' and hora_agenda.id_manychat == id_manychat:
+            return HttpResponse("true", content_type="text/plain")
+        else:
+            return HttpResponse("false", content_type="text/plain")
             
-    except Exception as e:
-        return JsonResponse({"reservado": "false", "error": str(e)}, status=500)
+    except Exception:
+        return HttpResponse("false", content_type="text/plain")
