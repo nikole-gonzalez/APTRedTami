@@ -80,7 +80,8 @@ def historial_agendamientos(request):
 
 @login_required
 def json_cesfam(request):
-    return render(request, 'administracion/json_cesfam.html')
+    cesfams = Cesfam.objects.all()
+    return render(request, 'administracion/json_cesfam.html', {'cesfams': cesfams})
 
 @login_required
 def gestion_usuarios(request):
