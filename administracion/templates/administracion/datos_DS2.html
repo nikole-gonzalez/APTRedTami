@@ -7,12 +7,12 @@
 <a class="button" href="{% url 'opc_vis_DS' %}">Volver</a>
 
 <section id="usuarios">
-    {% if tabla_respuestas %}
+    {% if page_obj %}
     <div class="table-wrapper">
         <table border="1">
             <thead>
                 <tr>
-                    <td colspan="8"><b>Total de respuestas: {{ tabla_respuestas|length }}</b></td>
+                    <td colspan="{{ preguntas|length|add:3 }}"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
                 </tr>
                 <tr>
                     <th>#</th> 
@@ -24,9 +24,9 @@
                 </tr>
             </thead>
             <tbody>
-                {% for fila in tabla_respuestas %}
+                {% for fila in page_obj %}
                 <tr>
-                    <td>{{ forloop.counter }}</td> 
+                    <td>{{ forloop.counter0|add:page_obj.start_index }}</td> 
                     {% for celda in fila %}
                         <td>{{ celda }}</td>
                     {% endfor %}
@@ -34,6 +34,23 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    <div class="pagination" style="text-align: center; margin: 20px 0;">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="button small">&laquo; Primera</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+            {% endif %}
+
+            <span class="current">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+            {% endif %}
+        </span>
     </div>
     {% else %}
     <p>No hay datos ingresados</p>

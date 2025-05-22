@@ -30,6 +30,8 @@ from openpyxl import Workbook
 from .models import *
 from .forms import *
 
+from usuario.models import Agenda
+
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
 from reportlab.lib.pagesizes import letter, landscape, A4
@@ -49,6 +51,8 @@ from django.conf import settings
 from django.db.models import F, Subquery, OuterRef, Case, When, Value, CharField
 from datetime import date
 
+from .utils import *
+
 
 locale.setlocale(locale.LC_TIME, 'es_ES')
 
@@ -67,8 +71,16 @@ def respuestas(request):
     return render(request, 'administracion/respuestas.html')
 
 @login_required
-def agenda(request):
-    return render(request, 'administracion/agenda.html')
+def opc_vis_agenda(request):
+    return render(request, 'administracion/opc_vis_agenda.html')
+
+@login_required
+def historial_agendamientos(request):
+    return render(request, 'administracion/historial_agendamientos.html')
+
+@login_required
+def json_cesfam(request):
+    return render(request, 'administracion/json_cesfam.html')
 
 @login_required
 def gestion_usuarios(request):
@@ -425,11 +437,10 @@ def background_colors(ws):
 
 @login_required
 def datos_perfil(request):
-    Datos = Usuario.objects.all().order_by("-fecha_ingreso")
-    data = {
-        "Datos": Datos,
-    }
-    return render(request, "administracion/datos_perfil.html", data)
+    datos_query = Usuario.objects.all().order_by("-fecha_ingreso")
+    page_obj = paginacion_queryset1(request, datos_query) 
+    
+    return render(request, 'administracion/datos_perfil.html', {"page_obj": page_obj})
 
 # ------------------ #
 # ---- Tamizaje ---- #
@@ -437,10 +448,11 @@ def datos_perfil(request):
 
 @login_required
 def tamizaje(request):
-    Datos = RespTM.objects.select_related(
+    datos_query = RespTM.objects.select_related(
         "id_opc_tm", "id_opc_tm__id_preg_tm", "id_manychat"
     ).values(
         "id_resp_tm",
+        "id_manychat",
         "id_opc_tm__id_preg_tm__preg_tm",
         "id_opc_tm__opc_resp_tm",
         "fecha_respuesta_tm",
@@ -448,17 +460,17 @@ def tamizaje(request):
         "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_tm")
 
-    data = {
-        "Datos": Datos,
-    }
-    return render(request, 'administracion/tamizaje.html', data)
+
+    page_obj = paginacion_queryset1(request, datos_query) 
+    
+    return render(request, 'administracion/tamizaje.html', {"page_obj": page_obj})
 
 def crear_excel_datos_tamizaje(request):
     wb = Workbook()
     ws = wb.active
     ws.title = "Resultados Tamizaje"
 
-    ws.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta', 'Tipo'])
+    ws.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
     respuestas = RespTM.objects.select_related(
         'id_opc_tm__id_preg_tm', 'id_manychat'
@@ -479,7 +491,6 @@ def crear_excel_datos_tamizaje(request):
             r['id_opc_tm__id_preg_tm__preg_tm'],
             r['id_opc_tm__opc_resp_tm'],
             fecha_str,
-            'TM'
         ])
 
     ajustar_ancho_columnas(ws)
@@ -498,10 +509,11 @@ def crear_excel_datos_tamizaje(request):
 
 @login_required
 def datos_FRM1(request):
-    Datos = RespFRM.objects.select_related(
+    datos_query = RespFRM.objects.select_related(
         "id_opc_frm", "id_opc_frm__id_preg_frm", "id_manychat"
     ).values(
         "id_resp_frm",
+        "id_manychat",
         "id_opc_frm__id_preg_frm__preg_frm",
         "id_opc_frm__opc_resp_frm",
         "fecha_respuesta_frm",
@@ -509,10 +521,10 @@ def datos_FRM1(request):
         "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_frm")
 
-    data = {
-        "Datos": Datos,
-    }
-    return render(request, "administracion/datos_FRM1.html", data)
+    page_obj = paginacion_queryset1(request, datos_query) 
+    
+    return render(request, 'administracion/datos_FRM1.html', {"page_obj": page_obj})
+
 
 def crear_excel_datos_frm1(request):
     wb = Workbook()
@@ -698,14 +710,16 @@ def datos_FRM2(request):
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
 
     # Convertir el diccionario a una lista de listas
-    tabla_respuestas = []
-    for id_manychat, data in dict_respuestas.items():
-        fila = [id_manychat] + [data["respuestas"].get(p.preg_frm, "-") for p in preguntas] + [data["fecha"]]
-        tabla_respuestas.append(fila)
+    tabla_respuestas = [
+        [id_manychat] + [data["respuestas"].get(p.preg_frm, "-") for p in preguntas] + [data["fecha"]]
+        for id_manychat, data in dict_respuestas.items()
+    ]
 
+    page_obj = paginacion_lista2(request, tabla_respuestas) 
+    
     return render(request, "administracion/datos_FRM2.html", {
         "preguntas": preguntas,
-        "tabla_respuestas": tabla_respuestas,
+        "page_obj": page_obj,
     })
 
 def crear_excel_datos_frm2(request):
@@ -871,10 +885,11 @@ def crear_pdf_datos_frm2(request):
 
 @login_required
 def datos_FRNM1(request):
-    Datos = RespFRNM.objects.select_related(
+    datos_query = RespFRNM.objects.select_related(
         "id_opc_frnm", "id_opc_frnm__id_preg_frnm", "id_manychat"
     ).values(
         "id_resp_frnm",
+        "id_manychat",
         "id_opc_frnm__id_preg_frnm__preg_frnm",
         "id_opc_frnm__opc_resp_frnm",
         "fecha_respuesta_frnm",
@@ -882,10 +897,9 @@ def datos_FRNM1(request):
         "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_frnm")
 
-    data = {
-        "Datos": Datos,
-    }
-    return render(request, "administracion/datos_FRNM1.html", data)
+    page_obj = paginacion_queryset1(request, datos_query) 
+    
+    return render(request, 'administracion/datos_FRNM1.html', {"page_obj": page_obj})
 
 def crear_excel_datos_frnm1(request):
     wb = Workbook()
@@ -1046,14 +1060,16 @@ def datos_FRNM2(request):
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
 
     # Convertir el diccionario a una lista de listas
-    tabla_respuestas = []
-    for id_manychat, data in dict_respuestas.items():
-        fila = [id_manychat] + [data["respuestas"].get(p.preg_frnm, "-") for p in preguntas] + [data["fecha"]]
-        tabla_respuestas.append(fila)
+    tabla_respuestas = [
+        [id_manychat] + [data["respuestas"].get(p.preg_frnm, "-") for p in preguntas] + [data["fecha"]]
+        for id_manychat, data in dict_respuestas.items()
+    ]
 
+    page_obj = paginacion_lista2(request, tabla_respuestas) 
+    
     return render(request, "administracion/datos_FRNM2.html", {
         "preguntas": preguntas,
-        "tabla_respuestas": tabla_respuestas,
+        "page_obj": page_obj,
     })
 
 def crear_excel_datos_frnm2(request):
@@ -1226,10 +1242,11 @@ def crear_pdf_datos_frnm2(request):
 
 @login_required
 def datos_DS1(request):
-    Datos = RespDS.objects.select_related(
+    datos_query = RespDS.objects.select_related(
         "id_opc_ds", "id_opc_ds__id_preg_ds", "id_manychat"
     ).values(
         "id_resp_ds",
+        "id_manychat",
         "id_opc_ds__id_preg_ds__preg_ds",
         "id_opc_ds__opc_resp_ds",
         "fecha_respuesta_ds",
@@ -1237,10 +1254,9 @@ def datos_DS1(request):
         "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_ds")
 
-    data = {
-        "Datos": Datos,
-    }
-    return render(request, "administracion/datos_DS1.html", data)
+    page_obj = paginacion_queryset1(request, datos_query) 
+    
+    return render(request, 'administracion/datos_DS1.html', {"page_obj": page_obj})
 
 def crear_excel_datos_ds1(request):
     wb = Workbook()
@@ -1391,14 +1407,16 @@ def datos_DS2(request):
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
 
     # Convertir el diccionario a una lista de listas
-    tabla_respuestas = []
-    for id_manychat, data in dict_respuestas.items():
-        fila = [id_manychat] + [data["respuestas"].get(p.preg_ds, "-") for p in preguntas] + [data["fecha"]]
-        tabla_respuestas.append(fila)
+    tabla_respuestas = [
+        [id_manychat] + [data["respuestas"].get(p.preg_ds, "-") for p in preguntas] + [data["fecha"]]
+        for id_manychat, data in dict_respuestas.items()
+    ]
 
+    page_obj = paginacion_lista2(request, tabla_respuestas) 
+    
     return render(request, "administracion/datos_DS2.html", {
         "preguntas": preguntas,
-        "tabla_respuestas": tabla_respuestas,
+        "page_obj": page_obj,
     })
 
 def crear_excel_datos_ds2(request):
@@ -1594,8 +1612,19 @@ def listado_priorizado(request):
                     "parejas_sexuales": usuario.parejas_sexuales
                 })
 
+            paginator = Paginator(datos_procesados, 20)  # 20 items por página
+            page_number = request.GET.get('page')
+            
+            try:
+                page_obj = paginator.page(page_number)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+
+
             return render(request, "administracion/listado_priorizado.html", {
-                "Datos": datos_procesados
+                "page_obj": page_obj
             })
         else:
             error = "Contraseña incorrecta"
@@ -1797,11 +1826,10 @@ def crear_pdf_listado_priorizado(request):
 
 @login_required
 def preg_especialista(request):
-    Datos = UsuarioTextoPregunta.objects.all().order_by("-fecha_pregunta_texto")
-    data = {
-        "Datos": Datos,
-    }
-    return render(request, "administracion/preg_especialista.html", data)
+    datos_query = UsuarioTextoPregunta.objects.all().order_by("-fecha_pregunta_texto")
+    page_obj = paginacion_queryset1(request, datos_query) 
+    
+    return render(request, "administracion/preg_especialista.html", {"page_obj": page_obj})
 
 def crear_excel_preg_especialista(request):
     wb = Workbook()
@@ -2002,3 +2030,41 @@ def eliminar_usuario(request, perfil_id):
         return redirect('lista_usuarios')
     return render(request, 'administracion/confirmar_eliminacion.html', {'perfil': perfil})
   
+# ------------------------------------------------------------------------- #
+# ---------------------- Historial de agendamientos ----------------------- #
+# ------------------------------------------------------------------------- #
+
+@login_required
+def generar_json_por_cesfam(request, cesfam_id):
+    agendas = Agenda.objects.filter(id_cesfam__id=cesfam_id).select_related(
+        'id_manychat', 'id_procedimiento', 'id_cesfam'
+    )
+
+    datos = []
+    for agenda in agendas:
+        try:
+            perfil = agenda.id_manychat.perfilusuario
+            nombre = perfil.user.first_name
+            apellido = perfil.user.last_name
+        except:
+            nombre = "Nombre no disponible"
+            apellido = "Apellido no disponible"
+
+        datos.append({
+            'nombre_paciente': f"{nombre} {apellido}",
+            'rut_paciente': f"{agenda.id_manychat.rut_usuario}-{agenda.id_manychat.dv_rut}",
+            'fecha_atencion': agenda.fecha_atencion.strftime('%d/%m/%Y'),
+            'hora_atencion': agenda.hora_atencion.strftime('%H:%M'),
+            'procedimiento': agenda.id_procedimiento.nombre_procedimiento
+        })
+
+    # Crear archivo JSON
+    response = HttpResponse(json.dumps(datos, ensure_ascii=False, indent=2), content_type='application/json')
+    nombre_cesfam = agendas.first().id_cesfam.nombre_cesfam.replace(" ", "_") if agendas.exists() else "sin_nombre"
+    response['Content-Disposition'] = f'attachment; filename=horas_{nombre_cesfam}.json'
+    return response
+
+@login_required
+def lista_descargas(request):
+    cesfams = Cesfam.objects.all()
+    return render(request, 'administracion/descargas.html', {'cesfams': cesfams})

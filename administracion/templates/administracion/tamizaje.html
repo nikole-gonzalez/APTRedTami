@@ -6,12 +6,12 @@
 <h2 class="major">Datos Preguntas de Tamizaje</h2>
 <a class="button" href="{% url 'respuestas' %}">Volver</a>
 <section id="usuarios">
-    {% if Datos %}
+    {% if page_obj %}
     <div class="table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <td colspan="7"><b>Total de respuestas: {{ Datos|length }}</b></td>
+                    <td colspan="7"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
                 </tr>
                 <tr>
                     <th>#</th>
@@ -24,7 +24,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for dato in Datos %}
+                {% for dato in page_obj %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ dato.id_manychat }}</td>
@@ -37,6 +37,23 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    <div class="pagination" style="text-align: center; margin: 20px 0;">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="button small">&laquo; Primera</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+            {% endif %}
+
+            <span class="current">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+            {% endif %}
+        </span>
     </div>
     {% else %}
     <p>No hay datos ingresados</p>
