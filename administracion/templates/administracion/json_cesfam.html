@@ -5,28 +5,35 @@
 {% block content %}
 <h2>Descargar horarios agendados por CESFAM</h2>
 
-<table>
+<table class="table">
     <thead>
         <tr>
-            <th>Nombre CESFAM</th>
-            <th>Descargar</th>
+            <th>CESFAM</th>
+            <th>Horas Agendadas</th>
+            <th>Acción</th>
         </tr>
     </thead>
     <tbody>
         {% for cesfam in cesfams %}
         <tr>
             <td>{{ cesfam.nombre_cesfam }}</td>
+            <td>{{ cesfam.num_horas }}</td>
             <td>
-                <a href="{% url 'json_cesfam' cesfam.id %}" class="button">Descargar</a>
+                <a href="{% url 'descargar_json_cesfam' cesfam.id_cesfam %}" 
+                   class="btn btn-primary btn-sm {% if not cesfam.num_horas %}disabled{% endif %}">
+                   Descargar JSON
+                </a>
             </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="2">No hay CESFAM disponibles.</td>
+            <td colspan="3">No hay CESFAM disponibles</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
-<a href="{% url 'opc_vis_agenda' %}" class="button">Volver</a>
+<a href="{% url 'opc_vis_agenda' %}" class="btn btn-secondary mt-3">
+    ← Volver al menú
+</a>
 {% endblock %}

@@ -14,9 +14,9 @@ urlpatterns = [
     path('opc_vis_agenda/', views.opc_vis_agenda, name='opc_vis_agenda'),
     
     #Visualizaciones de agenda
-    path('json_cesfam/<int:cesfam_id>/', views.generar_json_por_cesfam, name='json_cesfam'),
     path('historial_agendamientos/', views.historial_agendamientos, name='historial_agendamientos'),
-    path('json_cesfam/', views.json_cesfam, name='json_cesfam'),
+    path('descargas_json/', views.lista_descargas, name='json_cesfam'),
+    path('json_cesfam/<int:cesfam_id>/', views.generar_json_por_cesfam, name='descargar_json_cesfam'),
     
     #Opciones respuestas
     path('datos_perfil/', views.datos_perfil, name="datos_perfil"),

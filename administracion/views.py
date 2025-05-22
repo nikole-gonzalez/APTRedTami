@@ -30,7 +30,7 @@ from openpyxl import Workbook
 from .models import *
 from .forms import *
 
-from usuario.models import Agenda
+from usuario.models import Agenda, Cesfam
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
@@ -77,11 +77,6 @@ def opc_vis_agenda(request):
 @login_required
 def historial_agendamientos(request):
     return render(request, 'administracion/historial_agendamientos.html')
-
-@login_required
-def json_cesfam(request):
-    cesfams = Cesfam.objects.all()
-    return render(request, 'administracion/json_cesfam.html', {'cesfams': cesfams})
 
 @login_required
 def gestion_usuarios(request):
@@ -2037,35 +2032,50 @@ def eliminar_usuario(request, perfil_id):
 
 @login_required
 def generar_json_por_cesfam(request, cesfam_id):
-    agendas = Agenda.objects.filter(id_cesfam__id=cesfam_id).select_related(
-        'id_manychat', 'id_procedimiento', 'id_cesfam'
-    )
+    try:
+        cesfam = Cesfam.objects.get(id_cesfam=cesfam_id)
+        agendas = Agenda.objects.filter(id_cesfam=cesfam_id).select_related(
+            'id_manychat', 'id_procedimiento'
+        )
+        
+        datos_agendas = []
+        for agenda in agendas:
+            nombre_paciente = (
+                f"{agenda.id_manychat.user.first_name} {agenda.id_manychat.user.last_name}"
+                if agenda.id_manychat.user.first_name
+                else "Paciente Sin Nombre"
+            )
+            
+            datos_agendas.append({
+                "rut": f"{agenda.id_manychat.rut_usuario}-{agenda.id_manychat.dv_rut}",
+                "nombre": nombre_paciente,
+                "fecha": agenda.fecha_atencion.strftime("%Y-%m-%d"),
+                "hora": agenda.hora_atencion.strftime("%H:%M"),
+                "procedimiento": agenda.id_procedimiento.nombre_procedimiento,
+                "manychat_id": agenda.id_manychat.id_manychat  
+            })
+        
+        response_data = {
+            "cesfam": cesfam.nombre_cesfam,
+            "fecha_generacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "total_horas": len(datos_agendas),
+            "horas_agendadas": datos_agendas
+        }
+        
+        response = HttpResponse(
+            json.dumps(response_data, indent=2, ensure_ascii=False),
+            content_type='application/json'
+        )
+        response['Content-Disposition'] = f'attachment; filename="horas_cesfam_{cesfam_id}.json"'
+        return response
 
-    datos = []
-    for agenda in agendas:
-        try:
-            perfil = agenda.id_manychat.perfilusuario
-            nombre = perfil.user.first_name
-            apellido = perfil.user.last_name
-        except:
-            nombre = "Nombre no disponible"
-            apellido = "Apellido no disponible"
+    except Cesfam.DoesNotExist:
+        return JsonResponse({"error": "CESFAM no encontrado"}, status=404)
 
-        datos.append({
-            'nombre_paciente': f"{nombre} {apellido}",
-            'rut_paciente': f"{agenda.id_manychat.rut_usuario}-{agenda.id_manychat.dv_rut}",
-            'fecha_atencion': agenda.fecha_atencion.strftime('%d/%m/%Y'),
-            'hora_atencion': agenda.hora_atencion.strftime('%H:%M'),
-            'procedimiento': agenda.id_procedimiento.nombre_procedimiento
-        })
-
-    # Crear archivo JSON
-    response = HttpResponse(json.dumps(datos, ensure_ascii=False, indent=2), content_type='application/json')
-    nombre_cesfam = agendas.first().id_cesfam.nombre_cesfam.replace(" ", "_") if agendas.exists() else "sin_nombre"
-    response['Content-Disposition'] = f'attachment; filename=horas_{nombre_cesfam}.json'
-    return response
 
 @login_required
 def lista_descargas(request):
-    cesfams = Cesfam.objects.all()
-    return render(request, 'administracion/descargas.html', {'cesfams': cesfams})
+    cesfams = Cesfam.objects.annotate(
+        num_horas=Count('agenda')
+    )
+    return render(request, 'administracion/json_cesfam.html', {'cesfams': cesfams})
