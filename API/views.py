@@ -613,7 +613,7 @@ def verificar_reserva(request):
 def enviar_recordatorios_pendientes(request):
     # Verificación de autenticación más robusta
     auth_header = request.headers.get('Authorization')
-    expected_token = f'Token {settings.GITHUB_WEBHOOK_TOKEN}'.strip()
+    expected_token = f'Token {settings.GITHUB_WEBHOOK_SECRET}'.strip()
     
     if not auth_header or not auth_header.strip() == expected_token:
         return Response(
