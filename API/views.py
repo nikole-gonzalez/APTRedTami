@@ -587,7 +587,7 @@ def verificar_reserva(request):
         id_manychat = data.get('id_manychat')
         
         if not all([hora_id, id_manychat]):
-            return JsonResponse({"reservado": False, "error": "Faltan parámetros"}, status=400)
+            return JsonResponse({"reservado": "false", "error": "Faltan parámetros"}, status=400)
         
         # Buscar la hora en la agenda por ID
         hora_agenda = HoraAgenda.objects.filter(
@@ -595,7 +595,7 @@ def verificar_reserva(request):
         ).first()
         
         if not hora_agenda:
-            return JsonResponse({"reservado": False, "error": "Hora no encontrada"})
+            return JsonResponse({"reservado": "false", "error": "Hora no encontrada"})
         
         # Verificar reserva
         reservado = hora_agenda.estado == 'reservada' and hora_agenda.id_manychat == id_manychat
@@ -609,4 +609,4 @@ def verificar_reserva(request):
         })
             
     except Exception as e:
-        return JsonResponse({"reservado": False, "error": str(e)}, status=500)
+        return JsonResponse({"reservado": "false", "error": str(e)}, status=500)
