@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render
 from usuario.models import HoraAgenda, Agenda, TipoProcedimiento
 from administracion.models import Usuario
@@ -9,7 +10,7 @@ from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.parsers import JSONParser
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
@@ -576,3 +577,31 @@ def reservar_hora(request):
             },
             status=500
         )
+    
+@api_view(['POST'])
+def verificar_reserva(request):
+    try:
+        # Obtener datos del cuerpo de la solicitud
+        data = json.loads(request.body)
+        hora_id = data.get('hora_id')
+        id_manychat = data.get('id_manychat')
+        
+        if not all([hora_id, id_manychat]):
+            return HttpResponse("false", content_type="text/plain")
+        
+        # Buscar la hora en la agenda por ID
+        hora_agenda = HoraAgenda.objects.filter(
+            id_hora=hora_id
+        ).first()
+        
+        if not hora_agenda:
+            return HttpResponse("false", content_type="text/plain")
+        
+        # Verificar si está reservada y es del usuario
+        if hora_agenda.estado == 'reservada' and hora_agenda.id_manychat == id_manychat:
+            return HttpResponse("true", content_type="text/plain")
+        else:
+            return HttpResponse("false", content_type="text/plain")
+            
+    except Exception as e:
+        return HttpResponse("false", content_type="text/plain")
