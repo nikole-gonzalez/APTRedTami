@@ -10,6 +10,6 @@ jobs:
       - name: Enviar solicitud
         run: |
           curl -X POST \
-            -H "Authorization: Token ${{ secrets.API_TOKEN }}" \  # Repository Secret
+            -H "Authorization: Token ${{ secrets.API_TOKEN }}" \ 
             -H "Content-Type: application/json" \
             "https://${{ secrets.PYTHONANYWHERE_USER }}.pythonanywhere.com/API/enviar-recordatorios/"
