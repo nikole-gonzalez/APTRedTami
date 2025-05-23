@@ -538,15 +538,13 @@ def enviar_recordatorios_pendientes(request):
             status=status.HTTP_401_UNAUTHORIZED
         )
     
-    # Verifica que el token en settings existe
     if not hasattr(settings, 'GITHUB_WEBHOOK_SECRET'):
         logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
         return Response(
             {'error': 'Configuración del servidor incompleta'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
-    # Divide el header para validar formato
+
     auth_header = auth_header.strip()
     parts = auth_header.split()
     
@@ -557,7 +555,6 @@ def enviar_recordatorios_pendientes(request):
             status=status.HTTP_401_UNAUTHORIZED
         )
     
-    # Comparación segura de tokens
     received_token = parts[1].strip()
     expected_token = settings.GITHUB_WEBHOOK_SECRET.strip()
     
@@ -567,11 +564,12 @@ def enviar_recordatorios_pendientes(request):
             {'error': 'Token inválido'}, 
             status=status.HTTP_401_UNAUTHORIZED
         )
-
-    # 2. Procesar recordatorios
+    
     try:
-        ahora = datetime.now()
+        ahora = timezone.now()
         margen = timedelta(minutes=15)
+
+        logger.info(f"Iniciando búsqueda de recordatorios. Rango: {ahora - margen} a {ahora + margen}")
         
         recordatorios = Recordatorio.objects.filter(
             fecha_programada__range=[ahora - margen, ahora + margen],
