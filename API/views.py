@@ -288,6 +288,12 @@ def verificar_tipo_completo(usuario, tipo):
 
 logger = logging.getLogger(__name__)
 
+from datetime import datetime, timedelta
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+import logging
+
+logger = logging.getLogger(__name__)
 
 FERIADOS_FIJOS = [
     "01-01",  
@@ -306,26 +312,19 @@ def es_feriado(fecha):
     """
     Verifica si una fecha es feriado en Chile
     """
-    # Verificar feriados fijos
-    if fecha.strftime("%d-%m") in FERIADOS_FIJOS:
-        return True
-    
+    return fecha.strftime("%d-%m") in FERIADOS_FIJOS
+
 def obtener_dia_habil_siguiente(fecha):
     """
     Obtiene el siguiente día hábil (no fin de semana ni feriado)
     """
-    dias_saltados = 0
     while True:
-        nueva_fecha = fecha + timedelta(days=1)
-        # Saltar fines de semana (5=sábado, 6=domingo)
-        if nueva_fecha.weekday() >= 5:
-            fecha = nueva_fecha
+        fecha += timedelta(days=1)
+        if fecha.weekday() >= 5:
             continue
-        # Saltar feriados
-        if es_feriado(nueva_fecha):
-            fecha = nueva_fecha
+        if es_feriado(fecha):
             continue
-        return nueva_fecha
+        return fecha
 
 @api_view(['POST'])
 def horas_disponibles(request):
@@ -337,36 +336,32 @@ def horas_disponibles(request):
             return Response({'error': 'Se requiere cesfam_id'}, status=400)
         
         hoy = datetime.now().date()
-        fecha_busqueda = hoy
+        fecha_busqueda = obtener_dia_habil_siguiente(hoy)
         horas_disponibles = []
-        dias_evaluados = 0  # Contador de días evaluados (incluyendo no hábiles)
-        max_dias_evaluacion = 30  # Límite más amplio para cubrir fines de semana largos
+        dias_buscados = 0
+        max_dias_busqueda = 14  
         
-        while len(horas_disponibles) < 3 and dias_evaluados < max_dias_evaluacion:
-            # Verificar si es día hábil (no fin de semana ni feriado)
-            if fecha_busqueda.weekday() < 5 and not es_feriado(fecha_busqueda):
-                # Buscar horas disponibles solo si es día hábil
-                horas_del_dia = HoraAgenda.objects.filter(
-                    fecha=fecha_busqueda,
-                    estado='disponible',
-                    cesfam_id=cesfam_id
-                ).order_by('hora')
-                
-                for hora in horas_del_dia:
-                    if len(horas_disponibles) >= 3:
-                        break
-                        
-                    horas_disponibles.append({
-                        'hora_id': str(hora.id_hora), 
-                        'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
-                        'fecha': hora.fecha.strftime('%d/%m/%Y'),
-                        'hora': hora.hora.strftime('%H:%M'),
-                        'dia': 'Hoy' if hora.fecha == hoy else 'Próximos días'
-                    })
+        while len(horas_disponibles) < 3 and dias_buscados < max_dias_busqueda:
+            # Buscar horas disponibles para este día
+            horas_del_dia = HoraAgenda.objects.filter(
+                fecha=fecha_busqueda,
+                estado='disponible',
+                cesfam_id=cesfam_id
+            ).order_by('hora')
             
-            # Siempre avanzar al siguiente día
-            fecha_busqueda += timedelta(days=1)
-            dias_evaluados += 1
+            for hora in horas_del_dia:
+                if len(horas_disponibles) >= 3:
+                    break
+                
+                horas_disponibles.append({
+                    'hora_id': str(hora.id_hora), 
+                    'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
+                    'fecha': hora.fecha.strftime('%d/%m/%Y'),
+                    'hora': hora.hora.strftime('%H:%M'),
+                })
+            
+            dias_buscados += 1
+            fecha_busqueda = obtener_dia_habil_siguiente(fecha_busqueda)
         
         return Response({
             'horas_disponibles': horas_disponibles[:3],
@@ -377,6 +372,7 @@ def horas_disponibles(request):
     except Exception as e:
         logger.error(f"Error en horas_disponibles: {str(e)}", exc_info=True)
         return Response({'error': 'Error al obtener horas disponibles'}, status=500)
+
     
 @api_view(['POST'])
 @transaction.atomic
