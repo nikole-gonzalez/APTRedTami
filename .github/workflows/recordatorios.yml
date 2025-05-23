@@ -3,13 +3,32 @@ name: Enviar Recordatorios
 on:
   schedule:
     - cron: '*/15 * * * *' 
+name: Enviar Recordatorios
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Ejecutar cada 15 minutos
+  workflow_dispatch:  # Permite ejecución manual
+
 jobs:
   enviar:
     runs-on: ubuntu-latest
     steps:
-      - name: Enviar solicitud
+      - name: Configurar entorno
+        env:
+          PYTHONANYWHERE_URL: "https://${{ secrets.PYTHONANYWHERE_USER }}.pythonanywhere.com"
+          API_TOKEN: ${{ secrets.API_TOKEN }}
         run: |
+          echo "URL: ${PYTHONANYWHERE_URL}"
+          echo "Iniciando envío de recordatorios..."
+          
+      - name: Enviar solicitud a la API
+        env:
+          PYTHONANYWHERE_URL: "https://${{ secrets.PYTHONANYWHERE_USER }}.pythonanywhere.com"
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          # Usar comillas alrededor de la URL y escapado correcto
           curl -X POST \
-            -H "Authorization: Token ${{ secrets.API_TOKEN }}" \ 
+            -H "Authorization: Token ${API_TOKEN}" \
             -H "Content-Type: application/json" \
-            "https://${{ secrets.PYTHONANYWHERE_USER }}.pythonanywhere.com/API/enviar-recordatorios/"
+            "${PYTHONANYWHERE_URL}/API/enviar-recordatorios/"
