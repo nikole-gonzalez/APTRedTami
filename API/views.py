@@ -607,7 +607,7 @@ def enviar_email_recordatorio(recordatorio):
     context = {
         'fecha': agenda.fecha_atencion.strftime('%d/%m/%Y'),
         'hora': agenda.hora_atencion.strftime('%H:%M'),
-        'cesfam': agenda.id_cesfam.nombre,
+        'cesfam': agenda.id_cesfam.nombre_cesfam,
         'requisitos': agenda.requisito_examen
     }
     
