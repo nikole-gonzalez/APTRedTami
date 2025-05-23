@@ -2,11 +2,6 @@ name: Enviar Recordatorios
 
 on:
   schedule:
-    - cron: '*/15 * * * *' 
-name: Enviar Recordatorios
-
-on:
-  schedule:
     - cron: '*/15 * * * *'  # Ejecutar cada 15 minutos
   workflow_dispatch:  # Permite ejecución manual
 
