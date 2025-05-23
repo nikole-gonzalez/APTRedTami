@@ -373,7 +373,10 @@ def horas_disponibles(request):
         logger.error(f"Error en horas_disponibles: {str(e)}", exc_info=True)
         return Response({'error': 'Error al obtener horas disponibles'}, status=500)
 
-    
+
+import logging
+logger = logging.getLogger(__name__)
+
 @api_view(['POST'])
 @transaction.atomic
 def reservar_hora(request):
@@ -383,9 +386,12 @@ def reservar_hora(request):
         manychat_id = data.get('manychat_id')
         requisito_examen = data.get('requisito_examen', '')
         procedimiento_id = data.get('procedimiento_id')
-        email_paciente = data.get('email') 
+        email_paciente = data.get('email')
+
+        logger.info("Reserva iniciada para hora_id=%s, manychat_id=%s", hora_id, manychat_id)
 
         if not all([hora_id, manychat_id, procedimiento_id, email_paciente]):
+            logger.warning("Datos incompletos en la solicitud.")
             return Response(
                 {
                     'success': "false",
@@ -398,15 +404,17 @@ def reservar_hora(request):
 
         with connection.cursor() as cursor:
             try:
+                logger.info("Consultando hora con id_hora=%s", hora_id)
                 cursor.execute("""
                     SELECT estado, fecha, hora, id_cesfam 
                     FROM usuario_horas_agenda 
                     WHERE id_hora = %s
                     FOR UPDATE
                 """, [hora_id])
-                
+
                 row = cursor.fetchone()
                 if not row:
+                    logger.warning("Hora no encontrada.")
                     return Response(
                         {
                             'success': "false",
@@ -417,8 +425,10 @@ def reservar_hora(request):
                     )
 
                 estado, fecha, hora, id_cesfam = row
+                logger.info("Hora encontrada: estado=%s, fecha=%s, hora=%s", estado, fecha, hora)
 
                 if estado != 'disponible':
+                    logger.warning("Hora no disponible. Estado actual: %s", estado)
                     return Response(
                         {
                             'success': "false",
@@ -428,9 +438,9 @@ def reservar_hora(request):
                         status=409
                     )
 
-                
                 hora_datetime = make_aware(datetime.combine(fecha, hora))
                 if hora_datetime < timezone.now():
+                    logger.warning("Hora ya pasó: %s", hora_datetime)
                     return Response(
                         {
                             'success': "false",
@@ -439,7 +449,7 @@ def reservar_hora(request):
                         },
                         status=400
                     )
-                
+
                 cursor.execute("""
                     SELECT COUNT(*) 
                     FROM usuario_agenda 
@@ -447,8 +457,9 @@ def reservar_hora(request):
                     AND fecha_atencion = %s 
                     AND hora_atencion = %s
                 """, [manychat_id, fecha, hora])
-                
+
                 if cursor.fetchone()[0] > 0:
+                    logger.warning("El usuario ya tiene una reserva en este horario.")
                     return Response(
                         {
                             'success': "false",
@@ -458,16 +469,18 @@ def reservar_hora(request):
                         status=400
                     )
 
+                logger.info("Llamando a procedimiento almacenado para cambiar estado de la hora.")
                 cursor.callproc('cambiar_estado_hora', [
                     hora_id,
                     'reservada',
                     manychat_id,
-                    None  
+                    None
                 ])
                 cursor.execute("SELECT @_cambiar_estado_hora_3")
                 resultado = cursor.fetchone()[0]
-                
+
                 if not resultado or resultado.startswith('Error'):
+                    logger.error("Error al cambiar el estado de la hora: %s", resultado)
                     return Response(
                         {
                             'success': "false",
@@ -476,6 +489,8 @@ def reservar_hora(request):
                         },
                         status=400
                     )
+
+                logger.info("Estado cambiado exitosamente. Creando agenda.")
                 try:
                     usuario = Usuario.objects.get(id_manychat=manychat_id)
                     agenda = Agenda.objects.create(
@@ -487,20 +502,29 @@ def reservar_hora(request):
                         id_procedimiento_id=procedimiento_id
                     )
 
+                    logger.info("Agenda creada con id %s", agenda.id_agenda)
+
                     cursor.execute("""
                         UPDATE usuario_horas_agenda
                         SET agenda_id = %s
                         WHERE id_hora = %s
                     """, [agenda.id_agenda, hora_id])
 
-                    from .models import Recordatorio  
+                    logger.info("Actualización de hora con agenda_id completa.")
+
                     fecha_recordatorio = hora_datetime - timedelta(hours=6)
-                    Recordatorio.objects.create(
-                        agenda=agenda,
-                        email=email_paciente,
-                        fecha_programada=fecha_recordatorio
-                    )
-    
+                    logger.info("Creando recordatorio para email: %s, programado para: %s", email_paciente, fecha_recordatorio)
+                    
+                    try:
+                        Recordatorio.objects.create(
+                            agenda=agenda,
+                            email=email_paciente,
+                            fecha_programada=fecha_recordatorio
+                        )
+                        logger.info("Recordatorio creado con éxito.")
+                    except Exception as e:
+                        logger.error("Error al crear el recordatorio: %s", str(e))
+
                     return Response({
                         'success': "true",
                         'mensaje': 'Hora reservada correctamente',
@@ -510,6 +534,7 @@ def reservar_hora(request):
                     }, status=201)
 
                 except Usuario.DoesNotExist:
+                    logger.warning("Usuario con manychat_id %s no encontrado", manychat_id)
                     return Response(
                         {
                             'success': "false",
@@ -519,6 +544,7 @@ def reservar_hora(request):
                         status=404
                     )
                 except Exception as e:
+                    logger.error("Error inesperado al crear agenda o recordatorio: %s", str(e))
                     return Response(
                         {
                             'success': "false",
@@ -530,6 +556,7 @@ def reservar_hora(request):
                     )
 
             except DatabaseError as db_error:
+                logger.error("Error en base de datos: %s", str(db_error))
                 return Response(
                     {
                         'success': "false",
@@ -541,6 +568,7 @@ def reservar_hora(request):
                 )
 
     except Exception as e:
+        logger.critical("Error interno inesperado: %s", str(e))
         return Response(
             {
                 'success': "false",
@@ -585,13 +613,7 @@ logger = logging.getLogger(__name__)
 @authentication_classes([]) 
 @permission_classes([])  
 def enviar_recordatorios_pendientes(request):
-    print("\n==== INICIO DE PETICIÓN ====")
-    print("Headers completos:", request.headers)
     auth_header = request.headers.get('Authorization')
-
-    print("\n=== DEBUG AUTH ===")
-    print(f"Header recibido: {auth_header}")
-    print(f"Token esperado: {settings.GITHUB_WEBHOOK_SECRET}")
     
     if not auth_header:
         logger.error("Falta header de Authorization")

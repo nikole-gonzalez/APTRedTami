@@ -181,3 +181,22 @@ CACHES = {
 }
 
 GITHUB_WEBHOOK_SECRET = "proyectoredtami123456"
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        '__main__': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
