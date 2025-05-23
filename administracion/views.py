@@ -2,6 +2,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import auth, messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 
 import base64
 from datetime import datetime, date
@@ -433,10 +434,21 @@ def background_colors(ws):
 
 @login_required
 def datos_perfil(request):
+    query = request.GET.get("q", "")
     datos_query = Usuario.objects.all().order_by("-fecha_ingreso")
-    page_obj = paginacion_queryset1(request, datos_query) 
+
+    if query:
+        datos_query = datos_query.filter(
+            Q(rut_usuario__icontains=query)|
+            Q(id_manychat__icontains=query)|
+            Q(num_whatsapp__icontains=query)
+        )
     
-    return render(request, 'administracion/datos_perfil.html', {"page_obj": page_obj})
+    page_obj = paginacion_queryset1(request, datos_query) 
+    return render(request, 'administracion/datos_perfil.html', {
+        "page_obj": page_obj,
+        "query": query,
+    })
 
 # ------------------ #
 # ---- Tamizaje ---- #
@@ -2083,16 +2095,23 @@ def generar_json_por_cesfam(request, cesfam_id):
             "horas_agendadas": datos_agendas
         }
 
+        nombre_archivo = f"horas_cesfam_{cesfam.id_cesfam}_{datetime.now().strftime('%Y%m%d')}.json"
+        LogDescargaJSON.objects.create(
+            usuario=request.user,
+            cesfam=cesfam,
+            cantidad_horas=len(datos_agendas),
+            nombre_archivo=nombre_archivo
+        )
+
         response = HttpResponse(
             json.dumps(response_data, indent=2, ensure_ascii=False),
             content_type='application/json; charset=utf-8'
         )
-        response['Content-Disposition'] = f'attachment; filename="horas_cesfam_{cesfam.id_cesfam}_{datetime.now().strftime("%Y%m%d")}.json"'
+        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         return response
 
     except Cesfam.DoesNotExist:
         return JsonResponse({"error": "CESFAM no encontrado"}, status=404)
-
 
 @login_required
 def lista_descargas(request):
@@ -2100,3 +2119,8 @@ def lista_descargas(request):
         num_horas=Count('agenda')
     )
     return render(request, 'administracion/json_cesfam.html', {'cesfams': cesfams})
+
+@login_required
+def historial_descargas_json(request):
+    descargas = LogDescargaJSON.objects.select_related('usuario', 'cesfam').order_by('-fecha_descarga')
+    return render(request, 'administracion/historial_descargas.html', {'descargas': descargas})

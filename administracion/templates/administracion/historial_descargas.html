@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Descargas JSON{% endblock %}
+
+{% block content %}
+<h2>Historial de Descargas JSON</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>CESFAM</th>
+            <th>Archivo</th>
+            <th>Horas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for descarga in descargas %}
+        <tr>
+            <td>{{ descarga.fecha_descarga|date:"d/m/Y H:i" }}</td>
+            <td>{{ descarga.usuario.get_full_name|default:descarga.usuario.username }}</td>
+            <td>{{ descarga.cesfam.nombre_cesfam }}</td>
+            <td>{{ descarga.nombre_archivo }}</td>
+            <td>{{ descarga.cantidad_horas }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No hay descargas registradas</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
+{% endblock %}
