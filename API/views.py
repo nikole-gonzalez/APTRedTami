@@ -1,4 +1,5 @@
 import json
+import secrets
 from usuario.models import HoraAgenda, Agenda, Recordatorio
 from administracion.models import Usuario
 from rest_framework import viewsets
@@ -8,7 +9,7 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.parsers import JSONParser
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes,authentication_classes
 from django.conf import settings
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
@@ -333,16 +334,10 @@ def horas_disponibles(request):
         cesfam_id = data.get('cesfam_id')
         
         if not cesfam_id:
-            return Response(
-                {'error': 'Se requiere cesfam_id'}, 
-                status=400
-            )
+            return Response({'error': 'Se requiere cesfam_id'}, status=400)
         
-        # Obtener fecha actual
         hoy = datetime.now().date()
         fecha_busqueda = hoy
-        
-        # Lista para acumular resultados
         horas_disponibles = []
         dias_buscados = 0
         max_dias_busqueda = 14  # Límite para evitar bucles infinitos
@@ -350,9 +345,8 @@ def horas_disponibles(request):
         while len(horas_disponibles) < 3 and dias_buscados < max_dias_busqueda:
             # Si es fin de semana o feriado, saltar al siguiente día hábil
             if fecha_busqueda.weekday() >= 5 or es_feriado(fecha_busqueda):
-                fecha_busqueda = obtener_dia_habil_siguiente(fecha_busqueda)
-                dias_buscados += 1
-                continue
+                fecha_busqueda += timedelta(days=1)  # Primero avanzamos un día
+                continue  # Volvemos a verificar si el nuevo día es hábil
             
             # Buscar horas disponibles para este día
             horas_del_dia = HoraAgenda.objects.filter(
@@ -374,22 +368,19 @@ def horas_disponibles(request):
                     'dia': 'Hoy' if hora.fecha == hoy else 'Próximos días'
                 })
             
-            # Pasar al siguiente día
-            fecha_busqueda += timedelta(days=1)
+            # Solo incrementar contador cuando evaluamos un día hábil válido
             dias_buscados += 1
+            fecha_busqueda += timedelta(days=1)  # Pasamos al siguiente día
         
         return Response({
-            'horas_disponibles': horas_disponibles[:3],  # Aseguramos máximo 3
+            'horas_disponibles': horas_disponibles[:3],
             'fecha_consulta': datetime.now().strftime('%d/%m/%Y %H:%M'),
             'cache': False
         })
         
     except Exception as e:
         logger.error(f"Error en horas_disponibles: {str(e)}", exc_info=True)
-        return Response(
-            {'error': 'Error al obtener horas disponibles'}, 
-            status=500
-        )
+        return Response({'error': 'Error al obtener horas disponibles'}, status=500)
     
 @api_view(['POST'])
 @transaction.atomic
@@ -595,46 +586,105 @@ def verificar_reserva(request):
     except Exception as e:
         return JsonResponse({"reservado": "false", "error": str(e)}, status=500)
     
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @api_view(['POST'])
+@authentication_classes([]) 
+@permission_classes([])  
 def enviar_recordatorios_pendientes(request):
-    # Verificación de autenticación más robusta
+    print("\n==== INICIO DE PETICIÓN ====")
+    print("Headers completos:", request.headers)
     auth_header = request.headers.get('Authorization')
-    expected_token = f'Token {settings.GITHUB_WEBHOOK_SECRET}'.strip()
+
+    print("\n=== DEBUG AUTH ===")
+    print(f"Header recibido: {auth_header}")
+    print(f"Token esperado: {settings.GITHUB_WEBHOOK_SECRET}")
     
-    if not auth_header or not auth_header.strip() == expected_token:
+    if not auth_header:
+        logger.error("Falta header de Authorization")
         return Response(
-            {'error': 'No autorizado'}, 
+            {'error': 'Se requiere token de autenticación'}, 
             status=status.HTTP_401_UNAUTHORIZED
         )
     
-    ahora = datetime.now()
-    margen = timedelta(minutes=15)  
+    # Limpieza de espacios
+    auth_header = auth_header.strip()
+    parts = auth_header.split()
     
-    # 1. Obtener recordatorios pendientes en el margen de tiempo
-    recordatorios = Recordatorio.objects.filter(
-        fecha_programada__range=[ahora - margen, ahora + margen],
-        enviado=False
-    ).select_related('agenda', 'agenda__id_cesfam')
+    # Verificación mejorada
+    if len(parts) != 2 or parts[0] != 'Token':
+        logger.error(f"Formato inválido. Se recibió: '{auth_header}'")
+        return Response(...)
     
-    # 2. Procesar cada recordatorio
-    enviados = 0
-    for recordatorio in recordatorios:
-        try:
-            enviar_email_recordatorio(recordatorio)
-            recordatorio.enviado = True
-            recordatorio.save()
-            enviados += 1
-        except Exception as e:
-            # Loggear el error si es necesario
-            continue
+    # Comparación segura con limpieza
+    received_token = parts[1].strip()
+    expected_token = settings.GITHUB_WEBHOOK_SECRET.strip()
     
-    return JsonResponse({
-        'status': 'success',
-        'enviados': enviados,
-        'fallidos': len(recordatorios) - enviados
-    })
+    if not secrets.compare_digest(received_token, expected_token):
+        print(f"! Tokens no coinciden !")
+        print(f"Recibido: '{received_token}'")
+        print(f"Esperado: '{expected_token}'")
+        return Response(...)
+
+    # Verifica que el token en settings existe
+    if not hasattr(settings, 'GITHUB_WEBHOOK_SECRET'):
+        logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
+        return Response(
+            {'error': 'Configuración del servidor incompleta'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+    # Divide el header para validar formato
+    parts = auth_header.split()
+    if len(parts) != 2 or parts[0] != 'Token':
+        logger.error(f"Formato de token inválido. Header recibido: {auth_header}")
+        return Response(
+            {'error': 'Formato de autorización inválido. Use: Token <token>'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Comparación segura de tokens
+    if not secrets.compare_digest(parts[1], settings.GITHUB_WEBHOOK_SECRET):
+        logger.error("Token no coincide")
+        return Response(
+            {'error': 'Token inválido'}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    # 2. Procesar recordatorios (código existente)
+    try:
+        ahora = datetime.now()
+        margen = timedelta(minutes=15)
+        
+        recordatorios = Recordatorio.objects.filter(
+            fecha_programada__range=[ahora - margen, ahora + margen],
+            enviado=False
+        ).select_related('agenda', 'agenda__id_cesfam')
+        
+        enviados = 0
+        for recordatorio in recordatorios:
+            try:
+                enviar_email_recordatorio(recordatorio)
+                recordatorio.enviado = True
+                recordatorio.save()
+                enviados += 1
+            except Exception as e:
+                logger.error(f"Error enviando email a {recordatorio.email}: {str(e)}")
+                continue
+        
+        return Response({
+            'status': 'success',
+            'enviados': enviados,
+            'total': len(recordatorios)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error procesando recordatorios: {str(e)}")
+        return Response(
+            {'error': 'Error interno del servidor'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 def enviar_email_recordatorio(recordatorio):
     agenda = recordatorio.agenda
@@ -648,7 +698,7 @@ def enviar_email_recordatorio(recordatorio):
     email = EmailMultiAlternatives(
         subject=f"Recordatorio: Cita en {agenda.id_cesfam.nombre}",
         body=render_to_string('emails/recordatorio.txt', context),
-        from_email='no-reply@cesfam.cl',
+        from_email='redtamicervicouterino@gmail.com',
         to=[recordatorio.email],
     )
     email.attach_alternative(

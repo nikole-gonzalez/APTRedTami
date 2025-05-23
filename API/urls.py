@@ -27,7 +27,6 @@ from .views import (
     reservar_hora, 
     verificar_reserva,
     enviar_recordatorios_pendientes
-
 )
 
 app_name = 'api'  
