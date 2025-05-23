@@ -525,9 +525,10 @@ logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @api_view(['POST'])
-@authentication_classes([]) 
-@permission_classes([])  
+@authentication_classes([])
+@permission_classes([])
 def enviar_recordatorios_pendientes(request):
+    # 1. Verificación de autenticación
     auth_header = request.headers.get('Authorization')
     
     if not auth_header:
@@ -537,25 +538,6 @@ def enviar_recordatorios_pendientes(request):
             status=status.HTTP_401_UNAUTHORIZED
         )
     
-    # Limpieza de espacios
-    auth_header = auth_header.strip()
-    parts = auth_header.split()
-    
-    # Verificación mejorada
-    if len(parts) != 2 or parts[0] != 'Token':
-        logger.error(f"Formato inválido. Se recibió: '{auth_header}'")
-        return Response(...)
-    
-    # Comparación segura con limpieza
-    received_token = parts[1].strip()
-    expected_token = settings.GITHUB_WEBHOOK_SECRET.strip()
-    
-    if not secrets.compare_digest(received_token, expected_token):
-        print(f"! Tokens no coinciden !")
-        print(f"Recibido: '{received_token}'")
-        print(f"Esperado: '{expected_token}'")
-        return Response(...)
-
     # Verifica que el token en settings existe
     if not hasattr(settings, 'GITHUB_WEBHOOK_SECRET'):
         logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
@@ -565,7 +547,9 @@ def enviar_recordatorios_pendientes(request):
         )
     
     # Divide el header para validar formato
+    auth_header = auth_header.strip()
     parts = auth_header.split()
+    
     if len(parts) != 2 or parts[0] != 'Token':
         logger.error(f"Formato de token inválido. Header recibido: {auth_header}")
         return Response(
@@ -574,14 +558,17 @@ def enviar_recordatorios_pendientes(request):
         )
     
     # Comparación segura de tokens
-    if not secrets.compare_digest(parts[1], settings.GITHUB_WEBHOOK_SECRET):
+    received_token = parts[1].strip()
+    expected_token = settings.GITHUB_WEBHOOK_SECRET.strip()
+    
+    if not secrets.compare_digest(received_token, expected_token):
         logger.error("Token no coincide")
         return Response(
             {'error': 'Token inválido'}, 
             status=status.HTTP_401_UNAUTHORIZED
         )
 
-    # 2. Procesar recordatorios (código existente)
+    # 2. Procesar recordatorios
     try:
         ahora = datetime.now()
         margen = timedelta(minutes=15)
