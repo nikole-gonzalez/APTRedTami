@@ -202,4 +202,13 @@ class Divulgacion(models.Model):
     def __str__(self):
         return f"Divulgación #{self.id_divulgacion} ({self.fecha_envio})"
 
+class LogDescargaJSON(models.Model):
+    id_log = models.AutoField(primary_key=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    cesfam = models.ForeignKey('usuario.Cesfam', on_delete=models.SET_NULL, null=True)
+    fecha_descarga = models.DateTimeField(auto_now_add=True)
+    cantidad_horas = models.IntegerField()
+    nombre_archivo = models.CharField(max_length=255)
 
+    def __str__(self):
+        return f"Descarga {self.id_log} - {self.usuario} - {self.fecha_descarga}"
