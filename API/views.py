@@ -612,7 +612,7 @@ def enviar_email_recordatorio(recordatorio):
     }
     
     email = EmailMultiAlternatives(
-        subject=f"Recordatorio: Cita en {agenda.id_cesfam.nombre}",
+        subject=f"Recordatorio: Cita en {agenda.id_cesfam.nombre_cesfam}",
         body=render_to_string('emails/recordatorio.txt', context),
         from_email='redtamicervicouterino@gmail.com',
         to=[recordatorio.email],
