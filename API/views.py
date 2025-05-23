@@ -368,9 +368,8 @@ def horas_disponibles(request):
                     'dia': 'Hoy' if hora.fecha == hoy else 'Próximos días'
                 })
             
-            # Solo incrementar contador cuando evaluamos un día hábil válido
             dias_buscados += 1
-            fecha_busqueda += timedelta(days=1)  # Pasamos al siguiente día
+            fecha_busqueda += timedelta(days=1) 
         
         return Response({
             'horas_disponibles': horas_disponibles[:3],
