@@ -339,37 +339,34 @@ def horas_disponibles(request):
         hoy = datetime.now().date()
         fecha_busqueda = hoy
         horas_disponibles = []
-        dias_buscados = 0
-        max_dias_busqueda = 14  # Límite para evitar bucles infinitos
+        dias_evaluados = 0  # Contador de días evaluados (incluyendo no hábiles)
+        max_dias_evaluacion = 30  # Límite más amplio para cubrir fines de semana largos
         
-        while len(horas_disponibles) < 3 and dias_buscados < max_dias_busqueda:
-            # Si es fin de semana o feriado, saltar al siguiente día hábil
-            if fecha_busqueda.weekday() >= 5 or es_feriado(fecha_busqueda):
-                fecha_busqueda += timedelta(days=1)  # Primero avanzamos un día
-                continue  # Volvemos a verificar si el nuevo día es hábil
+        while len(horas_disponibles) < 3 and dias_evaluados < max_dias_evaluacion:
+            # Verificar si es día hábil (no fin de semana ni feriado)
+            if fecha_busqueda.weekday() < 5 and not es_feriado(fecha_busqueda):
+                # Buscar horas disponibles solo si es día hábil
+                horas_del_dia = HoraAgenda.objects.filter(
+                    fecha=fecha_busqueda,
+                    estado='disponible',
+                    cesfam_id=cesfam_id
+                ).order_by('hora')
+                
+                for hora in horas_del_dia:
+                    if len(horas_disponibles) >= 3:
+                        break
+                        
+                    horas_disponibles.append({
+                        'hora_id': str(hora.id_hora), 
+                        'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
+                        'fecha': hora.fecha.strftime('%d/%m/%Y'),
+                        'hora': hora.hora.strftime('%H:%M'),
+                        'dia': 'Hoy' if hora.fecha == hoy else 'Próximos días'
+                    })
             
-            # Buscar horas disponibles para este día
-            horas_del_dia = HoraAgenda.objects.filter(
-                fecha=fecha_busqueda,
-                estado='disponible',
-                cesfam_id=cesfam_id
-            ).order_by('hora')
-            
-            # Agregar a los resultados
-            for hora in horas_del_dia:
-                if len(horas_disponibles) >= 3:
-                    break
-                    
-                horas_disponibles.append({
-                    'hora_id': str(hora.id_hora), 
-                    'display_text': f"{hora.fecha.strftime('%d/%m/%Y')} {hora.hora.strftime('%H:%M')}",
-                    'fecha': hora.fecha.strftime('%d/%m/%Y'),
-                    'hora': hora.hora.strftime('%H:%M'),
-                    'dia': 'Hoy' if hora.fecha == hoy else 'Próximos días'
-                })
-            
-            dias_buscados += 1
-            fecha_busqueda += timedelta(days=1) 
+            # Siempre avanzar al siguiente día
+            fecha_busqueda += timedelta(days=1)
+            dias_evaluados += 1
         
         return Response({
             'horas_disponibles': horas_disponibles[:3],
