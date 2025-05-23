@@ -391,20 +391,12 @@ def reservar_hora(request):
         logger.info("Reserva iniciada para hora_id=%s, manychat_id=%s", hora_id, manychat_id)
 
         if not all([hora_id, manychat_id, procedimiento_id, email_paciente]):
-            logger.warning("Datos incompletos en la solicitud.")
-            return Response(
-                {
-                    'success': "false",
-                    'error': 'Datos incompletos',
-                    'detalle': 'Se requieren hora_id, manychat_id, procedimiento_id y email',
-                    'codigo_error': 'DATOS_INCOMPLETOS'
-                },
-                status=400
-            )
+            return Response({'success': "false", 'error': 'Datos incompletos',
+                             'detalle': 'Se requieren hora_id, manychat_id, procedimiento_id y email',
+                             'codigo_error': 'DATOS_INCOMPLETOS'}, status=400)
 
         with connection.cursor() as cursor:
             try:
-                logger.info("Consultando hora con id_hora=%s", hora_id)
                 cursor.execute("""
                     SELECT estado, fecha, hora, id_cesfam 
                     FROM usuario_horas_agenda 
@@ -414,41 +406,19 @@ def reservar_hora(request):
 
                 row = cursor.fetchone()
                 if not row:
-                    logger.warning("Hora no encontrada.")
-                    return Response(
-                        {
-                            'success': "false",
-                            'error': 'La hora solicitada no existe',
-                            'codigo_error': 'HORA_NO_ENCONTRADA'
-                        },
-                        status=404
-                    )
+                    return Response({'success': "false", 'error': 'La hora solicitada no existe',
+                                     'codigo_error': 'HORA_NO_ENCONTRADA'}, status=404)
 
                 estado, fecha, hora, id_cesfam = row
-                logger.info("Hora encontrada: estado=%s, fecha=%s, hora=%s", estado, fecha, hora)
 
                 if estado != 'disponible':
-                    logger.warning("Hora no disponible. Estado actual: %s", estado)
-                    return Response(
-                        {
-                            'success': "false",
-                            'error': f'La hora ya no está disponible (estado: {estado})',
-                            'codigo_error': 'HORA_NO_DISPONIBLE'
-                        },
-                        status=409
-                    )
+                    return Response({'success': "false", 'error': f'La hora ya no está disponible (estado: {estado})',
+                                     'codigo_error': 'HORA_NO_DISPONIBLE'}, status=409)
 
                 hora_datetime = make_aware(datetime.combine(fecha, hora))
                 if hora_datetime < timezone.now():
-                    logger.warning("Hora ya pasó: %s", hora_datetime)
-                    return Response(
-                        {
-                            'success': "false",
-                            'error': 'No se puede reservar una hora pasada',
-                            'codigo_error': 'HORA_PASADA'
-                        },
-                        status=400
-                    )
+                    return Response({'success': "false", 'error': 'No se puede reservar una hora pasada',
+                                     'codigo_error': 'HORA_PASADA'}, status=400)
 
                 cursor.execute("""
                     SELECT COUNT(*) 
@@ -459,38 +429,17 @@ def reservar_hora(request):
                 """, [manychat_id, fecha, hora])
 
                 if cursor.fetchone()[0] > 0:
-                    logger.warning("El usuario ya tiene una reserva en este horario.")
-                    return Response(
-                        {
-                            'success': "false",
-                            'error': 'Ya tienes una reserva en este mismo horario',
-                            'codigo_error': 'RESERVA_DUPLICADA'
-                        },
-                        status=400
-                    )
+                    return Response({'success': "false", 'error': 'Ya tienes una reserva en este mismo horario',
+                                     'codigo_error': 'RESERVA_DUPLICADA'}, status=400)
 
-                logger.info("Llamando a procedimiento almacenado para cambiar estado de la hora.")
-                cursor.callproc('cambiar_estado_hora', [
-                    hora_id,
-                    'reservada',
-                    manychat_id,
-                    None
-                ])
+                cursor.callproc('cambiar_estado_hora', [hora_id, 'reservada', manychat_id, None])
                 cursor.execute("SELECT @_cambiar_estado_hora_3")
                 resultado = cursor.fetchone()[0]
 
                 if not resultado or resultado.startswith('Error'):
-                    logger.error("Error al cambiar el estado de la hora: %s", resultado)
-                    return Response(
-                        {
-                            'success': "false",
-                            'error': resultado or 'Error al cambiar estado de la hora',
-                            'codigo_error': 'ERROR_PROCESAMIENTO'
-                        },
-                        status=400
-                    )
+                    return Response({'success': "false", 'error': resultado or 'Error al cambiar estado de la hora',
+                                     'codigo_error': 'ERROR_PROCESAMIENTO'}, status=400)
 
-                logger.info("Estado cambiado exitosamente. Creando agenda.")
                 try:
                     usuario = Usuario.objects.get(id_manychat=manychat_id)
                     agenda = Agenda.objects.create(
@@ -502,26 +451,20 @@ def reservar_hora(request):
                         id_procedimiento_id=procedimiento_id
                     )
 
-                    logger.info("Agenda creada con id %s", agenda.id_agenda)
-
+                    # ✅ Aquí se actualiza agenda_id en usuario_horas_agenda sin modificar modelos
                     cursor.execute("""
                         UPDATE usuario_horas_agenda
                         SET agenda_id = %s
                         WHERE id_hora = %s
                     """, [agenda.id_agenda, hora_id])
 
-                    logger.info("Actualización de hora con agenda_id completa.")
-
                     fecha_recordatorio = hora_datetime - timedelta(hours=6)
-                    logger.info("Creando recordatorio para email: %s, programado para: %s", email_paciente, fecha_recordatorio)
-                    
                     try:
                         Recordatorio.objects.create(
                             agenda=agenda,
                             email=email_paciente,
                             fecha_programada=fecha_recordatorio
                         )
-                        logger.info("Recordatorio creado con éxito.")
                     except Exception as e:
                         logger.error("Error al crear el recordatorio: %s", str(e))
 
@@ -534,51 +477,21 @@ def reservar_hora(request):
                     }, status=201)
 
                 except Usuario.DoesNotExist:
-                    logger.warning("Usuario con manychat_id %s no encontrado", manychat_id)
-                    return Response(
-                        {
-                            'success': "false",
-                            'error': 'Usuario no encontrado',
-                            'codigo_error': 'USUARIO_NO_ENCONTRADO'
-                        },
-                        status=404
-                    )
+                    return Response({'success': "false", 'error': 'Usuario no encontrado',
+                                     'codigo_error': 'USUARIO_NO_ENCONTRADO'}, status=404)
                 except Exception as e:
-                    logger.error("Error inesperado al crear agenda o recordatorio: %s", str(e))
-                    return Response(
-                        {
-                            'success': "false",
-                            'error': 'Error al crear la reserva',
-                            'detalle': str(e),
-                            'codigo_error': 'ERROR_CREACION_AGENDA'
-                        },
-                        status=500
-                    )
+                    return Response({'success': "false", 'error': 'Error al crear la reserva',
+                                     'detalle': str(e), 'codigo_error': 'ERROR_CREACION_AGENDA'}, status=500)
 
             except DatabaseError as db_error:
-                logger.error("Error en base de datos: %s", str(db_error))
-                return Response(
-                    {
-                        'success': "false",
-                        'error': 'Error al consultar la base de datos',
-                        'detalle': str(db_error),
-                        'codigo_error': 'ERROR_BD'
-                    },
-                    status=500
-                )
+                return Response({'success': "false", 'error': 'Error al consultar la base de datos',
+                                 'detalle': str(db_error), 'codigo_error': 'ERROR_BD'}, status=500)
 
     except Exception as e:
-        logger.critical("Error interno inesperado: %s", str(e))
-        return Response(
-            {
-                'success': "false",
-                'error': 'Error inesperado en el servidor',
-                'detalle': str(e),
-                'codigo_error': 'ERROR_INTERNO'
-            },
-            status=500
-        )
-    
+        return Response({'success': "false", 'error': 'Error inesperado en el servidor',
+                         'detalle': str(e), 'codigo_error': 'ERROR_INTERNO'}, status=500)
+
+
 @csrf_exempt
 @api_view(['POST'])
 def verificar_reserva(request):
