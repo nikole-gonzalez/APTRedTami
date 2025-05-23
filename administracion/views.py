@@ -2,6 +2,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import auth, messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 
 import base64
 from datetime import datetime, date
@@ -433,10 +434,21 @@ def background_colors(ws):
 
 @login_required
 def datos_perfil(request):
+    query = request.GET.get("q", "")
     datos_query = Usuario.objects.all().order_by("-fecha_ingreso")
-    page_obj = paginacion_queryset1(request, datos_query) 
+
+    if query:
+        datos_query = datos_query.filter(
+            Q(rut_usuario__icontains=query)|
+            Q(id_manychat__icontains=query)|
+            Q(num_whatsapp__icontains=query)
+        )
     
-    return render(request, 'administracion/datos_perfil.html', {"page_obj": page_obj})
+    page_obj = paginacion_queryset1(request, datos_query) 
+    return render(request, 'administracion/datos_perfil.html', {
+        "page_obj": page_obj,
+        "query": query,
+    })
 
 # ------------------ #
 # ---- Tamizaje ---- #
