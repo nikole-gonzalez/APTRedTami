@@ -2095,16 +2095,23 @@ def generar_json_por_cesfam(request, cesfam_id):
             "horas_agendadas": datos_agendas
         }
 
+        nombre_archivo = f"horas_cesfam_{cesfam.id_cesfam}_{datetime.now().strftime('%Y%m%d')}.json"
+        LogDescargaJSON.objects.create(
+            usuario=request.user,
+            cesfam=cesfam,
+            cantidad_horas=len(datos_agendas),
+            nombre_archivo=nombre_archivo
+        )
+
         response = HttpResponse(
             json.dumps(response_data, indent=2, ensure_ascii=False),
             content_type='application/json; charset=utf-8'
         )
-        response['Content-Disposition'] = f'attachment; filename="horas_cesfam_{cesfam.id_cesfam}_{datetime.now().strftime("%Y%m%d")}.json"'
+        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         return response
 
     except Cesfam.DoesNotExist:
         return JsonResponse({"error": "CESFAM no encontrado"}, status=404)
-
 
 @login_required
 def lista_descargas(request):
@@ -2112,3 +2119,8 @@ def lista_descargas(request):
         num_horas=Count('agenda')
     )
     return render(request, 'administracion/json_cesfam.html', {'cesfams': cesfams})
+
+@login_required
+def historial_descargas_json(request):
+    descargas = LogDescargaJSON.objects.select_related('usuario', 'cesfam').order_by('-fecha_descarga')
+    return render(request, 'administracion/historial_descargas.html', {'descargas': descargas})
