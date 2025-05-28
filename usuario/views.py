@@ -78,25 +78,28 @@ def eliminar_datos_usuario(request):
 @login_required
 def agendamiento(request):
     try:
-        # Obtener el perfil del usuario
+        # Obtener el perfil del usuario actual
         perfil = request.user.perfilusuario
-        usuario_sist = perfil.usuario_sist
         
-        if not usuario_sist:
+        # Verificar si el usuario tiene un id_manychat asignado
+        if not hasattr(request.user, 'id_manychat') or not request.user.id_manychat:
             return render(request, 'usuario/agendamiento.html', {
                 'sin_atenciones': True,
-                'mensaje': 'No tienes un usuario de sistema asignado'
+                'mensaje': 'Tu usuario no tiene un id_manychat asignado'
             })
         
-        # Obtener el queryset de agendamientos
+        # Obtener el id_manychat del usuario autenticado
+        id_manychat_usuario = request.user.id_manychat
+        
+        # Filtrar agendamientos por el id_manychat exacto
         agendamientos_list = Agenda.objects.filter(
-            id_manychat=usuario_sist
+            id_manychat__id_manychat=id_manychat_usuario
         ).select_related(
             'id_cesfam',
             'id_procedimiento'
         ).order_by('-fecha_atencion', '-hora_atencion')
         
-        # Usar la función de paginación reutilizable
+        # Aplicar paginación
         agendamientos = paginacion_queryset1(request, agendamientos_list, items_por_pagina=10)
         
         context = {
