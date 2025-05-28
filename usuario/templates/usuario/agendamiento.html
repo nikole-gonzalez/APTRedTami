@@ -1,20 +1,150 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Historial de Agendamientos{% endblock %}
 
 {% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">
+                <i class="fas fa-history me-2"></i>Historial de Agendamientos
+            </h2>
+        </div>
+        
+        <div class="card-body">
+            {% if sin_atenciones %}
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <div>
+                        No tienes atenciones agendadas
+                    </div>
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>CESFAM</th>
+                                <th>Tipo de Servicio</th>
+                                <th>Requisitos</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for agenda in agendamientos %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ agenda.id_cesfam.nombre_cesfam }}</td>
+                                <td>{{ agenda.id_procedimiento.nombre_procedimiento }}</td>
+                                <td>{{ agenda.requisito_examen }}</td>
+                                <td>{{ agenda.fecha_atencion|date:"d/m/Y" }}</td>
+                                <td>{{ agenda.hora_atencion|time:"H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginación mejorada -->
+                <div class="pagination justify-content-center mt-4">
+                    <span class="step-links">
+                        {% if agendamientos.has_previous %}
+                            <a href="?page=1" class="btn btn-sm btn-outline-primary">&laquo; Primera</a>
+                            <a href="?page={{ agendamientos.previous_page_number }}" class="btn btn-sm btn-outline-primary">Anterior</a>
+                        {% endif %}
 
-<div class="container">
-    {% if perfil.tipo_usuario == 'paciente' %}
-        <h2>Historial de agendamientos</h2>
-        <ul>
-        {% for ag in agendamientos %}
-            <li>{{ ag.fecha_atencion }} a las {{ ag.hora_atencion }} en {{ ag.id_cesfam.nombre_cesfam }}</li>
-        {% empty %}
-            <li>No tienes agendamientos registrados.</li>
-        {% endfor %}
-        </ul>
-    {% endif %}
+                        <span class="current btn btn-sm btn-primary disabled">
+                            Página {{ agendamientos.number }} de {{ agendamientos.paginator.num_pages }}
+                        </span>
+
+                        {% if agendamientos.has_next %}
+                            <a href="?page={{ agendamientos.next_page_number }}" class="btn btn-sm btn-outline-primary">Siguiente</a>
+                            <a href="?page={{ agendamientos.paginator.num_pages }}" class="btn btn-sm btn-outline-primary">Última &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
-<section>
-    <a class="button" href="{% url 'usuario_index' %}">Volver</a>   
-</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos para la tabla */
+    .table {
+        width: 100%;
+        margin-bottom: 1rem;
+        color: #212529;
+        border-collapse: collapse;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.75rem;
+        vertical-align: top;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .table thead th {
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+        background-color: #343a40;
+        color: white;
+    }
+    
+    .table tbody + tbody {
+        border-top: 2px solid #dee2e6;
+    }
+    
+    .table-bordered {
+        border: 1px solid #dee2e6;
+    }
+    
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #dee2e6;
+    }
+    
+    .table-bordered thead th,
+    .table-bordered thead td {
+        border-bottom-width: 2px;
+    }
+    
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .table-hover tbody tr:hover {
+        color: #212529;
+        background-color: rgba(0, 0, 0, 0.075);
+    }
+    
+    /* Estilos para la tarjeta */
+    .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+        background-color: #0d6efd;
+    }
+    
+    /* Estilos para la paginación */
+    .pagination {
+        display: flex;
+        justify-content: center;
+    }
+    
+    .step-links {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+</style>
 {% endblock %}
