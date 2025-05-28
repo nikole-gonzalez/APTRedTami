@@ -1,7 +1,7 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import auth, messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
 
 import base64
@@ -32,6 +32,7 @@ from .models import *
 from .forms import *
 
 from usuario.models import Agenda, Cesfam
+from administracion.models import Usuario
 
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
@@ -2124,3 +2125,81 @@ def lista_descargas(request):
 def historial_descargas_json(request):
     descargas = LogDescargaJSON.objects.select_related('usuario', 'cesfam').order_by('-fecha_descarga')
     return render(request, 'administracion/historial_descargas.html', {'descargas': descargas})
+
+def es_administrador(user):
+    return hasattr(user, 'perfilusuario') and user.perfilusuario.tipo_usuario == 'administrador'
+
+@user_passes_test(es_administrador)
+def exportar_historial_excel(request):
+    search_query = request.GET.get('search', '')
+
+    # Consulta optimizada con select_related
+    agendamientos = Agenda.objects.select_related(
+        'id_manychat', 
+        'id_cesfam', 
+        'id_procedimiento'
+    ).filter(
+        Q(id_manychat__rut_usuario__icontains=search_query) |
+        Q(id_manychat__email__icontains=search_query) |
+        Q(id_manychat__id_manychat__icontains=search_query)
+    ).order_by('-fecha_atencion')
+
+    # Creación del libro de Excel
+    wb = Workbook()  
+    ws = wb.active
+    ws.title = "Historial de Agendamientos"
+    
+    # Encabezados
+    columnas = [
+        'RUT', 
+        'CESFAM', 
+        'Procedimiento', 
+        'Requisitos',
+        'Fecha', 
+        'Hora', 
+        'Email'
+    ]
+    ws.append(columnas)
+
+    # Datos
+    for agendamiento in agendamientos:
+        ws.append([
+            f"{agendamiento.id_manychat.rut_usuario}-{agendamiento.id_manychat.dv_rut}",
+            agendamiento.id_cesfam.nombre_cesfam,
+            agendamiento.id_procedimiento.nombre_procedimiento,
+            agendamiento.requisito_examen,
+            agendamiento.fecha_atencion.strftime('%d-%m-%Y'),
+            agendamiento.hora_atencion.strftime('%H:%M'),
+            agendamiento.id_manychat.email or 'No registrado'
+        ])
+
+    # Preparar la respuesta
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=historial_agendamientos.xlsx'
+    return response
+
+@user_passes_test(es_administrador)
+def historial_agendamientos(request):
+    search_query = request.GET.get('search', '')
+
+    if search_query:
+        agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento').filter(
+            Q(id_manychat__rut_usuario__icontains=search_query) |
+            Q(id_manychat__email__icontains=search_query) |
+            Q(id_manychat__id_manychat__icontains=search_query)
+        ).order_by('-fecha_atencion')
+    else:
+        agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento').all().order_by('-fecha_atencion')
+
+    context = {
+        'agendamientos': agendamientos,
+        'search_query': search_query,
+    }
+    return render(request, 'administracion/historial_agendamientos.html', context)
