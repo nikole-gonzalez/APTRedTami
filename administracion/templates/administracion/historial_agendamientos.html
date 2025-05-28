@@ -3,14 +3,47 @@
 {% block title %}Historial de agendamiento de las usuarias{% endblock %}
 
 {% block content %}
-
-<h2>Agendamientos de las usuarias</h2>
+<h2>Historial de agendamientos de las usuarias</h2>
 <section>
     <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
 </section>
+<form method="get" action="">
+    <input type="text" name="search" placeholder="Buscar por RUT, email o ID Manychat" value="{{ search_query }}">
+    <button type="submit">Buscar</button>
+</form>
 
+{% if agendamientos %}
+<table border="1">
+    <thead>
+        <tr>
+            <th>RUT</th>
+            <th>CESFAM</th>
+            <th>Procedimiento</th>
+            <th>Requisitos</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ag in agendamientos %}
+        <tr>
+            <td>{{ ag.id_manychat.rut_usuario }}-{{ ag.id_manychat.dv_rut }}</td>
+            <td>{{ ag.id_cesfam.nombre_cesfam }}</td>
+            <td>{{ ag.id_procedimiento.nombre_procedimiento }}</td>
+            <td>{{ ag.requisito_examen }}</td>
+            <td>{{ ag.fecha_atencion|date:"d-m-Y" }}</td>
+            <td>{{ ag.hora_atencion|time:"H:i" }}</td>
+            <td>{{ ag.id_manychat.email|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No se encontraron agendamientos.</p>
+{% endif %}
+<a href="{% url 'exportar_historial_excel' %}?search={{ search_query }}" class="button">Exportar a Excel</a>
 <section>
     <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
 </section>
-
 {% endblock %}
