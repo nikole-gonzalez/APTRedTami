@@ -4,6 +4,7 @@ from administracion.models import *
 from usuario.models import *
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
+from administracion.utils import paginacion_queryset1
 
 def home_usuario(request):
     return render(request, 'usuario/index.html')
@@ -51,22 +52,6 @@ def panel_usuario(request):
     return redirect('login')
 
 @login_required
-def agendamiento(request):
-    try:
-        perfil = request.user.perfilusuario
-        usuario_sist = perfil.usuario_sist
-        agendamientos = Agenda.objects.filter(id_manychat=usuario_sist).order_by('-fecha_atencion') if usuario_sist else []
-    except ObjectDoesNotExist:
-        return render(request, 'usuario/usuario_sin_perfil.html', {
-            'mensaje': 'Tu cuenta no tiene un perfil asignado. Contacta con el administrador.'
-        }, status=403)
-
-    return render(request, 'usuario/agendamiento.html', {
-        'perfil': perfil,
-        'agendamientos': agendamientos
-    })
-
-@login_required
 def eliminar_datos_usuario(request):
     if request.method == 'POST':
         user = request.user
@@ -89,3 +74,47 @@ def eliminar_datos_usuario(request):
         return redirect('pag_informativa')
 
     return render(request, 'usuario/confirmar_eliminacion.html')
+
+@login_required
+def agendamiento(request):
+    try:
+        # Obtener el perfil del usuario
+        perfil = request.user.perfilusuario
+        usuario_sist = perfil.usuario_sist
+        
+        if not usuario_sist:
+            return render(request, 'usuario/agendamiento.html', {
+                'sin_atenciones': True,
+                'mensaje': 'No tienes un usuario de sistema asignado'
+            })
+        
+        # Obtener el queryset de agendamientos
+        agendamientos_list = Agenda.objects.filter(
+            id_manychat=usuario_sist
+        ).select_related(
+            'id_cesfam',
+            'id_procedimiento'
+        ).order_by('-fecha_atencion', '-hora_atencion')
+        
+        # Usar la función de paginación reutilizable
+        agendamientos = paginacion_queryset1(request, agendamientos_list, items_por_pagina=10)
+        
+        context = {
+            'perfil': perfil,
+            'agendamientos': agendamientos,
+            'sin_atenciones': not agendamientos_list.exists()
+        }
+        
+        return render(request, 'usuario/agendamiento.html', context)
+        
+    except ObjectDoesNotExist:
+        return render(request, 'usuario/usuario_sin_perfil.html', {
+            'mensaje': 'Tu cuenta no tiene un perfil asignado. Contacta con el administrador.'
+        }, status=403)
+        
+    except Exception as e:
+        print(f"Error en agendamiento: {str(e)}")
+        return render(request, 'usuario/agendamiento.html', {
+            'sin_atenciones': True,
+            'error': 'Ocurrió un error al cargar tu historial de agendamientos'
+        })
