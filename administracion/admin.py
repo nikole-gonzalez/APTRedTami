@@ -2,9 +2,9 @@ from django.contrib import admin
 from .models import *
 
 class PerfilUsuarioAdmin(admin.ModelAdmin):
-    list_display=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist","tipo_usuario")
-    search_fields=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist","tipo_usuario")
-    list_filter=("id_perfil", "telefono", "cod_acceso", "fecha_creacion", "user", "usuario_sist", "tipo_usuario")
+    list_display=("id_perfil", "telefono", "rut_usuario", "dv_rut", "fecha_creacion", "user", "usuario_sist","tipo_usuario")
+    search_fields=("id_perfil", "telefono", "rut_usuario", "dv_rut", "fecha_creacion", "user", "usuario_sist","tipo_usuario")
+    list_filter=("id_perfil", "telefono", "rut_usuario", "dv_rut", "fecha_creacion", "user", "usuario_sist","tipo_usuario")
     
 class UsuarioAdmin(admin.ModelAdmin):
     list_display=("id_manychat","rut_usuario","dv_rut","fecha_nacimiento","num_whatsapp","fecha_ingreso","cod_comuna", "email", "cesfam_usuario")

@@ -24,6 +24,14 @@
               <td>{{ form_user.last_name }}</td>
             </tr>
             <tr>
+              <th><label>RUT</label></th>
+              <td>{{ form_perfil.rut_usuario }}</td>
+            </tr>
+            <tr>
+              <th><label>Dígito Verificador</label></th>
+              <td>{{ form_perfil.dv_rut }}</td>
+            </tr>
+            <tr>
               <th><label>Correo electrónico</label></th>
               <td>{{ form_user.email }}</td>
             </tr>
@@ -34,10 +42,6 @@
             <tr>
               <th><label>Teléfono</label></th>
               <td>{{ form_perfil.telefono }}</td>
-            </tr>
-            <tr>
-              <th><label>Código de acceso</label></th>
-              <td>{{ form_perfil.cod_acceso }}</td>
             </tr>
             <tr>
               <th><label>Usuario del sistema (ManyChat)</label></th>
