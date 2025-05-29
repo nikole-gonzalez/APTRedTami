@@ -18,19 +18,26 @@ def custom_login(request):
         if user is not None:
             login(request, user)
             messages.success(request, "¡Bienvenido de nuevo!")
-            if user.is_staff or user.is_superuser:
-                return redirect('admin_index')  
-            elif user.groups.filter(name='usuario_cesfam').exists():
-                return redirect('cesfam_index')  
-            else:
-                return redirect('panel_usuario')  
+
+            # Caso 1: superuser o is_staff
+            if user.is_superuser or user.is_staff:
+                return redirect('admin_index')
+
+            # Caso 2: tiene perfil y es administrador
+            if hasattr(user, 'perfilusuario'):
+                perfil = user.perfilusuario
+                if perfil.tipo_usuario == 'administrador':
+                    return redirect('admin_index')
+                elif perfil.tipo_usuario == 'paciente':
+                    return redirect('usuario_index')
+
+            # Caso 3: no tiene perfil 
+            return redirect('pag_informativa')
+        
         else:
             messages.error(request, "Credenciales inválidas")
-            return render(request, 'registration/login.html')
-
     
     return render(request, 'registration/login.html')
-
 
 @login_required
 def custom_logout(request):
