@@ -5,85 +5,94 @@
 
 {% block content %}
 
-
+<style>
+    .action-buttons {
+        text-align: center;
+        margin: 30px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+</style>
 <!-- Wrapper -->
 <div id="wrapper">
 
     <!-- Header -->
     <header id="header">
         <div class="inner">
-
             <!-- Logo -->
-                <a href="{% url 'admin_index'%}" class="logo">
-                    <span class="symbol"><img src="{% static 'images/logo.png' %}" alt="" /></span><span class="title">Red Tami</span> 
-                </a>
+            <a href="{% url 'admin_index'%}" class="logo">
+                <span class="symbol"><img src="{% static 'images/logo.png' %}" alt="" /></span>
+                <span class="title">Red Tami</span> 
+            </a>
 
             <!-- Nav -->
-                <nav>
-                    <ul>
-                        <li><a href="#menu">Menú</a></li>
-                    </ul>
-                </nav>
-
+            <nav>
+                <ul>
+                    <li><a href="#menu">Menú</a></li>
+                </ul>
+            </nav>
         </div>
-</header>
+    </header>
 
     <!-- Menu -->
-        <nav id="menu">
-            <h2>Menú</h2>
-            <ul>
-                <li><a href="{% url 'usuario_index' %}">Home</a></li>
-                <li><a href="{% url 'panel_usuario' %}">Perfil de usuario</a></li>
-                <li><a href="{% url 'agendamiento' %}">Historial de agendamiento</a></li>
-                <li><a href="{% url 'logout' %}">Cerra sesión</a></li>
-            </ul>
-        </nav>
+    <nav id="menu">
+        <h2>Menú</h2>
+        <ul>
+            <li><a href="{% url 'usuario_index' %}">Home</a></li>
+            <li><a href="{% url 'panel_usuario' %}">Perfil de usuario</a></li>
+            <li><a href="{% url 'agendamiento' %}">Historial de agendamiento</a></li>
+            <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+        </ul>
+    </nav>
 
     <!-- Main -->
-        <div id="main">
-            <div class="inner">
-                <header>
-                    <h1>Red Tami Cáncer Cervicouterino</h1> <br />
-                    <h2>Bienvenida {{ perfil.user.first_name }}</h2>
-                </header>
-                <section class="tiles">
-                    <article class="style1">
-                        <span class="image">
-                            <img src="{% static 'images/pic01.jpg' %}" alt="" />
-                        </span>
-                        <a href="{% url 'panel_usuario' %}">
-                            <h2>Datos pefil</h2>
-                            <div class="content">
-                                <p>Visualización de sus datos personales</p>
-                            </div>
-                        </a>
-                    </article>
-                    <article class="style2">
-                        <span class="image">
-                            <img src="{% static 'images/pic02.jpg' %}" alt="" />
-                        </span>
-                        <a href="{% url 'agendamiento' %}">
-                            <h2>Agendamientos</h2>
-                            <div class="content">
-                                <p>Visualización de agendamientos a examenes PAP</p>
-                            </div>
-                        </a>
-                    </article>
-                </section>
-            </div>
-        </div> 
-        <section>
-            <a class="button" href="{% url 'logout' %}">Cerrar sesión</a>   
-        </section>
-        <br><br>
-    <button id="btnEliminar" class="boton-eliminar">
-        <i class="fas fa-trash-alt"></i> Eliminar todos mis datos
-    </button>
-    <form id="formEliminar" action="{% url 'eliminar_datos_usuario' %}" method="POST" style="display: none;">
-        {% csrf_token %}
-    </form>
+    <div id="main">
+        <div class="inner">
+            <header>
+                <h1>Red Tami Cáncer Cervicouterino</h1>
+                <br />
+                <h2>Bienvenida {{ perfil.user.first_name }}</h2>
+            </header>
+            <section class="tiles">
+                <article class="style1">
+                    <span class="image">
+                        <img src="{% static 'images/pic01.jpg' %}" alt="" />
+                    </span>
+                    <a href="{% url 'panel_usuario' %}">
+                        <h2>Datos perfil</h2>
+                        <div class="content">
+                            <p>Visualización de sus datos personales</p>
+                        </div>
+                    </a>
+                </article>
+                <article class="style2">
+                    <span class="image">
+                        <img src="{% static 'images/pic02.jpg' %}" alt="" />
+                    </span>
+                    <a href="{% url 'agendamiento' %}">
+                        <h2>Agendamientos</h2>
+                        <div class="content">
+                            <p>Visualización de agendamientos a exámenes PAP</p>
+                        </div>
+                    </a>
+                </article>
+            </section>
+        </div>
+    </div> 
 
-</div>	
+    <!-- Action Buttons Section -->
+    <div class="action-buttons">
+        <a class="button" href="{% url 'logout' %}">Cerrar sesión</a>
+        <button id="btnEliminar" class="boton-eliminar">
+            <i class="fas fa-trash-alt"></i> Eliminar todos mis datos
+        </button>
+        <form id="formEliminar" action="{% url 'eliminar_datos_usuario' %}" method="POST" style="display: none;">
+            {% csrf_token %}
+        </form>
+    </div>
+</div>
 
 {% endblock %}
 
@@ -115,23 +124,3 @@
     });
 </script>
 {% endblock %}
-
-{% block styles %}
-<style>
-    .boton-eliminar {
-        background-color: #e74c3c;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        font-size: 16px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-top: 20px;
-        margin-bottom: 10px;
-    }
-    .boton-eliminar:hover {
-        background-color: #c0392b;
-    }
-</style>
-{% endblock %}
-

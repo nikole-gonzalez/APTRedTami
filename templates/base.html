@@ -17,23 +17,31 @@
     <noscript>
         <link rel="stylesheet" href="{% static 'assets/css/noscript.css' %}" />
     </noscript>
+
+    <style>
+        .contenido-pagina {
+            margin: 2rem;
+        }
+    </style>
 </head>
 
 <body class="is-preload">
-    {% if messages %}
-        {% for message in messages %}
-            <script>
-                Swal.fire({
-                    icon: "{{ message.tags }}",
-                    title: "{{ message }}",
-                    showConfirmButton: false,
-                    timer: 1500,
-                });
-            </script>
-        {% endfor %}
-    {% endif %}
+    <div class="contenido-pagina">
+        {% if messages %}
+            {% for message in messages %}
+                <script>
+                    Swal.fire({
+                        icon: "{{ message.tags }}",
+                        title: "{{ message }}",
+                        showConfirmButton: false,
+                        timer: 1500,
+                    });
+                </script>
+            {% endfor %}
+        {% endif %}
 
-    {% block content %}{% endblock %}
+        {% block content %}{% endblock %}
+    </div>
 
     <!-- Footer -->
     <footer id="footer">

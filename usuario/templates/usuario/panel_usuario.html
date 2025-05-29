@@ -1,19 +1,32 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <h2>Bienvenida {{ perfil.user.first_name }}</h2>
+<div id="main">
+    <div class="inner">
+        <header class="major">
+            <h2>Bienvenida {{ perfil.user.first_name }}</h2>
+        </header>
 
-    <h3>Información personal:</h3>
-    <ul>
-        <li>RUT: {{ perfil.usuario_sist.rut_usuario|default:"No especificado"  }}-{{ perfil.usuario_sist.dv_rut|default:"No especificado"  }}</li>
-        <li>Email: {{ perfil.user.email|default:"No especificado"  }}</li>
-        <li>Teléfono: {{ perfil.telefono|default:"No especificado"  }}</li>
-    </ul>
+        <section>
+            <div class="box">
+                <h3>Información personal</h3>
+                <div class="row gtr-uniform">
+                    <div class="col-12">
+                        <ul class="alt">
+                            <li><strong>RUT:</strong> {{ perfil.usuario_sist.rut_usuario|default:"No especificado" }}-{{ perfil.usuario_sist.dv_rut|default:"No especificado" }}</li>
+                            <li><strong>Email:</strong> {{ perfil.user.email|default:"No especificado" }}</li>
+                            <li><strong>Teléfono:</strong> {{ perfil.telefono|default:"No especificado" }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="actions">
+            <ul class="actions stacked">
+                <li><a href="{% url 'usuario_index' %}" class="button primary fit">Volver</a></li>
+            </ul>
+        </section>
+    </div>
 </div>
-<section>
-    <a class="button" href="{% url 'usuario_index' %}">Volver</a>   
-</section>
 {% endblock %}
-
-

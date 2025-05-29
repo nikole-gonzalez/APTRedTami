@@ -4,7 +4,12 @@
 {% block title %}Red Tami Cervicouterino{% endblock %}
 
 {% block content %}
-
+<style>
+    .logout-container {
+        text-align: center;
+        margin: 30px 0;
+    }
+</style>
 
 <!-- Wrapper -->
 <div id="wrapper">
@@ -12,7 +17,6 @@
     <!-- Header -->
     <header id="header">
         <div class="inner">
-
             <!-- Logo -->
                 <a href="{% url 'admin_index'%}" class="logo">
                     <span class="symbol"><img src="{% static 'images/logo.png' %}" alt="" /></span><span class="title">Red Tami</span> 
@@ -24,31 +28,31 @@
                         <li><a href="#menu">Menú</a></li>
                     </ul>
                 </nav>
-
         </div>
-</header>
+    </header>
 
     <!-- Menu -->
-        <nav id="menu">
-            <h2>Menú</h2>
-            <ul>
-                <li><a href="{% url 'admin_index' %}">Home</a></li>
-                <li><a href="{% url 'respuestas' %}">Respuestas de los usuarios</a></li>
-                <li><a href="{% url 'reportes' %}">Reportes</a></li>
-                <li><a href="{% url 'opc_vis_agenda' %}">Agenda</a></li>
-                <li><a href="{% url 'lista_usuarios' %}">Gestión de usuarios</a></li>
-            </ul>
-        </nav>
+    <nav id="menu">
+        <h2>Menú</h2>
+        <ul>
+            <li><a href="{% url 'admin_index' %}">Home</a></li>
+            <li><a href="{% url 'respuestas' %}">Respuestas de los usuarios</a></li>
+            <li><a href="{% url 'reportes' %}">Reportes</a></li>
+            <li><a href="{% url 'opc_vis_agenda' %}">Agenda</a></li>
+            <li><a href="{% url 'lista_usuarios' %}">Gestión de usuarios</a></li>
+            <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+        </ul>
+    </nav>
 
     <!-- Main -->
-        <div id="main">
-            <div class="inner">
-                <header>
-                    <h1>Administración de Red Tami Cáncer Cervicouterino</h1> <br />
-                    <p>Panel de administración del equipo de Red Tami</p>
-                </header>
-                <section class="tiles">
-                    <article class="style1">
+    <div id="main">
+        <div class="inner">
+            <header>
+                <h1>Administración de Red Tami Cáncer Cervicouterino</h1> <br />
+                <p>Panel de administración del equipo de Red Tami</p>
+            </header>
+            <section class="tiles">
+                <article class="style1">
                         <span class="image">
                             <img src="{% static 'images/pic01.jpg' %}" alt="" />
                         </span>
@@ -94,8 +98,12 @@
                     </article>
                 </section>
             </div>
-        </div> 
+            </section>
+        </div>
+    </div> 
+    <div class="logout-container">
+        <a class="button" href="{% url 'logout' %}">Cerrar sesión</a>   
+    </div>
 </div>	
 
 {% endblock %}
-
