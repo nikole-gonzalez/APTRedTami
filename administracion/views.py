@@ -2129,7 +2129,8 @@ def historial_descargas_json(request):
 def es_administrador(user):
     return hasattr(user, 'perfilusuario') and user.perfilusuario.tipo_usuario == 'administrador'
 
-@user_passes_test(es_administrador)
+@login_required(login_url='/login/')
+@user_passes_test(es_administrador, login_url='/login/')
 def exportar_historial_excel(request):
     search_query = request.GET.get('search', '')
 
@@ -2185,7 +2186,8 @@ def exportar_historial_excel(request):
     response['Content-Disposition'] = 'attachment; filename=historial_agendamientos.xlsx'
     return response
 
-@user_passes_test(es_administrador)
+@login_required(login_url='/login/')
+@user_passes_test(es_administrador, login_url='/login/')
 def historial_agendamientos(request):
     search_query = request.GET.get('search', '')
 
