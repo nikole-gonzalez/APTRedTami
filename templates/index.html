@@ -62,7 +62,7 @@
             <section class="hero">
                 <div class="hero-content">
                     <p>Información confiable para la prevención, detección temprana y tratamiento del cáncer cervicouterino en Chile</p>
-                    <a href="#registro" class="button primary">Regístrate si ya respondiste el cuestionario</a>
+                    <a href="{% url 'autorregistro'%}" class="button primary">Regístrate si ya respondiste el cuestionario</a>
                 </div>
             </section>
 
@@ -284,7 +284,7 @@
                 <div class="registration-section">
                     <h2>¿Ya respondiste nuestro cuestionario por WhatsApp?</h2>
                     <p>Regístrate ahora para acceder a tu historial de agendamientos y gestionar tu perfil.</p>
-                    <a href="{% url 'registro_usuario' %}" class="button primary large">Crear mi cuenta</a>
+                    <a href="{% url 'autorregistro' %}" class="button primary large">Crear mi cuenta</a>
                     
                     <div class="registration-info">
                         <h3>¿Qué necesitas para registrarte?</h3>
