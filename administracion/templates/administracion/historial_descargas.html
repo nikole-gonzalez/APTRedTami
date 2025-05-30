@@ -4,33 +4,53 @@
 
 {% block content %}
 <h2>Historial de Descargas JSON</h2>
+<a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
+{% if page_obj %}
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>CESFAM</th>
+                <th>Archivo</th>
+                <th>Horas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for descarga in page_obj %}
+            <tr>
+                <td>{{ descarga.fecha_descarga|date:"d/m/Y H:i" }}</td>
+                <td>{{ descarga.usuario.get_full_name|default:descarga.usuario.username }}</td>
+                <td>{{ descarga.cesfam.nombre_cesfam }}</td>
+                <td>{{ descarga.nombre_archivo }}</td>
+                <td>{{ descarga.cantidad_horas }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Usuario</th>
-            <th>CESFAM</th>
-            <th>Archivo</th>
-            <th>Horas</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for descarga in descargas %}
-        <tr>
-            <td>{{ descarga.fecha_descarga|date:"d/m/Y H:i" }}</td>
-            <td>{{ descarga.usuario.get_full_name|default:descarga.usuario.username }}</td>
-            <td>{{ descarga.cesfam.nombre_cesfam }}</td>
-            <td>{{ descarga.nombre_archivo }}</td>
-            <td>{{ descarga.cantidad_horas }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5">No hay descargas registradas</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="pagination" style="text-align: center; margin: 20px 0;">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="button small">&laquo; Primera</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+        {% endif %}
+
+        <span class="current">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+{% else %}
+<p>No hay descargas registradas</p>
+{% endif %}
 
 <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
 {% endblock %}
