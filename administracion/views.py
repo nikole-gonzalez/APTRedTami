@@ -2136,7 +2136,6 @@ def es_administrador(user):
 def exportar_historial_excel(request):
     search_query = request.GET.get('search', '')
 
-    # Consulta optimizada con select_related
     agendamientos = Agenda.objects.select_related(
         'id_manychat', 
         'id_cesfam', 
@@ -2147,7 +2146,6 @@ def exportar_historial_excel(request):
         Q(id_manychat__id_manychat__icontains=search_query)
     ).order_by('-fecha_atencion')
 
-    # Creación del libro de Excel
     wb = Workbook()  
     ws = wb.active
     ws.title = "Historial de Agendamientos"
@@ -2187,8 +2185,6 @@ def exportar_historial_excel(request):
     )
     response['Content-Disposition'] = 'attachment; filename=historial_agendamientos.xlsx'
     return response
-
-from django.db.models import Q
 
 @login_required(login_url='/login/') 
 @user_passes_test(es_administrador, login_url='/login/')
