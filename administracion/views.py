@@ -2123,8 +2123,10 @@ def lista_descargas(request):
 
 @login_required
 def historial_descargas_json(request):
-    descargas = LogDescargaJSON.objects.select_related('usuario', 'cesfam').order_by('-fecha_descarga')
-    return render(request, 'administracion/historial_descargas.html', {'descargas': descargas})
+    descargas_queryset = LogDescargaJSON.objects.select_related('usuario', 'cesfam').order_by('-fecha_descarga')
+    page_obj = paginacion_queryset1(request, descargas_queryset, items_por_pagina=20)  
+
+    return render(request, 'administracion/historial_descargas.html', {'page_obj': page_obj})
 
 def es_administrador(user):
     return hasattr(user, 'perfilusuario') and user.perfilusuario.tipo_usuario == 'administrador'
@@ -2186,22 +2188,27 @@ def exportar_historial_excel(request):
     response['Content-Disposition'] = 'attachment; filename=historial_agendamientos.xlsx'
     return response
 
-@login_required(login_url='/login/')
+from django.db.models import Q
+
+@login_required(login_url='/login/') 
 @user_passes_test(es_administrador, login_url='/login/')
 def historial_agendamientos(request):
     search_query = request.GET.get('search', '')
 
+    agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento')
+
     if search_query:
-        agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento').filter(
+        agendamientos = agendamientos.filter(
             Q(id_manychat__rut_usuario__icontains=search_query) |
             Q(id_manychat__email__icontains=search_query) |
-            Q(id_manychat__id_manychat__icontains=search_query)
-        ).order_by('-fecha_atencion')
-    else:
-        agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento').all().order_by('-fecha_atencion')
+            Q(id_cesfam__nombre_cesfam__icontains=search_query)
+        )
+
+    agendamientos = agendamientos.order_by('-fecha_atencion')
+    page_obj = paginacion_queryset1(request, agendamientos, items_por_pagina=10)
 
     context = {
-        'agendamientos': agendamientos,
+        'page_obj': page_obj,
         'search_query': search_query,
     }
     return render(request, 'administracion/historial_agendamientos.html', context)
