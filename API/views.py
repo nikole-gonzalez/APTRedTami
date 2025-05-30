@@ -29,6 +29,7 @@ import logging
 import hashlib
 from .models import *
 from .serializer import *
+import pytz
 
 def home_api(request):
     return render(request, 'api/index.html')
@@ -523,12 +524,48 @@ def verificar_reserva(request):
     
 logger = logging.getLogger(__name__)
 
+
+@api_view(['POST'])
+def verificar_habilitado_para_reservar(request):
+    try:
+        data = request.data
+        manychat_id = data.get('manychat_id')
+
+        if not manychat_id:
+            return Response({'success': "false", 'error': 'ID de usuario requerido'},
+                          status=400)
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM usuario_horas_agenda 
+                WHERE id_manychat = %s
+                AND (fecha > CURRENT_DATE OR 
+                    (fecha = CURRENT_DATE AND hora > CURRENT_TIME))
+                AND estado NOT IN ('cancelada', 'completada')
+            """, [manychat_id])
+            
+            tiene_citas_activas = cursor.fetchone()[0] > 0
+            
+            return Response({
+                'success': "true",
+                'puede_reservar': not tiene_citas_activas,
+                'mensaje': 'Usuario habilitado para reservar' if not tiene_citas_activas 
+                          else 'Ya tienes una cita activa'
+            })
+
+    except Exception as e:
+        return Response({
+            'success': "false", 
+            'error': str(e)
+        }, status=500)
+
+
 @csrf_exempt
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
 def enviar_recordatorios_pendientes(request):
-    # 1. Verificación de autenticación
     auth_header = request.headers.get('Authorization')
     
     if not auth_header:
@@ -566,31 +603,60 @@ def enviar_recordatorios_pendientes(request):
         )
     
     try:
-        ahora = timezone.now()
-        margen = timedelta(minutes=15)
-
-        logger.info(f"Iniciando búsqueda de recordatorios. Rango: {ahora - margen} a {ahora + margen}")
+        tz_chile = pytz.timezone('America/Santiago')
+        ahora_utc = timezone.now()
+        ahora_chile = ahora_utc.astimezone(tz_chile)
         
-        recordatorios = Recordatorio.objects.filter(
-            fecha_programada__range=[ahora - margen, ahora + margen],
-            enviado=False
-        ).select_related('agenda', 'agenda__id_cesfam')
+        hora_actual_chile = ahora_chile.hour
+        if hora_actual_chile not in [7, 15]:
+            logger.info(f"No es hora de enviar recordatorios. Hora Chile: {ahora_chile.strftime('%H:%M')}")
+            return Response({
+                'status': 'skipped',
+                'hora_actual_chile': ahora_chile.strftime('%H:%M'),
+                'mensaje': 'Solo se envían a las 7 AM y 3 PM hora Chile'
+            })
+        
+        inicio_rango_chile = ahora_chile.replace(minute=0, second=0, microsecond=0)
+        fin_rango_chile = inicio_rango_chile + timedelta(hours=9)
+        
+        inicio_rango_utc = inicio_rango_chile.astimezone(pytz.UTC)
+        fin_rango_utc = fin_rango_chile.astimezone(pytz.UTC)
+        
+        logger.info(f"Buscando citas entre {inicio_rango_chile} y {fin_rango_chile} (hora Chile)")
+        
+        citas_pendientes = Agenda.objects.filter(
+            fecha_atencion__gte=inicio_rango_utc,
+            fecha_atencion__lte=fin_rango_utc,
+            recordatorio__isnull=True
+        ).select_related('id_cesfam', 'id_paciente')
         
         enviados = 0
-        for recordatorio in recordatorios:
+        for cita in citas_pendientes:
             try:
+                recordatorio = Recordatorio.objects.create(
+                    agenda=cita,
+                    email=cita.id_paciente.email,
+                    fecha_programada=ahora_utc,
+                    enviado=False
+                )
+                
                 enviar_email_recordatorio(recordatorio)
                 recordatorio.enviado = True
                 recordatorio.save()
                 enviados += 1
             except Exception as e:
-                logger.error(f"Error enviando email a {recordatorio.email}: {str(e)}")
+                logger.error(f"Error procesando cita {cita.id}: {str(e)}")
                 continue
         
         return Response({
             'status': 'success',
             'enviados': enviados,
-            'total': len(recordatorios)
+            'total': len(citas_pendientes),
+            'hora_chile': ahora_chile.strftime('%Y-%m-%d %H:%M'),
+            'rango_busqueda': {
+                'inicio': inicio_rango_chile.strftime('%Y-%m-%d %H:%M'),
+                'fin': fin_rango_chile.strftime('%Y-%m-%d %H:%M')
+            }
         })
     
     except Exception as e:
@@ -599,7 +665,8 @@ def enviar_recordatorios_pendientes(request):
             {'error': 'Error interno del servidor'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
+    
+    
 def enviar_email_recordatorio(recordatorio):
     agenda = recordatorio.agenda
     context = {

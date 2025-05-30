@@ -1,9 +1,15 @@
-name: Enviar Recordatorios
+name: Enviar Recordatorios Chile
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Ejecutar cada 15 minutos
-  workflow_dispatch:  # Permite ejecución manual
+    # Horario de invierno (UTC-4)
+    - cron: '0 11 * * *'  # 7 AM Chile (UTC-4)
+    - cron: '0 19 * * *'  # 3 PM Chile (UTC-4)
+    
+    # Horario de verano (UTC-3) - actualiza manualmente cuando cambie el horario
+    # - cron: '0 10 * * *'  # 7 AM Chile (UTC-3)
+    # - cron: '0 18 * * *'  # 3 PM Chile (UTC-3)
+  workflow_dispatch:
 
 jobs:
   enviar:
@@ -16,13 +22,13 @@ jobs:
         run: |
           echo "URL: ${PYTHONANYWHERE_URL}"
           echo "Iniciando envío de recordatorios..."
+          echo "Fecha UTC: $(date)"
           
       - name: Enviar solicitud a la API
         env:
           PYTHONANYWHERE_URL: "https://${{ secrets.PYTHONANYWHERE_USER }}.pythonanywhere.com"
           API_TOKEN: ${{ secrets.API_TOKEN }}
         run: |
-          # Usar comillas alrededor de la URL y escapado correcto
           curl -X POST \
             -H "Authorization: Token ${API_TOKEN}" \
             -H "Content-Type: application/json" \
