@@ -633,18 +633,20 @@ def enviar_recordatorios_pendientes(request):
         
         logger.info(f"Buscando citas entre {inicio_rango_chile} y {fin_rango_chile} (hora Chile)")
         
+        # CORRECCIÓN: Cambiado select_related para usar los campos correctos del modelo
         citas_pendientes = Agenda.objects.filter(
             fecha_atencion__gte=inicio_rango_utc,
             fecha_atencion__lte=fin_rango_utc,
             recordatorio__isnull=True
-        ).select_related('id_cesfam', 'id_paciente')
+        ).select_related('id_cesfam', 'id_manychat', 'id_procedimiento')
         
         enviados = 0
         for cita in citas_pendientes:
             try:
+                # CORRECCIÓN: Acceder al email a través de id_manychat en lugar de id_paciente
                 recordatorio = Recordatorio.objects.create(
                     agenda=cita,
-                    email=cita.id_paciente.email,
+                    email=cita.id_manychat.email,  # Cambiado de id_paciente a id_manychat
                     fecha_programada=ahora_utc,
                     enviado=False
                 )
@@ -654,7 +656,7 @@ def enviar_recordatorios_pendientes(request):
                 recordatorio.save()
                 enviados += 1
             except Exception as e:
-                logger.error(f"Error procesando cita {cita.id}: {str(e)}")
+                logger.error(f"Error procesando cita {cita.id_agenda}: {str(e)}", exc_info=True)
                 continue
         
         return Response({
@@ -669,12 +671,11 @@ def enviar_recordatorios_pendientes(request):
         })
     
     except Exception as e:
-        logger.error(f"Error procesando recordatorios: {str(e)}")
+        logger.error(f"Error procesando recordatorios: {str(e)}", exc_info=True)
         return Response(
-            {'error': 'Error interno del servidor'}, 
+            {'error': 'Error interno del servidor', 'detalle': str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
     
 def enviar_email_recordatorio(recordatorio):
     agenda = recordatorio.agenda

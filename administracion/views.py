@@ -645,7 +645,7 @@ def crear_pdf_datos_frm1(request):
     ancho_respuesta = (ancho_total - ancho_rut - ancho_fecha) * 0.4
     
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -846,7 +846,7 @@ def crear_pdf_datos_frm2(request):
     ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
     
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -996,7 +996,7 @@ def crear_pdf_datos_frnm1(request):
     tabla = Table(data, repeatRows=1)
     
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -1199,7 +1199,7 @@ def crear_pdf_datos_frnm2(request):
     ancho_preguntas = max(2.5*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))  # Mínimo 2.5cm
     
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Encabezado rosa
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')), 
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -1341,7 +1341,7 @@ def crear_pdf_datos_ds1(request):
     
     # Estilo de la tabla (similar al estilo anterior)
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Color rosa
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -1522,7 +1522,7 @@ def crear_pdf_datos_ds2(request):
     
     # Estilo de la tabla (similar al anterior pero adaptado)
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Color rosa
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),  
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -1784,7 +1784,7 @@ def crear_pdf_listado_priorizado(request):
     
     # Estilo de la tabla
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -1905,7 +1905,7 @@ def crear_pdf_preg_especialista(request):
     
     # Estilo de la tabla (mismo estilo que el anterior)
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F2849E')),  # Mismo color rosa
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')), 
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
