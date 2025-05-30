@@ -532,10 +532,14 @@ def verificar_habilitado_para_reservar(request):
         manychat_id = data.get('manychat_id')
 
         if not manychat_id:
-            return Response({'success': "false", 'error': 'ID de usuario requerido'},
-                          status=400)
+            return Response({
+                'success': "false", 
+                'error': 'ID de usuario requerido',
+                'codigo_error': 'ID_USUARIO_REQUERIDO'
+            }, status=400)
 
         with connection.cursor() as cursor:
+            # Verificar citas activas
             cursor.execute("""
                 SELECT COUNT(*) 
                 FROM usuario_horas_agenda 
@@ -549,15 +553,20 @@ def verificar_habilitado_para_reservar(request):
             
             return Response({
                 'success': "true",
-                'puede_reservar': not tiene_citas_activas,
-                'mensaje': 'Usuario habilitado para reservar' if not tiene_citas_activas 
-                          else 'Ya tienes una cita activa'
+                'puede_reservar': "false" if tiene_citas_activas else "true",
+                'mensaje': 'Ya tienes una cita activa' if tiene_citas_activas 
+                          else 'Usuario habilitado para reservar',
+                'codigo_estado': 'CITA_ACTIVA' if tiene_citas_activas 
+                               else 'HABILITADO_PARA_RESERVA'
             })
 
     except Exception as e:
+        logger.error(f"Error en verificar_habilitado_para_reservar: {str(e)}")
         return Response({
             'success': "false", 
-            'error': str(e)
+            'error': 'Error interno del servidor',
+            'detalle_error': str(e),
+            'codigo_error': 'ERROR_INTERNO'
         }, status=500)
 
 
