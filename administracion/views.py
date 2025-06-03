@@ -61,7 +61,7 @@ locale.setlocale(locale.LC_TIME, 'es_ES')
 def home(request):
     return render(request, 'administracion/index.html')
 
-@login_required
+@login_required(login_url='/login/')
 def admin_index(request):
     return render(request, 'administracion/index.html')
 
@@ -1954,13 +1954,14 @@ def crear_pdf_preg_especialista(request):
 # ----------------------------------------------------------- #
 # ---------------------- CRUD USUARIO ----------------------- #
 # ----------------------------------------------------------- #
-
+@login_required
 def lista_usuarios(request):
     perfiles = PerfilUsuario.objects.select_related('user','usuario_sist')
     return render (request, 'administracion/lista_usuarios.html', {'perfiles': perfiles})
 
 from django.contrib import messages
 
+@login_required
 def crear_usuario(request):
     if request.method == 'POST':
         form_user = UserForm(request.POST)
@@ -2006,29 +2007,43 @@ def crear_usuario(request):
         'form_perfil': form_perfil
     })
 
+@login_required
 def editar_usuario(request, perfil_id):
     perfil = get_object_or_404(PerfilUsuario, id_perfil=perfil_id)
     user = perfil.user
+
     if request.method == 'POST':
         form_user = UserForm(request.POST, instance=user)
         form_perfil = PerfilUsuarioForm(request.POST, instance=perfil)
+
         if form_user.is_valid() and form_perfil.is_valid():
             user = form_user.save(commit=False)
-            if 'password' in form_user.cleaned_data:
+            if 'password' in form_user.cleaned_data and form_user.cleaned_data['password']:
                 user.set_password(form_user.cleaned_data['password'])
             user.save()
-            form_perfil.save()
+
+            perfil = form_perfil.save()
+
+            if perfil.usuario_sist:
+                perfil.usuario_sist.email = user.email
+                perfil.usuario_sist.num_whatsapp = perfil.telefono
+                perfil.usuario_sist.save()
+
             messages.success(request, 'Usuario actualizado correctamente.')
             return redirect('lista_usuarios')
     else:
         form_user = UserForm(instance=user)
         form_user.fields['password'].initial = ''
         form_perfil = PerfilUsuarioForm(instance=perfil)
+
     return render(request, 'administracion/form_usuario.html', {
         'form_user': form_user,
-        'form_perfil': form_perfil
+        'form_perfil': form_perfil,
+        'usuario_sist': perfil.usuario_sist 
     })
 
+
+@login_required
 def eliminar_usuario(request, perfil_id):
     perfil = get_object_or_404(PerfilUsuario, id_perfil=perfil_id)
     if request.method == 'POST':
