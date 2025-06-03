@@ -30,6 +30,8 @@ import hashlib
 from .models import *
 from .serializer import *
 import pytz
+from django.db.models import F, Value, ExpressionWrapper, DateTimeField
+from django.db.models.functions import Concat, Cast
 
 def home_api(request):
     return render(request, 'api/index.html')
@@ -569,6 +571,7 @@ def verificar_habilitado_para_reservar(request):
             'codigo_error': 'ERROR_INTERNO'
         }, status=500)
 
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @api_view(['POST'])
@@ -579,38 +582,26 @@ def enviar_recordatorios_pendientes(request):
     
     if not auth_header:
         logger.error("Falta header de Authorization")
-        return Response(
-            {'error': 'Se requiere token de autenticación'}, 
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({'error': 'Se requiere token de autenticación'}, status=status.HTTP_401_UNAUTHORIZED)
     
     if not hasattr(settings, 'GITHUB_WEBHOOK_SECRET'):
         logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
-        return Response(
-            {'error': 'Configuración del servidor incompleta'}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
+        return Response({'error': 'Configuración del servidor incompleta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     auth_header = auth_header.strip()
     parts = auth_header.split()
     
     if len(parts) != 2 or parts[0] != 'Token':
         logger.error(f"Formato de token inválido. Header recibido: {auth_header}")
-        return Response(
-            {'error': 'Formato de autorización inválido. Use: Token <token>'}, 
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({'error': 'Formato de autorización inválido. Use: Token <token>'}, status=status.HTTP_401_UNAUTHORIZED)
     
     received_token = parts[1].strip()
     expected_token = settings.GITHUB_WEBHOOK_SECRET.strip()
     
     if not secrets.compare_digest(received_token, expected_token):
         logger.error("Token no coincide")
-        return Response(
-            {'error': 'Token inválido'}, 
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-    
+        return Response({'error': 'Token inválido'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         tz_chile = pytz.timezone('America/Santiago')
         ahora_utc = timezone.now()
@@ -625,36 +616,43 @@ def enviar_recordatorios_pendientes(request):
                 'mensaje': 'Solo se envían a las 7 AM y 3 PM hora Chile'
             })
         
+        # Rango de búsqueda desde ahora hasta 9 horas después
         inicio_rango_chile = ahora_chile.replace(minute=0, second=0, microsecond=0)
         fin_rango_chile = inicio_rango_chile + timedelta(hours=9)
-        
         inicio_rango_utc = inicio_rango_chile.astimezone(pytz.UTC)
         fin_rango_utc = fin_rango_chile.astimezone(pytz.UTC)
-        
+
         logger.info(f"Buscando citas entre {inicio_rango_chile} y {fin_rango_chile} (hora Chile)")
+        logger.info(f"Equivalente UTC: {inicio_rango_utc} - {fin_rango_utc}")
         
-        citas_pendientes = Agenda.objects.filter(
-            fecha_atencion__gte=inicio_rango_utc,
-            fecha_atencion__lte=fin_rango_utc,
+        # Combinar fecha y hora en una sola columna
+        fecha_hora_expr = ExpressionWrapper(
+            F('fecha_atencion') + F('hora_atencion'),
+            output_field=DateTimeField()
+        )
+
+        citas_pendientes = Agenda.objects.annotate(
+            fecha_hora=fecha_hora_expr
+        ).filter(
+            fecha_hora__range=(inicio_rango_utc, fin_rango_utc),
             recordatorio__isnull=True
-        ).select_related('id_cesfam', 'id_paciente')
-        
+        ).select_related('id_cesfam', 'id_manychat', 'id_procedimiento')
+
         enviados = 0
         for cita in citas_pendientes:
             try:
                 recordatorio = Recordatorio.objects.create(
                     agenda=cita,
-                    email=cita.id_paciente.email,
+                    email=cita.id_manychat.email, 
                     fecha_programada=ahora_utc,
                     enviado=False
                 )
-                
                 enviar_email_recordatorio(recordatorio)
                 recordatorio.enviado = True
                 recordatorio.save()
                 enviados += 1
             except Exception as e:
-                logger.error(f"Error procesando cita {cita.id}: {str(e)}")
+                logger.error(f"Error procesando cita {cita.id_agenda}: {str(e)}", exc_info=True)
                 continue
         
         return Response({
@@ -667,15 +665,11 @@ def enviar_recordatorios_pendientes(request):
                 'fin': fin_rango_chile.strftime('%Y-%m-%d %H:%M')
             }
         })
-    
+
     except Exception as e:
-        logger.error(f"Error procesando recordatorios: {str(e)}")
-        return Response(
-            {'error': 'Error interno del servidor'}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-    
-    
+        logger.error(f"Error procesando recordatorios: {str(e)}", exc_info=True)
+        return Response({'error': 'Error interno del servidor', 'detalle': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 def enviar_email_recordatorio(recordatorio):
     agenda = recordatorio.agenda
     context = {
@@ -684,7 +678,7 @@ def enviar_email_recordatorio(recordatorio):
         'cesfam': agenda.id_cesfam.nombre_cesfam,
         'requisitos': agenda.requisito_examen
     }
-    
+
     email = EmailMultiAlternatives(
         subject=f"Recordatorio: Cita en {agenda.id_cesfam.nombre_cesfam}",
         body=render_to_string('emails/recordatorio.txt', context),
