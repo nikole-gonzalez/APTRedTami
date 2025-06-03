@@ -58,6 +58,7 @@ from .utils import *
 
 locale.setlocale(locale.LC_TIME, 'es_ES')
 
+@login_required(login_url='/login/')
 def home(request):
     return render(request, 'administracion/index.html')
 

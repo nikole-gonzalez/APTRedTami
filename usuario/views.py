@@ -6,6 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
 from administracion.utils import paginacion_queryset1
 
+@login_required(login_url='/login/')
 def home_usuario(request):
     return render(request, 'usuario/index.html')
 
