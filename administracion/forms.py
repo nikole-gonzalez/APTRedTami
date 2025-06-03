@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from administracion.models import PerfilUsuario
+from administracion.models import PerfilUsuario, Usuario
 
 class UserForm(forms.ModelForm):
     password = forms.CharField(
@@ -62,3 +62,12 @@ class PerfilUsuarioForm(forms.ModelForm):
 
         if tipo == 'paciente' and not usuario_sist:
             self.add_error('usuario_sist', 'Este campo es obligatorio para pacientes.')
+
+class UsuarioFormParcial(forms.ModelForm):
+    class Meta:
+        model = Usuario
+        fields = ['email', 'num_whatsapp']
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'input', 'placeholder': 'Correo desde ManyChat'}),
+            'num_whatsapp': forms.TextInput(attrs={'class': 'input', 'placeholder': '912345678'}),
+        }
