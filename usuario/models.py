@@ -71,8 +71,7 @@ class HoraAgenda(models.Model):
 
     def _str_(self):
         return f"{self.fecha} {self.hora} - {self.cesfam} ({self.estado})"
-    
-    from django.db import models
+
 
 class Recordatorio(models.Model):
     agenda = models.ForeignKey('Agenda', on_delete=models.CASCADE)
