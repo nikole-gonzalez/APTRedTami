@@ -45,6 +45,8 @@ class RegistroForm(UserCreationForm):
         email = self.cleaned_data.get('email')
         if not Usuario.objects.filter(email=email).exists():
             raise forms.ValidationError("Este correo electrónico no está registrado en nuestro sistema.")
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Este correo ya está siendo utilizado. Por favor, inicia sesión o usa otro.")
         return email
 
     def clean_telefono(self):

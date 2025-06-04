@@ -1,49 +1,98 @@
 {% extends 'base.html' %}
 
-{% block title %}Historial de agendamiento de las usuarias{% endblock %}
+{% block title %}Historial de Agendamientos{% endblock %}
 
 {% block content %}
-<h2>Historial de agendamientos de las usuarias</h2>
-<section>
-    <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
-</section>
-<form method="get" action="">
-    <input type="text" name="search" placeholder="Buscar por RUT, email o ID Manychat" value="{{ search_query }}">
-    <button type="submit">Buscar</button>
+<h2 class="major">Historial de Agendamientos</h2>
+<a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
+<form method="get" style="text-align: center; margin-bottom: 20px;">
+    <input type="text" name="search" placeholder="Buscar por RUT, correo o CESFAM" value="{{ search_query }}">
+    <button type="submit" class="button small">Buscar</button>
+    <br>
+    <br>
+    {% if search_query %}
+        <a href="{% url 'historial_agendamientos' %}" class="button small" style="margin-left: 10px;">Limpiar</a>
+    {% endif %}
 </form>
+<section id="usuarios">
+    {% if page_obj %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <td colspan="7"><b>Total de agendamientos: {{ page_obj.paginator.count }}</b></td>
+                </tr>
+                <tr>
+                    <th>#</th>
+                    <th>ID Manychat</th>
+                    <th>RUT</th>
+                    <th>Email</th>
+                    <th>CESFAM</th>
+                    <th>Procedimiento</th>
+                    <th>Fecha Atención</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ag in page_obj %}
+                <tr>
+                    <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+                    <td>{{ ag.id_manychat.id_manychat }}</td>
+                    <td>{{ ag.id_manychat.rut_usuario }}-{{ ag.id_manychat.dv_rut }}</td>
+                    <td>{{ ag.id_manychat.email }}</td>
+                    <td>{{ ag.id_cesfam.nombre_cesfam }}</td>
+                    <td>{{ ag.id_procedimiento.nombre_procedimiento|default:"No especificado" }}</td>
+                    <td>{{ ag.fecha_atencion }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-{% if agendamientos %}
-<table border="1">
-    <thead>
-        <tr>
-            <th>RUT</th>
-            <th>CESFAM</th>
-            <th>Procedimiento</th>
-            <th>Requisitos</th>
-            <th>Fecha</th>
-            <th>Hora</th>
-            <th>Email</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ag in agendamientos %}
-        <tr>
-            <td>{{ ag.id_manychat.rut_usuario }}-{{ ag.id_manychat.dv_rut }}</td>
-            <td>{{ ag.id_cesfam.nombre_cesfam }}</td>
-            <td>{{ ag.id_procedimiento.nombre_procedimiento }}</td>
-            <td>{{ ag.requisito_examen }}</td>
-            <td>{{ ag.fecha_atencion|date:"d-m-Y" }}</td>
-            <td>{{ ag.hora_atencion|time:"H:i" }}</td>
-            <td>{{ ag.id_manychat.email|default:"-" }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>No se encontraron agendamientos.</p>
-{% endif %}
-<a href="{% url 'exportar_historial_excel' %}?search={{ search_query }}" class="button">Exportar a Excel</a>
-<section>
-    <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>   
+    <div class="pagination" style="text-align: center; margin: 20px 0;">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?search={{ search_query }}&page=1" class="button small">&laquo; Primera</a>
+                <a href="?search={{ search_query }}&page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+            {% endif %}
+
+            <span class="current">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?search={{ search_query }}&page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+                <a href="?search={{ search_query }}&page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+    {% else %}
+    <p>No hay agendamientos registrados.</p>
+    {% endif %}
 </section>
+<a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
+
+<style>
+    .table-wrapper {
+        overflow-x: auto;
+        max-width: 90%;
+        margin: 0 auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px auto;
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #f2849e;
+        color: white;
+        text-align: left;
+    }
+</style>
 {% endblock %}

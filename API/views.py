@@ -583,21 +583,21 @@ def enviar_recordatorios_pendientes(request):
     if not auth_header:
         logger.error("Falta header de Authorization")
         return Response({'error': 'Se requiere token de autenticación'}, status=status.HTTP_401_UNAUTHORIZED)
-
+    
     if not hasattr(settings, 'GITHUB_WEBHOOK_SECRET'):
         logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
         return Response({'error': 'Configuración del servidor incompleta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+    
     auth_header = auth_header.strip()
     parts = auth_header.split()
-
+    
     if len(parts) != 2 or parts[0] != 'Token':
         logger.error(f"Formato de token inválido. Header recibido: {auth_header}")
         return Response({'error': 'Formato de autorización inválido. Use: Token <token>'}, status=status.HTTP_401_UNAUTHORIZED)
-
+    
     received_token = parts[1].strip()
     expected_token = settings.GITHUB_WEBHOOK_SECRET.strip()
-
+    
     if not secrets.compare_digest(received_token, expected_token):
         logger.error("Token no coincide")
         return Response({'error': 'Token inválido'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -669,7 +669,6 @@ def enviar_recordatorios_pendientes(request):
     except Exception as e:
         logger.error(f"Error: {str(e)}", exc_info=True)
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
 def enviar_email_recordatorio(recordatorio):
     agenda = recordatorio.agenda
@@ -679,7 +678,7 @@ def enviar_email_recordatorio(recordatorio):
         'cesfam': agenda.id_cesfam.nombre_cesfam,
         'requisitos': agenda.requisito_examen
     }
-    
+
     email = EmailMultiAlternatives(
         subject=f"Recordatorio: Cita en {agenda.id_cesfam.nombre_cesfam}",
         body=render_to_string('emails/recordatorio.txt', context),

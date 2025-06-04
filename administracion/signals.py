@@ -7,4 +7,10 @@ from .models import PerfilUsuario
 def crear_perfil_para_superuser(sender, instance, created, **kwargs):
     if created and instance.is_superuser:
         if not hasattr(instance, 'perfilusuario'):
-            PerfilUsuario.objects.create(user=instance, tipo_usuario='administrador')
+            PerfilUsuario.objects.create(
+                user=instance,
+                tipo_usuario='administrador',
+                rut_usuario=99999999,
+                dv_rut='9',
+                telefono=0
+            )
