@@ -21,7 +21,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string 
 from django.db import connection, transaction, DatabaseError
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from django.utils import timezone
 from django.utils.timezone import make_aware
 import requests
@@ -610,33 +610,28 @@ def enviar_recordatorios_pendientes(request):
             logger.info(f"Fuera de ventana de ejecución. Minuto actual: {ahora_chile.minute}")
             return Response({'status': 'skipped', 'reason': 'Solo se ejecuta en los primeros 15 minutos de la hora'})
 
+        # Obtener la fecha actual en Chile
+        fecha_actual = ahora_chile.date()
+        
         if ahora_chile.hour == 7:
-            inicio_rango_chile = ahora_chile.replace(hour=8, minute=0, second=0)
-            fin_rango_chile = ahora_chile.replace(hour=14, minute=59, second=59)
+            # Recordatorio mañana: citas de HOY entre 8:00-14:59
+            hora_inicio = time(8, 0)
+            hora_fin = time(14, 59)
             tipo_recordatorio = "mañana"
         elif ahora_chile.hour == 15:
-            inicio_rango_chile = ahora_chile.replace(hour=15, minute=20, second=0)
-            fin_rango_chile = ahora_chile.replace(hour=23, minute=0, second=0)
+            # Recordatorio tarde: citas de HOY entre 15:20-23:00
+            hora_inicio = time(15, 20)
+            hora_fin = time(23, 0)
             tipo_recordatorio = "tarde"
         else:
             return Response({'status': 'skipped', 'reason': 'Hora no programada'})
 
-        citas_pendientes = Agenda.objects.annotate(
-            fecha_completa=Cast(
-                Concat(
-                    F('fecha_atencion'), 
-                    Value(' '), 
-                    F('hora_atencion')
-                ),
-                output_field=DateTimeField()
-            )
-        ).filter(
-            fecha_completa__range=[
-                inicio_rango_chile.astimezone(pytz.UTC),
-                fin_rango_chile.astimezone(pytz.UTC)
-            ]
+        citas_pendientes = Agenda.objects.filter(
+            fecha_atencion=fecha_actual,  # Solo citas para hoy
+            hora_atencion__gte=hora_inicio,
+            hora_atencion__lte=hora_fin
         ).exclude(
-            recordatorio__enviado=1
+            recordatorio__enviado=1  # Excluye citas con recordatorio ya enviado
         )
 
         enviados = 0
@@ -646,13 +641,13 @@ def enviar_recordatorios_pendientes(request):
                 defaults={
                     'email': cita.id_manychat.email,
                     'fecha_programada': timezone.now(),
-                    'enviado': 0  # Inicializar como no enviado
+                    'enviado': 0
                 }
             )
             
             if recordatorio.enviado == 0:
                 enviar_email_recordatorio(recordatorio)
-                recordatorio.enviado = 1  # Marcar como enviado
+                recordatorio.enviado = 1
                 recordatorio.save()
                 enviados += 1
 
@@ -660,15 +655,13 @@ def enviar_recordatorios_pendientes(request):
             'status': 'success',
             'enviados': enviados,
             'total_citas': len(citas_pendientes),
-            'rango_temporal': {
-                'inicio': inicio_rango_chile.strftime('%Y-%m-%d %H:%M'),
-                'fin': fin_rango_chile.strftime('%Y-%m-%d %H:%M'),
-                'zona_horaria': 'America/Santiago'
-            }
+            'detalle': f"Recordatorios {tipo_recordatorio} para citas el {fecha_actual.strftime('%d/%m/%Y')} entre {hora_inicio}-{hora_fin}"
         })
+
     except Exception as e:
         logger.error(f"Error: {str(e)}", exc_info=True)
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 def enviar_email_recordatorio(recordatorio):
     agenda = recordatorio.agenda
