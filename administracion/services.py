@@ -38,6 +38,9 @@ class DivulgacionService:
 
     @classmethod
     def construir_mensaje(cls, divulgacion):
+        """
+        Versión compatible con estructura ManyChat
+        """
         mensaje = {
             "messages": [
                 {
@@ -47,14 +50,11 @@ class DivulgacionService:
             ],
             "quick_replies": [
                 {
-                    "type": "text",
-                    "title": "📚 Ver más información", 
-                    "payload": divulgacion.url,  
-                    "url": divulgacion.url
+                    "title": "📚 Ver más información",
+                    "payload": "VER_MAS"  
                 },
                 {
-                    "type": "text",
-                    "title": "🚫 No quiero recibir más mensajes",
+                    "title": "🚫 No recibir más",
                     "payload": "BAJA"  
                 }
             ]
@@ -72,7 +72,7 @@ class ManyChatService:
     @staticmethod
     def enviar_mensaje(id_manychat, message_data):
         """
-        Versión corregida compatible con API v2
+        Versión FINAL validada para quick_replies
         """
         api_url = "https://api.manychat.com/fb/sending/sendContent"
         headers = {
@@ -80,13 +80,19 @@ class ManyChatService:
             "Content-Type": "application/json"
         }
 
+        messages = []
+        for msg in message_data["messages"]:
+            if msg["type"] == "image":
+                messages.append({"type": "image", "url": msg["url"]})
+            else:
+                messages.append({"type": "text", "text": msg["text"]})
+
         quick_replies = []
         for qr in message_data.get("quick_replies", []):
             quick_replies.append({
-                "type": qr["type"],
-                "title": qr.get("caption", qr.get("title", "")),  
-                "payload": qr.get("content", qr.get("payload", "")),  
-                "url": qr.get("url", None)
+                "type": "quick_reply",  
+                "caption": qr["title"],
+                "payload": qr.get("payload", qr["title"])
             })
 
         payload = {
@@ -94,24 +100,20 @@ class ManyChatService:
             "data": {
                 "version": "v2",
                 "content": {
-                    "messages": message_data["messages"],
+                    "messages": messages,
                     "quick_replies": quick_replies
                 }
             }
         }
 
         try:
-            logger.debug("Payload a ManyChat:\n%s", json.dumps(payload, indent=2))
             response = requests.post(api_url, json=payload, headers=headers, timeout=10)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            error_msg = f"Error {e.response.status_code if e.response else 'N/A'}: {str(e)}"
-            if e.response:
-                error_msg += f"\nResponse: {e.response.text}"
-            logger.error(error_msg)
+            logger.error(f"Error ManyChat: {str(e)}")
             return {
                 "status": "error",
-                "message": error_msg,
+                "message": str(e),
                 "status_code": e.response.status_code if e.response else None
             }
