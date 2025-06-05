@@ -1,7 +1,7 @@
 import json
 import secrets
 from usuario.models import HoraAgenda, Agenda, Recordatorio
-from administracion.models import Usuario
+from administracion.models import Usuario, LogEnvioWhatsApp
 from administracion.services import DivulgacionService, ManyChatService
 from rest_framework import viewsets
 from rest_framework.views import APIView
