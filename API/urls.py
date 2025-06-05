@@ -27,7 +27,9 @@ from .views import (
     reservar_hora, 
     verificar_reserva,
     enviar_recordatorios_pendientes,
-    verificar_habilitado_para_reservar
+    verificar_habilitado_para_reservar,
+    enviar_divulgaciones, 
+    manejar_baja
 )
 
 app_name = 'api'  
@@ -62,5 +64,7 @@ urlpatterns = [
     path('verificar-reserva/', verificar_reserva, name='verificar_reserva'),
     path('enviar-recordatorios/', enviar_recordatorios_pendientes, name='enviar_recordatorios'),
     path('habilitar-reserva/', verificar_habilitado_para_reservar, name='habilitar_reserva'),
+    path('divulgaciones-enviar/', enviar_divulgaciones, name='enviar_divulgaciones'),
+    path('divulgaciones-baja/', manejar_baja, name='manejar_baja'),
 
 ]

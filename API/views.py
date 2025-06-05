@@ -1,7 +1,8 @@
 import json
 import secrets
 from usuario.models import HoraAgenda, Agenda, Recordatorio
-from administracion.models import Usuario
+from administracion.models import Usuario, 
+from administracion.services import DivulgacionService, ManyChatService
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -683,3 +684,89 @@ def enviar_email_recordatorio(recordatorio):
         "text/html"
     )
     email.send()
+
+@api_view(['POST'])
+def enviar_divulgaciones(request):
+    try:
+        divulgacion = DivulgacionService.obtener_divulgacion_pendiente()
+        if not divulgacion:
+            return Response({"status": "skip", "detail": "No hay divulgaciones pendientes"}, status=200)
+        
+        usuarios = DivulgacionService.obtener_usuarios_optin()
+        if not usuarios.exists():
+            return Response({"status": "skip", "detail": "No hay usuarios opt-in"}, status=200)
+        
+        resultados = []
+        for usuario in usuarios:
+            mensaje = DivulgacionService.construir_mensaje(divulgacion)
+            respuesta = ManyChatService.enviar_mensaje(usuario.id_manychat, mensaje)
+            
+            LogEnvioWhatsApp.objects.create(
+                usuario=usuario,
+                divulgacion=divulgacion,
+                exito=respuesta.get('status') == 'success',
+                respuesta_api=respuesta
+            )
+            
+            resultados.append({
+                "usuario": usuario.id_manychat,
+                "status": respuesta.get('status')
+            })
+        
+        # Actualizar estado después del envío exitoso
+        divulgacion.enviada = True
+        divulgacion.fecha_envio = timezone.now()
+        divulgacion.save()
+        
+        return Response({
+            "status": "success",
+            "divulgacion_id": divulgacion.id_divulgacion,
+            "enviados": len(resultados),
+            "detalle": resultados
+        })
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@csrf_exempt
+def manejar_baja(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            id_manychat = data.get('id_manychat')  
+            
+            if not id_manychat:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Se requiere id_manychat"
+                }, status=400)
+            
+            usuario = Usuario.objects.get(id_manychat=id_manychat)
+            usuario.opt_out = True
+            usuario.save()
+            
+            return JsonResponse({
+                "status": "success",
+                "messages": [{
+                    "type": "text",
+                    "text": "✅ Has sido dado de baja exitosamente."
+                }]
+            })
+        except Usuario.DoesNotExist:
+            return JsonResponse({
+                "status": "error",
+                "messages": [{
+                    "type": "text",
+                    "text": "⚠️ Usuario no encontrado en nuestros registros."
+                }]
+            }, status=404)
+        except Exception as e:
+            logger.error(f"Error en manejar_baja: {str(e)}")
+            return JsonResponse({
+                "status": "error",
+                "messages": [{
+                    "type": "text",
+                    "text": "⚠️ Ocurrió un error al procesar tu solicitud."
+                }]
+            }, status=500)
+    return JsonResponse({"status": "method_not_allowed"}, status=405)

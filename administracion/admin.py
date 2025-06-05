@@ -93,9 +93,9 @@ class RespFRNMAdmin(admin.ModelAdmin):
     list_filter=("id_resp_frnm","fecha_respuesta_frnm","id_opc_frnm","id_manychat")
 
 class DivulgacionAdmin(admin.ModelAdmin):
-    list_display=("id_divulgacion","texto_divulgacion","url","fecha_envio","imagen")
-    search_fields=("id_divulgacion","texto_divulgacion","url","fecha_envio","imagen")
-    list_filter=("id_divulgacion","texto_divulgacion","url","fecha_envio","imagen")
+    list_display=("id_divulgacion","texto_divulgacion","url","imagen_url","activa","enviada","fecha_creacion","fecha_envio")
+    search_fields=("id_divulgacion","texto_divulgacion","url","imagen_url","activa","enviada","fecha_creacion","fecha_envio")
+    list_filter=("id_divulgacion","texto_divulgacion","url","imagen_url","activa","enviada","fecha_creacion","fecha_envio")
 
 admin.site.register(PerfilUsuario, PerfilUsuarioAdmin)
 admin.site.register(Usuario, UsuarioAdmin)
