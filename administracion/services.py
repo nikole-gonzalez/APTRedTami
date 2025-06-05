@@ -84,19 +84,28 @@ class ManyChatService:
             "data": {
                 "version": "v2",
                 "content": {
-                    "messages": message_data["messages"]
+                    "messages": message_data["messages"],
+                    "quick_replies": message_data.get("quick_replies", [])
                 }
             }
         }
 
         try:
             response = requests.post(api_url, json=payload, headers=headers, timeout=10)
+            
+            print("\n🔧 Debug - Request payload:")
+            print(json.dumps(payload, indent=2))
+            
             response.raise_for_status()
             return response.json()
+            
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error ManyChat: {str(e)} - Response: {e.response.text if e.response else 'No response'}")
+            error_msg = f"Error {e.response.status_code if e.response else 'N/A'}: {str(e)}"
+            if e.response:
+                error_msg += f"\nResponse: {e.response.text}"
+            logger.error(error_msg)
             return {
                 "status": "error",
-                "message": str(e),
-                "response_text": e.response.text if e.response else None
+                "message": error_msg,
+                "status_code": e.response.status_code if e.response else None
             }
