@@ -1,6 +1,8 @@
 from django.utils import timezone
 from .models import Divulgacion, Usuario, PregTM, OpcTM, LogEnvioWhatsApp
 import logging
+import requests
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +25,10 @@ class DivulgacionService:
     @classmethod
     def obtener_usuarios_optin(cls):
         try:
-            # Versión mejorada con manejo explícito de relaciones
             return Usuario.objects.filter(
                 opt_out=False,
-                resptm__id_opc_tm__id_preg_tm__cod_pregunta_tm="TM6",  # Corregida la sintaxis
-                resptm__id_opc_tm__id_opc_tm=17  # Corregida la sintaxis
+                resptm__id_opc_tm__id_preg_tm__cod_pregunta_tm="TM6",  
+                resptm__id_opc_tm__id_opc_tm=17  
             ).distinct()
             
         except Exception as e:
@@ -71,41 +72,43 @@ class DivulgacionService:
 
 class ManyChatService:
     @staticmethod
-    def enviar_mensaje(user_id, message):
-        """
-        Envía un mensaje a través de ManyChat API
-        Args:
-            user_id (str): ID del usuario en ManyChat
-            message (dict): Estructura del mensaje en formato ManyChat
-        Returns:
-            dict: Respuesta de la API ManyChat
-        """
-        import requests
-        from django.conf import settings
+    def enviar_mensaje(user_id, message_data):
+        api_url = "https://api.manychat.com/fb/sending/sendContent"
         
         headers = {
             "Authorization": f"Bearer {settings.MANYCHAT_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json"
         }
-        
+
         payload = {
-            "subscriber_id": user_id,
-            "data": message
+            "subscriber_id": id_manychat,
+            "data": message_data
         }
-        
+
         try:
             response = requests.post(
-                "https://api.manychat.com/fb/sending/sendContent",
+                api_url,
                 json=payload,
                 headers=headers,
-                timeout=10  
+                timeout=10
             )
-            response.raise_for_status()  
-            return response.json()
             
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error al enviar a ManyChat: {str(e)}")
+            response.raise_for_status()
+            
+            return response.json()
+
+        except requests.exceptions.HTTPError as http_err:
+            error_msg = f"Error HTTP {response.status_code}: {response.text}"
+            logger.error(error_msg)
             return {
                 "status": "error",
-                "errors": str(e)
+                "error": error_msg,
+                "status_code": response.status_code
+            }
+        except Exception as e:
+            logger.error(f"Error de conexión: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e)
             }
