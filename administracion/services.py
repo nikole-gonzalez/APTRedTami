@@ -68,3 +68,44 @@ class DivulgacionService:
             })
             
         return mensaje
+
+class ManyChatService:
+    @staticmethod
+    def enviar_mensaje(user_id, message):
+        """
+        Envía un mensaje a través de ManyChat API
+        Args:
+            user_id (str): ID del usuario en ManyChat
+            message (dict): Estructura del mensaje en formato ManyChat
+        Returns:
+            dict: Respuesta de la API ManyChat
+        """
+        import requests
+        from django.conf import settings
+        
+        headers = {
+            "Authorization": f"Bearer {settings.MANYCHAT_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "subscriber_id": user_id,
+            "data": message
+        }
+        
+        try:
+            response = requests.post(
+                "https://api.manychat.com/fb/sending/sendContent",
+                json=payload,
+                headers=headers,
+                timeout=10  
+            )
+            response.raise_for_status()  
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error al enviar a ManyChat: {str(e)}")
+            return {
+                "status": "error",
+                "errors": str(e)
+            }

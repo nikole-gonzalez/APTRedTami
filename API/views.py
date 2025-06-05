@@ -2,7 +2,7 @@ import json
 import secrets
 from usuario.models import HoraAgenda, Agenda, Recordatorio
 from administracion.models import Usuario
-from administracion.services import DivulgacionService
+from administracion.services import DivulgacionService, ManyChatService
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
