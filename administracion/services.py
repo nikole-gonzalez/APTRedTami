@@ -3,6 +3,7 @@ from .models import Divulgacion, Usuario, PregTM, OpcTM, LogEnvioWhatsApp
 import logging
 import requests
 from django.conf import settings
+import json
 
 logger = logging.getLogger(__name__)
 
