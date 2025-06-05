@@ -27,6 +27,14 @@ SECRET_KEY = 'django-insecure-pwga6pyb(rscvvxf*&g*h(j+x93_xk7!@#-+(m1i(au%&6v$^r
 
 ACCESO_LISTADO = os.getenv('ACCESO_LISTADO') 
 
+MANYCHAT_API_KEY = os.getenv('MANYCHAT_API_KEY')
+MANYCHAT_API_URL = "https://api.manychat.com/fb/sending/sendContent"
+
+CORS_ALLOWED_ORIGINS = [
+    "https://manychat.com",
+    "https://nikogonzalez.pythonanywhere.com"
+]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -156,6 +164,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

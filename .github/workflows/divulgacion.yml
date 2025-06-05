@@ -1,0 +1,20 @@
+name: Enviar Divulgación Automática
+
+on:
+  schedule:
+    - cron: '0 14 * * 1-5'  # 10 AM Chile (UTC-4)
+  workflow_dispatch:
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ejecutar envío
+        env:
+          API_URL: "https://nikogonzalez.pythonanywhere.com/divulgaciones-enviar/"
+          API_KEY: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+        run: |
+          curl -X POST "$API_URL" \
+            -H "Authorization: Token $API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'

@@ -32,6 +32,11 @@ class Usuario(models.Model):
     cod_comuna = models.ForeignKey('Comuna', on_delete=models.CASCADE)
     email = models.CharField(max_length=255, blank=True)
     cesfam_usuario = models.ForeignKey('usuario.Cesfam', on_delete=models.CASCADE, null = True, blank= True)
+    opt_out = models.BooleanField(
+        default=False,
+        verbose_name="No recibir mensajes",
+        help_text="Si está marcado, el usuario no recibirá mensajes de divulgación"
+    )
 
     def __str__(self):
         return f"Usuario: {self.rut_usuario}-{self.dv_rut} ({self.id_manychat})"
@@ -197,11 +202,44 @@ class Divulgacion(models.Model):
     id_divulgacion = models.AutoField(primary_key=True)
     texto_divulgacion = models.CharField(max_length=200)
     url = models.URLField()
-    fecha_envio = models.DateTimeField(auto_now_add=True)
-    imagen = models.ImageField(blank=True, null=True)
+    imagen_url = models.URLField(blank=True, null=True)
+    activa = models.BooleanField(
+        default=True,
+        help_text="Marcar como inactiva para evitar envíos"
+    )
+    enviada = models.BooleanField(
+        default=False,
+        verbose_name="¿Enviada?",
+        help_text="Se marca automáticamente al enviar"
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_envio = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha real de envío masivo"
+    )
+
+    class Meta:
+        ordering = ['-fecha_creacion']  
+        verbose_name_plural = "Divulgaciones"
 
     def __str__(self):
-        return f"Divulgación #{self.id_divulgacion} ({self.fecha_envio})"
+        return f"Divulgación #{self.id_divulgacion} (Creada: {self.fecha_creacion.date()})"
+
+class LogEnvioWhatsApp(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    divulgacion = models.ForeignKey(Divulgacion, on_delete=models.CASCADE)
+    fecha_envio = models.DateTimeField(auto_now_add=True)
+    exito = models.BooleanField(default=False)
+    respuesta_api = models.JSONField()
+    error = models.CharField(max_length=200, blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['usuario', 'divulgacion']),
+        ]
+        verbose_name = "Log de envío"
+        verbose_name_plural = "Logs de envíos"
 
 class LogDescargaJSON(models.Model):
     id_log = models.AutoField(primary_key=True)
