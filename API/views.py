@@ -607,32 +607,25 @@ def enviar_recordatorios_pendientes(request):
         tz_chile = pytz.timezone('America/Santiago')
         ahora_chile = timezone.now().astimezone(tz_chile)
         
-        if ahora_chile.minute > 15:
-            logger.info(f"Fuera de ventana de ejecución. Minuto actual: {ahora_chile.minute}")
-            return Response({'status': 'skipped', 'reason': 'Solo se ejecuta en los primeros 15 minutos de la hora'})
-
-        # Obtener la fecha actual en Chile
         fecha_actual = ahora_chile.date()
         
-        if ahora_chile.hour == 7:
-            # Recordatorio mañana: citas de HOY entre 8:00-14:59
+        if ahora_chile.hour == 7 and ahora_chile.minute == 0:
             hora_inicio = time(8, 0)
             hora_fin = time(14, 59)
             tipo_recordatorio = "mañana"
-        elif ahora_chile.hour == 15:
-            # Recordatorio tarde: citas de HOY entre 15:20-23:00
-            hora_inicio = time(15, 20)
+        elif ahora_chile.hour == 15  and ahora_chile.minute == 0:
+            hora_inicio = time(15, 0)
             hora_fin = time(23, 0)
             tipo_recordatorio = "tarde"
         else:
             return Response({'status': 'skipped', 'reason': 'Hora no programada'})
 
         citas_pendientes = Agenda.objects.filter(
-            fecha_atencion=fecha_actual,  # Solo citas para hoy
+            fecha_atencion=fecha_actual,  
             hora_atencion__gte=hora_inicio,
             hora_atencion__lte=hora_fin
         ).exclude(
-            recordatorio__enviado=1  # Excluye citas con recordatorio ya enviado
+            recordatorio__enviado=1  
         )
 
         enviados = 0

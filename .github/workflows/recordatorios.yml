@@ -3,43 +3,39 @@ name: Enviar Recordatorios Chile
 on:
   schedule:
     # Horario de invierno (UTC-4)
-    - cron: '0 11 * * *'  # 7 AM Chile (UTC-4)
-    - cron: '0 19 * * *'  # 3 PM Chile (UTC-4)
+    - cron: '55 10 * * *'  # 7 AM Chile (UTC-4)
+    - cron: '55 18 * * *'  # 3 PM Chile (UTC-4)
     
     # Horario de verano (UTC-3) - actualiza manualmente cuando cambie el horario
-    # - cron: '0 10 * * *'  # 7 AM Chile (UTC-3)
-    # - cron: '0 18 * * *'  # 3 PM Chile (UTC-3)
+    # - cron: '55 09 * * *'  # 7 AM Chile (UTC-3)
+    # - cron: '55 17 * * *'  # 3 PM Chile (UTC-3)
   workflow_dispatch:
 
 jobs:
   enviar:
     runs-on: ubuntu-latest
     steps:
-      - name: Mostrar fecha y hora UTC actuales
-        run: date -u
+      - name: Calcular delay para ejecución exacta
+        id: delay
+        run: |
+          # Obtiene el minuto actual (0-59) y calcula los segundos restantes
+          CURRENT_MINUTE=$(date -u +%M)
+          SECONDS_TO_WAIT=$(( (60 - $CURRENT_MINUTE) * 60 ))
+          echo "::set-output name=seconds_to_wait::$SECONDS_TO_WAIT"
 
-      - name: Mostrar fecha y hora Chile actuales
+      - name: Esperar hasta la hora exacta
+        if: steps.delay.outputs.seconds_to_wait > 0
+        run: sleep ${{ steps.delay.outputs.seconds_to_wait }}
+
+      - name: Mostrar fecha/hora Chile actual
         run: TZ="America/Santiago" date
 
-      - name: Enviar solicitud a la API de recordatorios
+      - name: Enviar recordatorios
         env:
           PYTHONANYWHERE_URL: "https://${{ secrets.PYTHONANYWHERE_USER }}.pythonanywhere.com"
           API_TOKEN: ${{ secrets.API_TOKEN }}
         run: |
-          echo "Iniciando envío de recordatorios..."
-          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+          curl -X POST \
             -H "Authorization: Token ${API_TOKEN}" \
             -H "Content-Type: application/json" \
-            "${PYTHONANYWHERE_URL}/API/enviar-recordatorios/")
-          
-          # Separar cuerpo y código HTTP
-          HTTP_BODY=$(echo "$RESPONSE" | sed -e 's/HTTP_STATUS:.*//g')
-          HTTP_STATUS=$(echo "$RESPONSE" | tr -d '\n' | sed -e 's/.*HTTP_STATUS://')
-          
-          echo "Código HTTP: $HTTP_STATUS"
-          echo "Respuesta de la API: $HTTP_BODY"
-
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "Error en la llamada API"
-            exit 1
-          fi
+            "${PYTHONANYWHERE_URL}/API/enviar-recordatorios/"
