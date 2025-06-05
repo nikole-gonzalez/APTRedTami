@@ -22,7 +22,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string 
 from django.db import connection, transaction, DatabaseError
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from django.utils import timezone
 from django.utils.timezone import make_aware
 import requests
@@ -605,71 +605,64 @@ def enviar_recordatorios_pendientes(request):
 
     try:
         tz_chile = pytz.timezone('America/Santiago')
-        ahora_utc = timezone.now()
-        ahora_chile = ahora_utc.astimezone(tz_chile)
+        ahora_chile = timezone.now().astimezone(tz_chile)
         
-        hora_actual_chile = ahora_chile.hour
-        if hora_actual_chile not in [7, 15]:
-            logger.info(f"No es hora de enviar recordatorios. Hora Chile: {ahora_chile.strftime('%H:%M')}")
-            return Response({
-                'status': 'skipped',
-                'hora_actual_chile': ahora_chile.strftime('%H:%M'),
-                'mensaje': 'Solo se envían a las 7 AM y 3 PM hora Chile'
-            })
-        
-        # Rango de búsqueda desde ahora hasta 9 horas después
-        inicio_rango_chile = ahora_chile.replace(minute=0, second=0, microsecond=0)
-        fin_rango_chile = inicio_rango_chile + timedelta(hours=9)
-        inicio_rango_utc = inicio_rango_chile.astimezone(pytz.UTC)
-        fin_rango_utc = fin_rango_chile.astimezone(pytz.UTC)
+        if ahora_chile.minute > 15:
+            logger.info(f"Fuera de ventana de ejecución. Minuto actual: {ahora_chile.minute}")
+            return Response({'status': 'skipped', 'reason': 'Solo se ejecuta en los primeros 15 minutos de la hora'})
 
-        logger.info(f"Buscando citas entre {inicio_rango_chile} y {fin_rango_chile} (hora Chile)")
-        logger.info(f"Equivalente UTC: {inicio_rango_utc} - {fin_rango_utc}")
+        # Obtener la fecha actual en Chile
+        fecha_actual = ahora_chile.date()
         
-        # Combinar fecha y hora en una sola columna
-        fecha_hora_expr = ExpressionWrapper(
-            F('fecha_atencion') + F('hora_atencion'),
-            output_field=DateTimeField()
+        if ahora_chile.hour == 7:
+            # Recordatorio mañana: citas de HOY entre 8:00-14:59
+            hora_inicio = time(8, 0)
+            hora_fin = time(14, 59)
+            tipo_recordatorio = "mañana"
+        elif ahora_chile.hour == 15:
+            # Recordatorio tarde: citas de HOY entre 15:20-23:00
+            hora_inicio = time(15, 20)
+            hora_fin = time(23, 0)
+            tipo_recordatorio = "tarde"
+        else:
+            return Response({'status': 'skipped', 'reason': 'Hora no programada'})
+
+        citas_pendientes = Agenda.objects.filter(
+            fecha_atencion=fecha_actual,  # Solo citas para hoy
+            hora_atencion__gte=hora_inicio,
+            hora_atencion__lte=hora_fin
+        ).exclude(
+            recordatorio__enviado=1  # Excluye citas con recordatorio ya enviado
         )
-
-        citas_pendientes = Agenda.objects.annotate(
-            fecha_hora=fecha_hora_expr
-        ).filter(
-            fecha_hora__range=(inicio_rango_utc, fin_rango_utc),
-            recordatorio__isnull=True
-        ).select_related('id_cesfam', 'id_manychat', 'id_procedimiento')
 
         enviados = 0
         for cita in citas_pendientes:
-            try:
-                recordatorio = Recordatorio.objects.create(
-                    agenda=cita,
-                    email=cita.id_manychat.email, 
-                    fecha_programada=ahora_utc,
-                    enviado=False
-                )
+            recordatorio, created = Recordatorio.objects.get_or_create(
+                agenda=cita,
+                defaults={
+                    'email': cita.id_manychat.email,
+                    'fecha_programada': timezone.now(),
+                    'enviado': 0
+                }
+            )
+            
+            if recordatorio.enviado == 0:
                 enviar_email_recordatorio(recordatorio)
-                recordatorio.enviado = True
+                recordatorio.enviado = 1
                 recordatorio.save()
                 enviados += 1
-            except Exception as e:
-                logger.error(f"Error procesando cita {cita.id_agenda}: {str(e)}", exc_info=True)
-                continue
-        
+
         return Response({
             'status': 'success',
             'enviados': enviados,
-            'total': len(citas_pendientes),
-            'hora_chile': ahora_chile.strftime('%Y-%m-%d %H:%M'),
-            'rango_busqueda': {
-                'inicio': inicio_rango_chile.strftime('%Y-%m-%d %H:%M'),
-                'fin': fin_rango_chile.strftime('%Y-%m-%d %H:%M')
-            }
+            'total_citas': len(citas_pendientes),
+            'detalle': f"Recordatorios {tipo_recordatorio} para citas el {fecha_actual.strftime('%d/%m/%Y')} entre {hora_inicio}-{hora_fin}"
         })
 
     except Exception as e:
-        logger.error(f"Error procesando recordatorios: {str(e)}", exc_info=True)
-        return Response({'error': 'Error interno del servidor', 'detalle': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.error(f"Error: {str(e)}", exc_info=True)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 def enviar_email_recordatorio(recordatorio):
     agenda = recordatorio.agenda
