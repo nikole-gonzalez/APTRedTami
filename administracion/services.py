@@ -74,26 +74,29 @@ class ManyChatService:
     @staticmethod
     def enviar_mensaje(id_manychat, message_data):
         api_url = "https://api.manychat.com/fb/sending/sendContent"
-        
         headers = {
             "Authorization": f"Bearer {settings.MANYCHAT_API_KEY}",
             "Content-Type": "application/json"
         }
 
         payload = {
-            "subscriber_id": str(id_manychat),  
-            "data": message_data
+            "subscriber_id": str(id_manychat),
+            "data": {
+                "version": "v2",
+                "content": {
+                    "messages": message_data["messages"]
+                }
+            }
         }
 
         try:
             response = requests.post(api_url, json=payload, headers=headers, timeout=10)
             response.raise_for_status()
             return response.json()
-            
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error al enviar a ManyChat: {str(e)}")
+            logger.error(f"Error ManyChat: {str(e)} - Response: {e.response.text if e.response else 'No response'}")
             return {
                 "status": "error",
                 "message": str(e),
-                "status_code": getattr(e.response, 'status_code', None)
+                "response_text": e.response.text if e.response else None
             }
