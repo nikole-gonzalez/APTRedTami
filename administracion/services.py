@@ -13,9 +13,8 @@ class DivulgacionService:
         try:
             return Divulgacion.objects.filter(
                 activa=True,
-                enviada=False  
-            ).latest('fecha_creacion', 'id_divulgacion')  
-        
+                enviada=False
+            ).latest('fecha_creacion', 'id_divulgacion')
         except Divulgacion.DoesNotExist:
             logger.info("No hay divulgaciones pendientes para enviar")
             return None
@@ -28,19 +27,14 @@ class DivulgacionService:
         try:
             return Usuario.objects.filter(
                 opt_out=False,
-                resptm__id_opc_tm__id_preg_tm__cod_pregunta_tm="TM6",  
-                resptm__id_opc_tm__id_opc_tm=17  
+                id_manychat__isnull=False
             ).distinct()
-            
         except Exception as e:
-            logger.error(f"Error al filtrar usuarios: {str(e)}")
+            logger.error(f"Error al obtener usuarios opt-in: {str(e)}")
             return Usuario.objects.none()
 
     @classmethod
     def construir_mensaje(cls, divulgacion):
-        """
-        Versión compatible con estructura ManyChat
-        """
         mensaje = {
             "messages": [
                 {
@@ -51,13 +45,14 @@ class DivulgacionService:
             "quick_replies": [
                 {
                     "title": "📚 Ver más información",
-                    "payload": "VER_MAS"  
+                    "payload": "VER_MAS"
                 },
                 {
                     "title": "🚫 No recibir más",
-                    "payload": "BAJA"  
+                    "payload": "BAJA"
                 }
-            ]
+            ],
+            "message_tag": "ACCOUNT_UPDATE"
         }
         
         if divulgacion.imagen_url:
@@ -71,49 +66,35 @@ class DivulgacionService:
 class ManyChatService:
     @staticmethod
     def enviar_mensaje(id_manychat, message_data):
-        """
-        Versión FINAL validada para quick_replies
-        """
         api_url = "https://api.manychat.com/fb/sending/sendContent"
         headers = {
             "Authorization": f"Bearer {settings.MANYCHAT_API_KEY}",
             "Content-Type": "application/json"
         }
 
-        messages = []
-        for msg in message_data["messages"]:
-            if msg["type"] == "image":
-                messages.append({"type": "image", "url": msg["url"]})
-            else:
-                messages.append({"type": "text", "text": msg["text"]})
-
-        quick_replies = []
-        for qr in message_data.get("quick_replies", []):
-            quick_replies.append({
-                "type": "quick_reply",  
-                "caption": qr["title"],
-                "payload": qr.get("payload", qr["title"])
-            })
-
         payload = {
             "subscriber_id": str(id_manychat),
             "data": {
                 "version": "v2",
                 "content": {
-                    "messages": messages,
-                    "quick_replies": quick_replies
+                    "messages": message_data["messages"],
+                    "quick_replies": message_data.get("quick_replies", [])
                 }
-            }
+            },
+            "message_tag": message_data.get("message_tag", "ACCOUNT_UPDATE")
         }
 
         try:
-            response = requests.post(api_url, json=payload, headers=headers, timeout=10)
+            response = requests.post(api_url, json=payload, headers=headers, timeout=15)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error ManyChat: {str(e)}")
+            error_msg = f"Error ManyChat: {str(e)}"
+            if e.response:
+                error_msg += f" | Status: {e.response.status_code} | Response: {e.response.text}"
+            logger.error(error_msg)
             return {
                 "status": "error",
-                "message": str(e),
+                "message": error_msg,
                 "status_code": e.response.status_code if e.response else None
             }
