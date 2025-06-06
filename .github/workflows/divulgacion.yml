@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Ejecutar envío
         env:
-          API_URL: "https://nikogonzalez.pythonanywhere.com/divulgaciones-enviar/"
+          API_URL: "https://nikogonzalez.pythonanywhere.com/API/divulgaciones-enviar/"
           API_KEY: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
         run: |
           curl -X POST "$API_URL" \
