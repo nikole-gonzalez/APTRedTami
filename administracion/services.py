@@ -14,7 +14,7 @@ class DivulgacionService:
             return Divulgacion.objects.filter(
                 activa=True,
                 enviada=False  
-            ).latest('fecha_creacion', 'id')  
+            ).latest('fecha_creacion', 'id_divulgacion')  
         
         except Divulgacion.DoesNotExist:
             logger.info("No hay divulgaciones pendientes para enviar")
