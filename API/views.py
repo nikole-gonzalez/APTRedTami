@@ -12,7 +12,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes,authentication_classes
 from django.conf import settings
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -722,3 +722,19 @@ def enviar_divulgaciones(request):
     except Exception as e:
         logger.error(f"Error en enviar_divulgaciones: {str(e)}")
         return Response({"error": str(e)}, status=500)
+    
+@api_view(['GET'])
+def baja_usuario(request, id_manychat):
+    try:
+        usuario = get_object_or_404(Usuario, id_manychat=id_manychat)
+        usuario.opt_out = True
+        usuario.save()
+        
+        return render(request, 'divulgacion/baja_confirmacion.html', {
+            'usuario': usuario,
+            'fecha': timezone.now().date()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en baja_usuario: {str(e)}")
+        return HttpResponse("Ocurrió un error al procesar tu solicitud", status=500)
