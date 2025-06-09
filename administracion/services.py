@@ -4,6 +4,10 @@ import logging
 import requests
 from django.conf import settings
 import json
+from django.template.loader import render_to_string
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.core.mail import EmailMultiAlternatives
 
 logger = logging.getLogger(__name__)
 
