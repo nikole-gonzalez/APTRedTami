@@ -1,4 +1,4 @@
-name: Enviar Divulgación Automática
+name: Enviar Divulgación Automática por Email
 
 on:
   schedule:

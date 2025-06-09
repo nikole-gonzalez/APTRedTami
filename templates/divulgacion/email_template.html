@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .header { color: #2c3e50; }
+        .content { margin: 20px 0; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #7f8c8d; }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>📢 Mensaje de salud</h2>
+    </div>
+    
+    <div class="content">
+        {% if divulgacion.imagen_url %}
+            <img src="{{ divulgacion.imagen_url }}" alt="Imagen divulgación" style="max-width: 100%;">
+        {% endif %}
+        
+        <p>{{ divulgacion.texto_divulgacion|linebreaksbr }}</p>
+        
+        {% if divulgacion.url %}
+            <a href="{{ divulgacion.url }}" class="button">Más información</a>
+        {% endif %}
+    </div>
+    
+    <div class="footer">
+        <p>Este mensaje fue enviado porque aceptaste recibir información de salud.</p>
+        <p><a href="{{ opt_out_url }}">🚫 No deseo recibir más mensajes</a></p>
+    </div>
+</body>
+</html>

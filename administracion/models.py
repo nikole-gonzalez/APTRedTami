@@ -226,13 +226,13 @@ class Divulgacion(models.Model):
     def __str__(self):
         return f"Divulgación #{self.id_divulgacion} (Creada: {self.fecha_creacion.date()})"
 
-class LogEnvioWhatsApp(models.Model):
+class LogEnvioEmail(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     divulgacion = models.ForeignKey(Divulgacion, on_delete=models.CASCADE)
     fecha_envio = models.DateTimeField(auto_now_add=True)
     exito = models.BooleanField(default=False)
-    respuesta_api = models.JSONField()
     error = models.CharField(max_length=200, blank=True, null=True)
+    direccion_email = models.CharField(max_length=255)
 
     class Meta:
         indexes = [

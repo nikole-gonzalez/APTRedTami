@@ -1,5 +1,5 @@
 from django.utils import timezone
-from .models import Divulgacion, Usuario, PregTM, OpcTM, LogEnvioWhatsApp
+from .models import Divulgacion, Usuario, PregTM, OpcTM, LogEnvioEmail
 import logging
 import requests
 from django.conf import settings
@@ -13,8 +13,9 @@ class DivulgacionService:
         try:
             return Divulgacion.objects.filter(
                 activa=True,
-                enviada=False
-            ).latest('fecha_creacion', 'id_divulgacion')
+                enviada=False  
+            ).latest('fecha_creacion', 'id_divulgacion') 
+        
         except Divulgacion.DoesNotExist:
             logger.info("No hay divulgaciones pendientes para enviar")
             return None
@@ -27,74 +28,52 @@ class DivulgacionService:
         try:
             return Usuario.objects.filter(
                 opt_out=False,
-                id_manychat__isnull=False
-            ).distinct()
+                resptm__id_opc_tm__id_preg_tm__cod_pregunta_tm="TM6",  
+                resptm__id_opc_tm__id_opc_tm=17,
+                email__isnull=False
+            ).exclude(email__exact='').distinct()
+            
         except Exception as e:
-            logger.error(f"Error al obtener usuarios opt-in: {str(e)}")
+            logger.error(f"Error al filtrar usuarios: {str(e)}")
             return Usuario.objects.none()
 
     @classmethod
-    def construir_mensaje(cls, divulgacion):
-        mensaje = {
-            "messages": [
-                {
-                    "type": "text",
-                    "text": f"📢 Mensaje de salud:\n\n{divulgacion.texto_divulgacion}\n\n🔗 Más información: {divulgacion.url}"
-                }
-            ],
-            "quick_replies": [
-                {
-                    "title": "📚 Ver más información",
-                    "payload": "VER_MAS"
-                },
-                {
-                    "title": "🚫 No recibir más",
-                    "payload": "BAJA"
-                }
-            ],
-            "message_tag": "ACCOUNT_UPDATE"
+    def construir_email(cls, divulgacion, usuario):
+        context = {
+            'divulgacion': divulgacion,
+            'usuario': usuario,
+            'opt_out_url': f"{settings.BASE_URL}/baja/{usuario.id_manychat}"
         }
         
-        if divulgacion.imagen_url:
-            mensaje['messages'].insert(0, {
-                "type": "image",
-                "url": divulgacion.imagen_url
-            })
-            
-        return mensaje
+        html_content = render_to_string('divulgacion/email_template.html', context)
+        text_content = strip_tags(html_content)  
+        
+        email = EmailMultiAlternatives(
+            subject=f"📢 {divulgacion.asunto if hasattr(divulgacion, 'asunto') else 'Mensaje de salud'}",
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[usuario.email],
+            reply_to=[settings.REPLY_TO_EMAIL]
+        )
+        email.attach_alternative(html_content, "text/html")
+        
+        if divulgacion.imagen_url and hasattr(divulgacion, 'imagen') and divulgacion.imagen:
+            email.attach_file(divulgacion.imagen.path)
+        
+        return email
 
-class ManyChatService:
+class EmailService:
     @staticmethod
-    def enviar_mensaje(id_manychat, message_data):
-        api_url = "https://api.manychat.com/fb/sending/sendContent"
-        headers = {
-            "Authorization": f"Bearer {settings.MANYCHAT_API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "subscriber_id": str(id_manychat),
-            "data": {
-                "version": "v2",
-                "content": {
-                    "messages": message_data["messages"],
-                    "quick_replies": message_data.get("quick_replies", [])
-                }
-            },
-            "message_tag": message_data.get("message_tag", "ACCOUNT_UPDATE")
-        }
-
+    def enviar_email(email_obj):
         try:
-            response = requests.post(api_url, json=payload, headers=headers, timeout=15)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            error_msg = f"Error ManyChat: {str(e)}"
-            if e.response:
-                error_msg += f" | Status: {e.response.status_code} | Response: {e.response.text}"
-            logger.error(error_msg)
+            email_obj.send()
+            return {
+                "status": "success",
+                "message": "Email enviado correctamente"
+            }
+        except Exception as e:
+            logger.error(f"Error al enviar email: {str(e)}")
             return {
                 "status": "error",
-                "message": error_msg,
-                "status_code": e.response.status_code if e.response else None
+                "message": str(e)
             }
