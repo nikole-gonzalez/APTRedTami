@@ -46,7 +46,7 @@ class DivulgacionService:
         context = {
             'divulgacion': divulgacion,
             'usuario': usuario,
-            'opt_out_url': f"{settings.BASE_URL}/baja/{usuario.id_manychat}"
+            'opt_out_url': f"{settings.BASE_URL}/API/baja/{usuario.id_manychat}"
         }
         
         html_content = render_to_string('divulgacion/email_template.html', context)
