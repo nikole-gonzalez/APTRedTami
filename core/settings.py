@@ -156,7 +156,8 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'redtamicervicouterino@gmail.com'
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = 'redtamicervicouterino@gmail.com'
+REPLY_TO_EMAIL = 'redtamicervicouterino@gmail.com'
 
 # API REST FRAMEWORK
 
