@@ -1,8 +1,8 @@
 import json
 import secrets
 from usuario.models import HoraAgenda, Agenda, Recordatorio
-from administracion.models import Usuario, LogEnvioWhatsApp
-from administracion.services import DivulgacionService, ManyChatService
+from administracion.models import Usuario, LogEnvioEmail
+from administracion.services import DivulgacionService, EmailService
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -687,26 +687,27 @@ def enviar_divulgaciones(request):
         
         usuarios = DivulgacionService.obtener_usuarios_optin()
         if not usuarios.exists():
-            return Response({"status": "skip", "detail": "No hay usuarios opt-in"}, status=200)
+            return Response({"status": "skip", "detail": "No hay usuarios opt-in con email válido"}, status=200)
         
         resultados = []
         for usuario in usuarios:
-            mensaje = DivulgacionService.construir_mensaje(divulgacion)
-            respuesta = ManyChatService.enviar_mensaje(usuario.id_manychat, mensaje)
+            email_obj = DivulgacionService.construir_email(divulgacion, usuario)
+            respuesta = EmailService.enviar_email(email_obj)
             
-            LogEnvioWhatsApp.objects.create(
+            LogEnvioEmail.objects.create(
                 usuario=usuario,
                 divulgacion=divulgacion,
                 exito=respuesta.get('status') == 'success',
-                respuesta_api=respuesta
+                error=respuesta.get('message') if respuesta.get('status') == 'error' else None,
+                direccion_email=usuario.email
             )
             
             resultados.append({
                 "usuario": usuario.id_manychat,
+                "email": usuario.email,
                 "status": respuesta.get('status')
             })
         
-        # Actualizar estado después del envío exitoso
         divulgacion.enviada = True
         divulgacion.fecha_envio = timezone.now()
         divulgacion.save()
@@ -719,47 +720,5 @@ def enviar_divulgaciones(request):
         })
     
     except Exception as e:
+        logger.error(f"Error en enviar_divulgaciones: {str(e)}")
         return Response({"error": str(e)}, status=500)
-
-@csrf_exempt
-def manejar_baja(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            id_manychat = data.get('id_manychat')  
-            
-            if not id_manychat:
-                return JsonResponse({
-                    "status": "error",
-                    "message": "Se requiere id_manychat"
-                }, status=400)
-            
-            usuario = Usuario.objects.get(id_manychat=id_manychat)
-            usuario.opt_out = True
-            usuario.save()
-            
-            return JsonResponse({
-                "status": "success",
-                "messages": [{
-                    "type": "text",
-                    "text": "✅ Has sido dado de baja exitosamente."
-                }]
-            })
-        except Usuario.DoesNotExist:
-            return JsonResponse({
-                "status": "error",
-                "messages": [{
-                    "type": "text",
-                    "text": "⚠️ Usuario no encontrado en nuestros registros."
-                }]
-            }, status=404)
-        except Exception as e:
-            logger.error(f"Error en manejar_baja: {str(e)}")
-            return JsonResponse({
-                "status": "error",
-                "messages": [{
-                    "type": "text",
-                    "text": "⚠️ Ocurrió un error al procesar tu solicitud."
-                }]
-            }, status=500)
-    return JsonResponse({"status": "method_not_allowed"}, status=405)
