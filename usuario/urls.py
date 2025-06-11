@@ -13,5 +13,6 @@ urlpatterns = [
     path('panel_usuario/', views.panel_usuario, name='panel_usuario'),
     path('eliminar_datos/', views.eliminar_datos_usuario, name='eliminar_datos_usuario'),
     path('agendamiento/', views.agendamiento, name='agendamiento'),
+    path('respuestas_usuarias/', views.visualizar_resp_usuarias, name='respuestas_usuarias')
 
 ]

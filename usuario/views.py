@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from administracion.models import *
 from usuario.models import *
@@ -125,3 +125,41 @@ def agendamiento(request):
             'sin_atenciones': True,
             'error': 'Ocurrió un error al cargar tu historial de agendamientos'
         })
+
+@login_required
+def visualizar_resp_usuarias (request):
+    perfil = get_object_or_404(PerfilUsuario, user=request.user)
+    
+    if not perfil.usuario_sist:
+        return render(request, 'error.html', {'mensaje': 'No tienes cuestionarios completados'})
+    
+    contexto = {
+        # Respuestas TM
+        'respuestas_tm': RespTM.objects.filter(
+            id_manychat=perfil.usuario_sist
+        ).select_related('id_opc_tm__id_preg_tm'),
+        
+        # Respuestas DS
+        'respuestas_ds': RespDS.objects.filter(
+            id_manychat=perfil.usuario_sist
+        ).select_related('id_opc_ds__id_preg_ds'),
+        
+        # Respuestas FRM
+        'respuestas_frm': RespFRM.objects.filter(
+            id_manychat=perfil.usuario_sist
+        ).select_related('id_opc_frm__id_preg_frm'),
+        
+        # Respuestas FRNM
+        'respuestas_frnm': RespFRNM.objects.filter(
+            id_manychat=perfil.usuario_sist
+        ).select_related('id_opc_frnm__id_preg_frnm'),
+        
+        # Preguntas textuales
+        'preguntas_textuales': UsuarioTextoPregunta.objects.filter(
+            id_manychat=perfil.usuario_sist
+        ),
+        
+        'perfil': perfil
+    }
+    
+    return render(request, 'usuario/respuestas_usuarias.html', contexto)

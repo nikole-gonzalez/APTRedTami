@@ -43,6 +43,7 @@
             <li><a href="{% url 'usuario_index' %}">Home</a></li>
             <li><a href="{% url 'panel_usuario' %}">Perfil de usuario</a></li>
             <li><a href="{% url 'agendamiento' %}">Historial de agendamiento</a></li>
+            <li><a href="{% url 'respuestas_usuarias' %}">Respuestas al cuestionario</a></li>
             <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
         </ul>
     </nav>
@@ -75,6 +76,17 @@
                         <h2>Agendamientos</h2>
                         <div class="content">
                             <p>Visualización de agendamientos a exámenes PAP</p>
+                        </div>
+                    </a>
+                </article>
+                <article class="style3">
+                    <span class="image">
+                        <img src="{% static 'images/pic03.jpg' %}" alt="" />
+                    </span>
+                    <a href="{% url 'respuestas_usuarias' %}">
+                        <h2>Respuestas al cuestionario</h2>
+                        <div class="content">
+                            <p>Visualización de las respuestas al cuestionario realizado en Whatsapp</p>
                         </div>
                     </a>
                 </article>

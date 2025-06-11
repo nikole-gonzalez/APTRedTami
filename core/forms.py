@@ -16,7 +16,18 @@ class RegistroForm(UserCreationForm):
         validators=[RegexValidator(r'^\d{9,12}$', 'Ingrese un número válido')],
         widget=forms.NumberInput(attrs={'class': 'input', 'placeholder': '912345678'})
     )
-    
+
+    telefono = forms.IntegerField(
+        label="Número de WhatsApp",
+        widget=forms.NumberInput(attrs={
+            'class': 'input',
+            'placeholder': '912345678',
+            'min': '900000000',
+            'max': '999999999'
+        }),
+        help_text="Ingresa tu número de WhatsApp empezando con 9 (ej: 912345678)"
+    )
+
     first_name = forms.CharField(
         label="Nombre",
         max_length=100,
@@ -50,10 +61,20 @@ class RegistroForm(UserCreationForm):
         return email
 
     def clean_telefono(self):
-        telefono = self.cleaned_data.get('telefono')
-        if not Usuario.objects.filter(num_whatsapp=telefono).exists():
-            raise forms.ValidationError("Este número de WhatsApp no está registrado en nuestro sistema.")
-        return telefono
+        telefono = str(self.cleaned_data.get('telefono'))
+        
+        if not telefono.startswith('9') or len(telefono) != 9:
+            raise forms.ValidationError("Debe ser un número de 9 dígitos que empiece con 9")
+        
+        try:
+            telefono_completo = int('56' + telefono)
+        except (ValueError, TypeError):
+            raise forms.ValidationError("Número inválido")
+        
+        if not Usuario.objects.filter(num_whatsapp=telefono_completo).exists():
+            raise forms.ValidationError("Número no registrado en el sistema")
+        
+        return telefono_completo
 
     def clean_rut(self):
         rut = self.cleaned_data.get('rut')
