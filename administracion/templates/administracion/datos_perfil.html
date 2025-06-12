@@ -20,13 +20,12 @@
         <table>
             <thead>
                 <tr>
-                    <td colspan="8"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
+                    <td colspan="7"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
                 </tr>
                 <tr>
                     <th>#</th>
                     <th>ID Manychat</th>
-                    <th>Rut Usuario</th>
-                    <th>Dígito verificador usuario</th>
+                    <th>Rut</th>
                     <th>Fecha de nacimiento</th>
                     <th>Whatsapp</th>
                     <th>Comuna</th>
@@ -38,8 +37,7 @@
                 <tr>
                     <td>{{ forloop.counter }}
                     <td>{{ dato.id_manychat }}</td>
-                    <td>{{ dato.rut_usuario }}</td>
-                    <td>{{ dato.dv_rut }}</td>
+                    <td>{{ dato.rut_usuario }}-{{ dato.dv_rut }}</td>
                     <td>{{ dato.fecha_nacimiento}}</td>
                     <td>{{ dato.num_whatsapp}}</td>
                     <td>{{ dato.cod_comuna }}</td>

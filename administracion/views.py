@@ -577,7 +577,6 @@ def crear_pdf_datos_frm1(request):
             return text
         return (text[:max_length-3] + '...') if len(text) > max_length else text
 
-    # 1. Configuración del documento PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -596,7 +595,6 @@ def crear_pdf_datos_frm1(request):
         leading=9
     ))
 
-    # 2. Obtener y preparar los datos
     respuestas = RespFRM.objects.select_related(
         'id_opc_frm__id_preg_frm', 'id_manychat'
     ).values(
@@ -622,7 +620,6 @@ def crear_pdf_datos_frm1(request):
             }
         dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    # 3. Preparar la tabla con estructura vertical (como en frm1 pero con estilo frm2)
     encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha']
     data = [encabezados]
 
@@ -635,7 +632,6 @@ def crear_pdf_datos_frm1(request):
                 datos['fecha']
             ])
 
-    # 4. Crear tabla con ajuste dinámico
     tabla = Table(data, repeatRows=1)
     
     # Calcular ancho de columnas
@@ -672,7 +668,6 @@ def crear_pdf_datos_frm1(request):
     
     tabla.setStyle(estilo)
 
-    # 5. Construir el documento
     elementos = [
         Paragraph("Factores de Riesgo Modificables V1", styles['Title']),
         Spacer(1, 0.5*cm),
@@ -685,7 +680,6 @@ def crear_pdf_datos_frm1(request):
 
     doc.build(elementos)
     
-    # 6. Retornar el PDF
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="FactoresMod_V1_vertical.pdf"'
@@ -697,8 +691,10 @@ def datos_FRM2(request):
     preguntas = PregFRM.objects.all()
     
     usuarios_respuestas = RespFRM.objects.select_related(
-        "id_opc_frm", "id_opc_frm__id_preg_frm"
+        "id_opc_frm", "id_opc_frm__id_preg_frm","id_manychat"
     ).values(
+        "id_manychat__rut_usuario",
+        "id_manychat__dv_rut",
         "id_manychat",  
         "fecha_respuesta_frm",
         "id_opc_frm__id_preg_frm__preg_frm",
@@ -709,11 +705,15 @@ def datos_FRM2(request):
 
     for respuesta in usuarios_respuestas:
         id_manychat = respuesta["id_manychat"]
+        rut = respuesta["id_manychat__rut_usuario"]
+        dv = respuesta["id_manychat__dv_rut"]
+        rut_completo = f"{rut}-{dv}"
         pregunta = respuesta["id_opc_frm__id_preg_frm__preg_frm"]
         respuesta_usuario = respuesta["id_opc_frm__opc_resp_frm"]
         
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
+                "rut_completo": rut_completo,
                 "fecha": respuesta["fecha_respuesta_frm"],
                 "respuestas": {}
             }
@@ -721,7 +721,7 @@ def datos_FRM2(request):
 
     # Convertir el diccionario a una lista de listas
     tabla_respuestas = [
-        [id_manychat] + [data["respuestas"].get(p.preg_frm, "-") for p in preguntas] + [data["fecha"]]
+        [id_manychat, data["rut_completo"]] + [data["respuestas"].get(p.preg_frm, "-") for p in preguntas] + [data["fecha"]]
         for id_manychat, data in dict_respuestas.items()
     ]
 
@@ -947,7 +947,6 @@ def crear_excel_datos_frnm1(request):
 
 @login_required
 def crear_pdf_datos_frnm1(request):
-    # 1. Obtener los datos
     respuestas = RespFRNM.objects.select_related(
         'id_opc_frnm__id_preg_frnm', 'id_manychat'
     ).values(
@@ -958,7 +957,6 @@ def crear_pdf_datos_frnm1(request):
         'fecha_respuesta_frnm'
     ).order_by('-fecha_respuesta_frnm')
 
-    # 2. Configuración del documento PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -969,7 +967,6 @@ def crear_pdf_datos_frnm1(request):
         bottomMargin=2*cm
     )
     
-    # Obtener estilos y agregar el estilo 'Small' si no existe
     styles = getSampleStyleSheet()
     if 'Small' not in styles:
         styles.add(ParagraphStyle(
@@ -979,7 +976,6 @@ def crear_pdf_datos_frnm1(request):
             leading=10
         ))
 
-    # 3. Preparar los datos para la tabla
     data = []
     encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
     data.append(encabezados)
@@ -993,7 +989,6 @@ def crear_pdf_datos_frnm1(request):
             fecha.strftime('%d/%m/%Y %H:%M') if fecha else 'Sin fecha'
         ])
 
-    # 4. Crear y estilizar la tabla
     tabla = Table(data, repeatRows=1)
     
     estilo = TableStyle([
@@ -1010,32 +1005,28 @@ def crear_pdf_datos_frnm1(request):
         ('WORDWRAP', (0, 0), (-1, -1), True),
     ])
     
-    # Ajustar ancho de columnas
     ancho_columnas = [7*cm, 8*cm, 6*cm, 4*cm]
     for i, width in enumerate(ancho_columnas):
         estilo.add('COLWIDTH', (i, 0), (i, -1), width)
     
-    # Filas alternadas
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
     tabla.setStyle(estilo)
 
-    # 5. Construir el documento PDF
     elementos = [
-        Paragraph("Factores de Riesgo No Modificables - Versión 1", styles['Title']),
+        Paragraph("Factores de Riesgo No Modificables V1", styles['Title']),
         Spacer(1, 0.5*cm),
         Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
         Spacer(1, 0.5*cm),
         tabla,
         Spacer(1, 0.3*cm),
-        Paragraph("Generado el: " + timezone.now().strftime('%d/%m/%Y %H:%M'), styles['Small'])  # Usando el estilo Small que acabamos de definir
+        Paragraph("Generado el: " + timezone.now().strftime('%d/%m/%Y %H:%M'), styles['Small'])  
     ]
 
     doc.build(elementos)
     
-    # 6. Retornar el PDF generado
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="FactoresNoMod_V1.pdf"'
@@ -1047,8 +1038,10 @@ def datos_FRNM2(request):
     preguntas = PregFRNM.objects.all()
     
     usuarios_respuestas = RespFRNM.objects.select_related(
-        "id_opc_frnm", "id_opc_frnm__id_preg_frnm"
+        "id_opc_frnm", "id_opc_frnm__id_preg_frnm","id_manychat"
     ).values(
+        "id_manychat__rut_usuario",
+        "id_manychat__dv_rut",
         "id_manychat", 
         "fecha_respuesta_frnm",
         "id_opc_frnm__id_preg_frnm__preg_frnm",
@@ -1059,11 +1052,15 @@ def datos_FRNM2(request):
 
     for respuesta in usuarios_respuestas:
         id_manychat = respuesta["id_manychat"]
+        rut = respuesta["id_manychat__rut_usuario"]
+        dv = respuesta["id_manychat__dv_rut"]
+        rut_completo = f"{rut}-{dv}"
         pregunta = respuesta["id_opc_frnm__id_preg_frnm__preg_frnm"]
         respuesta_usuario = respuesta["id_opc_frnm__opc_resp_frnm"]
         
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
+                "rut_completo": rut_completo,
                 "fecha": respuesta["fecha_respuesta_frnm"],
                 "respuestas": {}
             }
@@ -1071,7 +1068,7 @@ def datos_FRNM2(request):
 
     # Convertir el diccionario a una lista de listas
     tabla_respuestas = [
-        [id_manychat] + [data["respuestas"].get(p.preg_frnm, "-") for p in preguntas] + [data["fecha"]]
+         [id_manychat, data["rut_completo"]] + [data["respuestas"].get(p.preg_frnm, "-") for p in preguntas] + [data["fecha"]]
         for id_manychat, data in dict_respuestas.items()
     ]
 
@@ -1127,14 +1124,12 @@ def crear_excel_datos_frnm2(request):
 
 @login_required
 def crear_pdf_datos_frnm2(request):
-    # Función auxiliar interna para truncar texto
     def truncate_text(text, max_length):
         """Trunca texto largo agregando '...' si excede el máximo"""
         if not text:
             return text
         return (text[:max_length-3] + '...') if len(text) > max_length else text
 
-    # 1. Obtener y preparar los datos
     preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
     
     respuestas = RespFRNM.objects.select_related(
@@ -1147,7 +1142,6 @@ def crear_pdf_datos_frnm2(request):
         'fecha_respuesta_frnm'
     )
 
-    # Procesamiento de datos optimizado
     dict_respuestas = {}
     for respuesta in respuestas:
         rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
@@ -1159,7 +1153,6 @@ def crear_pdf_datos_frnm2(request):
             dict_respuestas[rut] = {'fecha': fecha, 'respuestas': {}}
         dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    # 2. Configuración del documento PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -1178,26 +1171,23 @@ def crear_pdf_datos_frnm2(request):
         leading=8
     ))
 
-    # 3. Preparar la tabla con textos truncados
     encabezados = ['RUT'] + [truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha']
     data = [encabezados]
 
     for rut, datos in dict_respuestas.items():
         fila = [rut]
         for p in preguntas:
-            respuesta = datos['respuestas'].get(p.preg_frnm, 'NR')  # NR = No Respondió
+            respuesta = datos['respuestas'].get(p.preg_frnm, 'NR')  
             fila.append(truncate_text(respuesta, 20))
         fila.append(datos['fecha'].strftime('%d/%m/%Y') if datos['fecha'] else 'S/F')
         data.append(fila)
 
-    # 4. Crear tabla con ajuste dinámico
     tabla = Table(data, repeatRows=1)
     
-    # Calcular ancho de columnas dinámicamente
-    ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
+    ancho_total = landscape(A4)[0] - 2*cm 
     ancho_rut = 6*cm
     ancho_fecha = 3*cm
-    ancho_preguntas = max(2.5*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))  # Mínimo 2.5cm
+    ancho_preguntas = max(2.5*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
     
     estilo = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')), 
@@ -1210,24 +1200,21 @@ def crear_pdf_datos_frnm2(request):
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
         ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ('WORDWRAP', (0, 0), (-1, -1), True),  # Ajuste de texto automático
-        ('LEADING', (0, 0), (-1, -1), 7),  # Espacio entre líneas
+        ('WORDWRAP', (0, 0), (-1, -1), True),  
+        ('LEADING', (0, 0), (-1, -1), 7), 
     ])
     
-    # Aplicar anchos de columna
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)  # Columna RUT
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut) 
     for i in range(1, len(preguntas)+1):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)  # Columnas de preguntas
-    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)  # Columna Fecha
+        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)  
+    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)  
     
-    # Filas alternadas para mejor legibilidad
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
     tabla.setStyle(estilo)
 
-    # 5. Construir el documento PDF
     elementos = [
         Paragraph("Factores de Riesgo No Modificables V2", styles['Title']),
         Spacer(1, 0.5*cm),
@@ -1240,7 +1227,6 @@ def crear_pdf_datos_frnm2(request):
 
     doc.build(elementos)
     
-    # 6. Retornar el PDF generado
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="FactoresRiesgoNoMod_V2.pdf"'
@@ -1304,7 +1290,6 @@ def crear_excel_datos_ds1(request):
 
 @login_required
 def crear_pdf_datos_ds1(request):
-    # Obtener los datos (similar a crear_excel_datos_ds1)
     respuestas = RespDS.objects.select_related(
         'id_opc_ds__id_preg_ds', 'id_manychat'
     ).values(
@@ -1313,16 +1298,13 @@ def crear_pdf_datos_ds1(request):
         'id_opc_ds__id_preg_ds__preg_ds',
         'id_opc_ds__opc_resp_ds',
         'fecha_respuesta_ds'
-    ).order_by('-fecha_respuesta_ds')  # Orden descendente por fecha como en datos_DS1
+    ).order_by('-fecha_respuesta_ds') 
 
-    # Preparar los datos para el PDF
     data = []
     
-    # Encabezados
     encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
     data.append(encabezados)
 
-    # Llenar con los datos
     for r in respuestas:
         fecha = r['fecha_respuesta_ds']
         data.append([
@@ -1332,15 +1314,12 @@ def crear_pdf_datos_ds1(request):
             fecha.strftime('%Y-%m-%d %H:%M') if fecha else 'Sin fecha'
         ])
 
-    # Crear el PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
     
-    # Crear la tabla
     tabla = Table(data)
     
-    # Estilo de la tabla (similar al estilo anterior)
     estilo = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -1353,35 +1332,27 @@ def crear_pdf_datos_ds1(request):
         ('FONTSIZE', (0, 1), (-1, -1), 9),
     ])
     
-    # Alternar colores de fila para mejor legibilidad
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
-    # Ajustar el ancho de las columnas
-    ancho_columnas = [100, 200, 150, 100]  # Ajustado para este formato
+    ancho_columnas = [100, 200, 150, 100] 
     for i, width in enumerate(ancho_columnas):
         estilo.add('COLWIDTH', (i, 0), (i, -1), width)
     
     tabla.setStyle(estilo)
     
-    # Construir el PDF
     elementos = []
     
-    # Título del documento
-    titulo = Paragraph("Determinantes Sociales - Versión 1", styles['Title'])
+    titulo = Paragraph("Determinantes Sociales V1", styles['Title'])
     elementos.append(titulo)
     
-    # Espacio después del título
     elementos.append(Paragraph("<br/><br/>", styles['Normal']))
     
-    # Agregar la tabla
     elementos.append(tabla)
     
-    # Generar el PDF
     doc.build(elementos)
     
-    # Preparar la respuesta
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="DeterminantesSociales_V1.pdf"'
@@ -1394,8 +1365,10 @@ def datos_DS2(request):
     preguntas = PregDS.objects.all()
     
     usuarios_respuestas = RespDS.objects.select_related(
-        "id_opc_ds", "id_opc_ds__id_preg_ds"
+        "id_opc_ds", "id_opc_ds__id_preg_ds", "id_manychat"
     ).values(
+        "id_manychat__rut_usuario",
+        "id_manychat__dv_rut",
         "id_manychat", 
         "fecha_respuesta_ds",
         "id_opc_ds__id_preg_ds__preg_ds",
@@ -1406,11 +1379,15 @@ def datos_DS2(request):
 
     for respuesta in usuarios_respuestas:
         id_manychat = respuesta["id_manychat"]
+        rut = respuesta["id_manychat__rut_usuario"]
+        dv = respuesta["id_manychat__dv_rut"]
+        rut_completo = f"{rut}-{dv}"
         pregunta = respuesta["id_opc_ds__id_preg_ds__preg_ds"]
         respuesta_usuario = respuesta["id_opc_ds__opc_resp_ds"]
         
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
+                "rut_completo": rut_completo,
                 "fecha": respuesta["fecha_respuesta_ds"],
                 "respuestas": {}
             }
@@ -1418,7 +1395,7 @@ def datos_DS2(request):
 
     # Convertir el diccionario a una lista de listas
     tabla_respuestas = [
-        [id_manychat] + [data["respuestas"].get(p.preg_ds, "-") for p in preguntas] + [data["fecha"]]
+        [id_manychat, data["rut_completo"]]+[data["respuestas"].get(p.preg_ds, "-") for p in preguntas] + [data["fecha"]]
         for id_manychat, data in dict_respuestas.items()
     ]
 
@@ -1474,10 +1451,8 @@ def crear_excel_datos_ds2(request):
 
 @login_required
 def crear_pdf_datos_ds2(request):
-    # Obtener preguntas ordenadas
     preguntas = PregDS.objects.all().order_by('id_preg_ds')
     
-    # Obtener respuestas agrupadas por RUT
     respuestas = RespDS.objects.select_related(
         'id_opc_ds__id_preg_ds', 'id_manychat'
     ).values(
@@ -1487,7 +1462,6 @@ def crear_pdf_datos_ds2(request):
         'id_opc_ds__opc_resp_ds'
     )
 
-    # Procesar datos para la tabla
     dict_respuestas = {}
     for respuesta in respuestas:
         rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
@@ -1498,14 +1472,11 @@ def crear_pdf_datos_ds2(request):
             dict_respuestas[rut] = {}
         dict_respuestas[rut][pregunta] = respuesta_usuario
 
-    # Preparar datos para el PDF
     data = []
     
-    # Encabezados (RUT + preguntas)
     encabezados = ['RUT'] + [pregunta.preg_ds for pregunta in preguntas]
     data.append(encabezados)
 
-    # Llenar con los datos
     for rut, respuestas_usuario in dict_respuestas.items():
         fila = [rut]
         for pregunta in preguntas:
@@ -1513,15 +1484,12 @@ def crear_pdf_datos_ds2(request):
             fila.append(respuesta)
         data.append(fila)
 
-    # Crear el PDF en formato horizontal (landscape) para mejor visualización
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
     styles = getSampleStyleSheet()
     
-    # Crear la tabla
     tabla = Table(data)
     
-    # Estilo de la tabla (similar al anterior pero adaptado)
     estilo = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),  
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -1534,12 +1502,10 @@ def crear_pdf_datos_ds2(request):
         ('FONTSIZE', (0, 1), (-1, -1), 7),  
     ])
     
-    # Alternar colores de fila
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
-    # Ajustar ancho columnas (primera columna más angosta para el RUT)
     ancho_rut = 60
     ancho_preguntas = (landscape(letter)[0] - ancho_rut) / len(preguntas)
     estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
@@ -1548,21 +1514,16 @@ def crear_pdf_datos_ds2(request):
     
     tabla.setStyle(estilo)
     
-    # Construir el PDF
     elementos = []
     
-    # Título del documento
-    titulo = Paragraph("Determinantes de Salud - Versión 2", styles['Title'])
+    titulo = Paragraph("Determinantes de Salud V2", styles['Title'])
     elementos.append(titulo)
     elementos.append(Paragraph("<br/><br/>", styles['Normal']))
     
-    # Agregar la tabla
     elementos.append(tabla)
     
-    # Generar el PDF
     doc.build(elementos)
     
-    # Preparar la respuesta
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="DeterminantesSalud_V2.pdf"'
@@ -1743,10 +1704,8 @@ def crear_pdf_listado_priorizado(request):
         )
     ).order_by('id_manychat')
 
-    # Preparar los datos para el PDF
     data = []
     
-    # Encabezados
     encabezados = [
         'ID ManyChat', 
         'RUT', 
@@ -1759,7 +1718,6 @@ def crear_pdf_listado_priorizado(request):
     ]
     data.append(encabezados)
 
-    # Llenar con los datos
     for usuario in usuarios:
         edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else 'No registrada'
         
@@ -1775,15 +1733,12 @@ def crear_pdf_listado_priorizado(request):
         ]
         data.append(fila)
 
-    # Crear el PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
     
-    # Crear la tabla
     tabla = Table(data)
     
-    # Estilo de la tabla
     estilo = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -1796,35 +1751,27 @@ def crear_pdf_listado_priorizado(request):
         ('FONTSIZE', (0, 1), (-1, -1), 8),
     ])
     
-    # Alternar colores de fila para mejor legibilidad
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
     tabla.setStyle(estilo)
     
-    # Ajustar el ancho de las columnas
     ancho_columnas = [60, 80, 80, 120, 40, 100, 60, 80]
     for i, width in enumerate(ancho_columnas):
         estilo.add('COLWIDTH', (i, 0), (i, -1), width)
     
-    # Construir el PDF
     elementos = []
     
-    # Título del documento
     titulo = Paragraph("Listado Priorizado de Usuarios", styles['Title'])
     elementos.append(titulo)
     
-    # Espacio después del título
     elementos.append(Paragraph("<br/><br/>", styles['Normal']))
     
-    # Agregar la tabla
     elementos.append(tabla)
     
-    # Generar el PDF
     doc.build(elementos)
     
-    # Preparar la respuesta
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="Listado_Priorizado.pdf"'
@@ -1871,13 +1818,10 @@ def crear_excel_preg_especialista(request):
   
 @login_required
 def crear_pdf_preg_especialista(request):
-    # Obtener los datos
     preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all().order_by("-fecha_pregunta_texto")
     
-    # Preparar los datos para el PDF
     data = []
     
-    # Encabezados
     encabezados = [
         'ID ManyChat', 
         'RUT', 
@@ -1886,7 +1830,6 @@ def crear_pdf_preg_especialista(request):
     ]
     data.append(encabezados)
 
-    # Llenar con los datos
     for pregunta in preguntas:
         fila = [
             str(pregunta.id_manychat),
@@ -1896,12 +1839,10 @@ def crear_pdf_preg_especialista(request):
         ]
         data.append(fila)
 
-    # Crear el PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
     
-    # Crear la tabla
     tabla = Table(data)
     
     estilo = TableStyle([
@@ -1916,35 +1857,27 @@ def crear_pdf_preg_especialista(request):
         ('FONTSIZE', (0, 1), (-1, -1), 8),
     ])
     
-    # Alternar colores de fila para mejor legibilidad
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
     tabla.setStyle(estilo)
     
-    # Ajustar el ancho de las columnas (adaptado a estos campos)
-    ancho_columnas = [60, 80, 200, 100]  # Ajustado para la pregunta más larga
+    ancho_columnas = [60, 80, 200, 100] 
     for i, width in enumerate(ancho_columnas):
         estilo.add('COLWIDTH', (i, 0), (i, -1), width)
     
-    # Construir el PDF
     elementos = []
     
-    # Título del documento
     titulo = Paragraph("Preguntas a Especialistas", styles['Title'])
     elementos.append(titulo)
     
-    # Espacio después del título
     elementos.append(Paragraph("<br/><br/>", styles['Normal']))
     
-    # Agregar la tabla
     elementos.append(tabla)
     
-    # Generar el PDF
     doc.build(elementos)
     
-    # Preparar la respuesta
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="Preguntas_Especialistas.pdf"'

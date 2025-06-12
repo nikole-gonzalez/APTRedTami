@@ -12,10 +12,11 @@
         <table border="1">
             <thead>
                 <tr>
-                    <td colspan="{{ preguntas|length|add:3 }}"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
+                    <td colspan="{{ preguntas|length|add:4 }}"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
                 </tr>
                 <tr>
                     <th>#</th> 
+                    <th>ID Manychat</th>
                     <th>Rut</th>
                     {% for pregunta in preguntas %}
                         <th>{{ pregunta.preg_ds }}</th>

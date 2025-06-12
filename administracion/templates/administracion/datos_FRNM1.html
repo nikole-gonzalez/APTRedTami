@@ -13,13 +13,12 @@
         <table border="1">
             <thead>
                 <tr>
-                    <td colspan="7"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
+                    <td colspan="6"><b>Total de respuestas: {{ page_obj.paginator.count }}</b></td>
                 </tr>
                 <tr>
                     <th>#</th>
                     <th>ID MANYCHAT</th>
                     <th>Rut</th>
-                    <th>Dígito verificador rut</th>
                     <th>Pregunta</th>
                     <th>Respuesta</th>
                     <th>Fecha Respuesta</th>
@@ -30,8 +29,7 @@
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ dato.id_manychat }}</td>
-                    <td>{{ dato.id_manychat__rut_usuario }}</td>
-                    <td>{{ dato.id_manychat__dv_rut }}</td>
+                    <td>{{ dato.id_manychat__rut_usuario }}-{{ dato.id_manychat__dv_rut }}</td>
                     <td>{{ dato.id_opc_frnm__id_preg_frnm__preg_frnm }}</td>
                     <td>{{ dato.id_opc_frnm__opc_resp_frnm }}</td>
                     <td>{{ dato.fecha_respuesta_frnm }}</td>
