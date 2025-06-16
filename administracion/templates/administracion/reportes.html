@@ -29,10 +29,15 @@
     <img src="data:imagen/png;base64,{{imagen_base64_usuarias_por_cesfam}}" alt="Usuarias por Cesfam", style="width: 45%; height: auto;">
     <br>
     <h2>Respuestas diarias por CESFAM</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_ingresos_diarios_por_cesfam}}" alt=" Respuestas diarias por Cesfam", style="width: 45%; height: auto;">
-    <br>
-
-    <br>
+    {% for cesfam, imagen_base64 in graficos_ingresos_cesfam.items %}
+        <h3>{{ cesfam }}</h3>
+        <img src="data:image/png;base64,{{ imagen_base64 }}" 
+             alt="Ingresos diarios {{ cesfam }}" 
+             style="width: 45%; height: auto; margin-bottom: 20px;">
+    {% empty %}
+        <p>No hay datos disponibles por CESFAM</p>
+    {% endfor %}
+    
     {% else %}
         <p>No hay reportes disponibles en este momento.</p>
     {% endif %}
