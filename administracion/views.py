@@ -145,9 +145,9 @@ def calcular_edad(fecha_nacimiento):
 
 plt.rcParams['font.family'] = 'sans-serif'  
 plt.rcParams['font.sans-serif'] = 'Calibri' 
-plt.rcParams['font.size'] = 11
-plt.rcParams['axes.titlesize'] =20
-plt.rcParams['axes.labelsize']= 13
+plt.rcParams['font.size'] = 14
+plt.rcParams['axes.titlesize'] =23
+plt.rcParams['axes.labelsize']= 14
 plt.rcParams['axes.labelpad']=10
 
 def generar_grafico_personas_por_genero():
