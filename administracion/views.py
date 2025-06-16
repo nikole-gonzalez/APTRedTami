@@ -132,9 +132,9 @@ def reportes(request):
 
 def convertir_grafico_a_base64():
     buffer = BytesIO()
-    plt.savefig(buffer, format="png")
-    buffer.seek(0)
+    plt.savefig(buffer, format="png", dpi=100, bbox_inches='tight')
     plt.close()
+    buffer.seek(0)
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 def calcular_edad(fecha_nacimiento):
@@ -444,8 +444,7 @@ def generar_grafico_usuarios_por_cesfam():
 
 def generar_graficos_ingresos_diarios_por_cesfam():
     try:
-       
-        cesfams = Cesfam.objects.all().values_list('nombre_cesfam', flat=True)
+        cesfams = Cesfam.objects.all()
         
         if not cesfams:
             print("No hay CESFAMs registrados en el sistema")
@@ -454,12 +453,12 @@ def generar_graficos_ingresos_diarios_por_cesfam():
         graficos_por_cesfam = {}
         colores = ['#4e79a7', '#e15759', '#76b7b2', '#59a14f', '#edc948']
         
-        for i, cesfam_nombre in enumerate(cesfams):
+        for i, cesfam in enumerate(cesfams):
             try:
                 datos = (
                     Usuario.objects
-                    .filter(cesfam_usuario__nombre_cesfam=cesfam_nombre, fecha_ingreso__isnull=False)
-                    .annotate(fecha=TruncDate('fecha_ingreso'))
+                    .filter(cesfam_usuario__id_cesfam=cesfam.id_cesfam, fecha_ingreso__isnull=False)
+                    .extra({'fecha': "DATE(fecha_ingreso)"})   
                     .values('fecha')
                     .annotate(cantidad=Count('id_manychat'))
                     .order_by('fecha')
@@ -468,12 +467,12 @@ def generar_graficos_ingresos_diarios_por_cesfam():
                 datos_validos = [d for d in datos if d['fecha'] is not None]
                 
                 if not datos_validos:
-                    print(f"No hay datos válidos para {cesfam_nombre}")
+                    print(f"No hay datos válidos para {cesfam.nombre_cesfam}")
                     plt.figure(figsize=(12, 6))
                     plt.text(0.5, 0.5, 'Sin datos disponibles', 
                             ha='center', va='center', fontsize=12)
-                    plt.title(f"Ingresos Diarios - {cesfam_nombre}", pad=20)
-                    graficos_por_cesfam[cesfam_nombre] = convertir_grafico_a_base64()
+                    plt.title(f"Ingresos Diarios - {cesfam.nombre_cesfam}", pad=20)
+                    graficos_por_cesfam[cesfam.nombre_cesfam] = convertir_grafico_a_base64()
                     continue
 
                 fechas = [d['fecha'].strftime("%d-%m-%Y") for d in datos_validos]
@@ -485,7 +484,7 @@ def generar_graficos_ingresos_diarios_por_cesfam():
                 
                 plt.xlabel("Fecha", fontsize=12)
                 plt.ylabel("Ingresos Diarios", fontsize=12)
-                plt.title(f"Ingresos Diarios - {cesfam_nombre}", pad=20, fontsize=14)
+                plt.title(f"Ingresos Diarios - {cesfam.nombre_cesfam}", pad=20, fontsize=14)
                 plt.xticks(rotation=45, ha='right')
                 plt.grid(True, linestyle='--', alpha=0.3)
                 
@@ -500,10 +499,10 @@ def generar_graficos_ingresos_diarios_por_cesfam():
                     )
                 
                 plt.tight_layout()
-                graficos_por_cesfam[cesfam_nombre] = convertir_grafico_a_base64()
+                graficos_por_cesfam[cesfam.nombre_cesfam] = convertir_grafico_a_base64()
 
             except Exception as e:
-                print(f"Error generando gráfico para {cesfam_nombre}: {str(e)}")
+                print(f"Error generando gráfico para {cesfam.nombre_cesfam}: {str(e)}")
                 continue
 
         return graficos_por_cesfam if graficos_por_cesfam else None
@@ -511,6 +510,7 @@ def generar_graficos_ingresos_diarios_por_cesfam():
     except Exception as e:
         print(f"Error general en generar_grafico_ingresos_diarios_por_cesfam: {str(e)}")
         return None
+
 
 # ------------------------------------------------------------------ #
 # ---------------------- Respuestas Usuarias ----------------------- #
