@@ -125,7 +125,7 @@ def reportes(request):
         "imagen_base64_usuarias_por_edad": grafico_usuarias_edad,
         "imagen_base64_usuarias_por_cesfam": grafico_usuarias_cesfam,
         "imagen_base64_ingresos_diarios_por_cesfam": grafico_ingresos_diarios_cesfam,
-        "imagen_base64_realizado_pap_por_cesfam": grafico_realizado_pap_cesfam,
+        "imagen_base64_pap_por_cesfam": grafico_realizado_pap_cesfam,
         "hay_datos": grafico_genero or grafico_comuna or grafico_pap_tres_anios or grafico_escolaridad
             or grafico_anio_nac or grafico_resp_diarias or grafico_usuarias_edad or grafico_usuarias_cesfam or 
             grafico_ingresos_diarios_cesfam
@@ -561,9 +561,6 @@ def generar_grafico_realizado_pap_por_cesfam():
         print(f"Error al generar gráfico de PAP por CESFAM: {str(e)}")
         return None
     
-
-
-
 # ------------------------------------------------------------------ #
 # ---------------------- Respuestas Usuarias ----------------------- #
 # ------------------------------------------------------------------ #
