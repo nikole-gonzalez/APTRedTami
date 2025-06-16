@@ -67,6 +67,7 @@ urlpatterns = [
     path('crear_pdf_datos_ds2/', views.crear_pdf_datos_ds2, name="crear_pdf_datos_ds2"),
     path('crear_pdf_listado_priorizado/', views.crear_pdf_listado_priorizado, name="crear_pdf_listado_priorizado"),
     path('crear_pdf_preg_especialista/', views.crear_pdf_preg_especialista, name="crear_pdf_preg_especialista"),
+    path('crear_pdf_datos_tamizaje/', views.crear_pdf_datos_tamizaje, name='crear_pdf_datos_tamizaje'),
 
     #Historial agendamientos
     path('descargar-json/<int:cesfam_id>/', views.generar_json_por_cesfam, name='descargar_json_por_cesfam'),
