@@ -513,47 +513,51 @@ def generar_graficos_ingresos_diarios_por_cesfam():
         print(f"Error general en generar_grafico_ingresos_diarios_por_cesfam: {str(e)}")
         return None
 
-def generar_grafico_realizado_pap_por_cesfam():
+def generar_grafico_realizado_pap_por_cesfam(): 
     try:
-        cesfams = Cesfam.objects.all()
-        if not cesfams:
-            print("No hay CESFAMs registrados.")
+        from administracion.models import Usuario, RespTM
+        from usuario.models import Cesfam
+        from django.db.models import Count
+
+        usuarios_ids_con_si = RespTM.objects.filter(
+            id_opc_tm__id_opc_tm=1
+        ).values_list('id_manychat', flat=True)
+
+        usuarios_con_si = Usuario.objects.filter(
+            id_manychat__in=usuarios_ids_con_si,
+            cesfam_usuario__isnull=False
+        )
+
+        conteo_por_cesfam = usuarios_con_si.values(
+            'cesfam_usuario__nombre_cesfam'
+        ).annotate(
+            cantidad=Count('id_manychat')
+        ).order_by('cesfam_usuario__nombre_cesfam')
+
+        if not conteo_por_cesfam:
+            print("No hay datos para mostrar el gráfico de PAP.")
             return None
 
-        datos_por_cesfam = {}
-        colores = ['#79addc', '#EFB0C9', '#A5F8CE', '#f4a261', '#2a9d8f']
+        labels = [item['cesfam_usuario__nombre_cesfam'] for item in conteo_por_cesfam]
+        sizes = [item['cantidad'] for item in conteo_por_cesfam]
+        colores = ['#79addc', '#EFB0C9', '#A5F8CE', '#f4a261', '#2a9d8f', '#cdb4db', '#90be6d', '#f28482'] * 2
 
-        for i, cesfam in enumerate(cesfams):
+        fig, ax = plt.subplots(figsize=(8, 8))
+        wedges, texts, autotexts = ax.pie(
+            sizes,
+            labels=labels,
+            autopct='%1.1f%%',
+            startangle=90,
+            colors=colores[:len(labels)]
+        )
 
-            usuarios_ids = Usuario.objects.filter(cesfam_usuario=cesfam).values_list('id_manychat', flat=True)
+        plt.title('Personas que respondieron SÍ al PAP en los últimos 3 años (por CESFAM)', pad=20)
+        plt.tight_layout()
 
-            # Filtrar respuestas de esos usuarios que dijeron que SÍ se han hecho el PAP (id_opc_tm = 1)
-            total_pap = RespTM.objects.filter(
-                id_manychat__in=usuarios_ids,
-                id_opc_tm__id_opc_tm=1
-            ).count()
-
-            if total_pap == 0:
-                print(f"No hay respuestas en {cesfam.nombre_cesfam}")
-                continue
-
-            fig, ax = plt.subplots(figsize=(6, 6))
-            ax.pie(
-                [total_pap],
-                labels=["Sí"],
-                autopct='%1.1f%%',
-                startangle=90,
-                colors=[colores[i % len(colores)]]
-            )
-            plt.title(f'PAP realizado en - {cesfam.nombre_cesfam}')
-            plt.tight_layout()
-
-            datos_por_cesfam[cesfam.nombre_cesfam] = convertir_grafico_a_base64()
-
-        return datos_por_cesfam if datos_por_cesfam else None
+        return {'Total': convertir_grafico_a_base64()}
 
     except Exception as e:
-        print(f"Error al generar gráficos de PAP por CESFAM: {str(e)}")
+        print(f"Error al generar gráfico de PAP por CESFAM: {str(e)}")
         return None
 
 
