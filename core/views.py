@@ -54,7 +54,7 @@ def registro_view(request):
                 user = form.save()
                 login(request, user)
                 messages.success(request, "¡Registro exitoso!")
-                return redirect('pag_informativa')
+                return redirect('usuario_index')
             except forms.ValidationError as e:
                 # Añade el error al formulario sin hacer raise
                 form.add_error(None, e)
