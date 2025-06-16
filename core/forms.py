@@ -121,7 +121,8 @@ class RegistroForm(UserCreationForm):
                 user=user,
                 usuario_sist=usuario_manychat,
                 telefono=telefono,
-                cod_acceso=rut,
+                rut_usuario=rut_sin_dv,
+                dv_rut=dv, 
                 tipo_usuario='paciente'
             )
 
