@@ -113,7 +113,7 @@ def reportes(request):
     grafico_resp_diarias = generar_grafico_respuestas_por_dia()
     grafico_usuarias_edad = generar_grafico_usuario_por_edad()
     grafico_usuarias_cesfam = generar_grafico_usuarios_por_cesfam()
-    grafico_ingresos_diarios_cesfam = generar_graficos_ingresos_diarios_por_cesfam()
+    grafico_ingresos_diarios_cesfam = generar_graficos_ingresos_diarios_por_cesfam() 
     data = {
         "imagen_base64_personas_por_genero": grafico_genero,
         "imagen_base64_ingresos_por_comuna": grafico_comuna,
@@ -130,16 +130,12 @@ def reportes(request):
     }
     return render(request, 'administracion/reportes.html', data)
 
-# Función para convertir los gráficos a base64
-
 def convertir_grafico_a_base64():
     buffer = BytesIO()
     plt.savefig(buffer, format="png")
     buffer.seek(0)
     plt.close()
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-#Función para calcular la edad 
 
 def calcular_edad(fecha_nacimiento):
     today = date.today()
@@ -298,7 +294,6 @@ def generar_grafico_escolaridad():
         except OpcDS.DoesNotExist:
             continue
 
-    # Crear gráfico circular
     fig, ax = plt.subplots(figsize=(8, 8))
     wedges, texts, autotexts = ax.pie(
         sizes,
@@ -412,7 +407,6 @@ def generar_grafico_usuario_por_edad():
     return convertir_grafico_a_base64()
 
 def generar_grafico_usuarios_por_cesfam():
-    # Obtener datos usando ORM
     datos = (
         Usuario.objects
         .filter(cesfam_usuario__isnull=False)  
@@ -421,14 +415,12 @@ def generar_grafico_usuarios_por_cesfam():
         .order_by('-total')  
     )
 
-    # Extraer nombres de CESFAM y totales
     cesfams = [dato['cesfam_usuario__nombre_cesfam'] for dato in datos]
     totales = [dato['total'] for dato in datos]
 
     if not cesfams:
         return None  
 
-    # Configurar el gráfico
     plt.figure(figsize=(12, 7))
 
     colores = ['#79addc', '#EFB0C9', '#A5F8CE', '#FFD166', '#06D6A0']
@@ -451,69 +443,74 @@ def generar_grafico_usuarios_por_cesfam():
     return convertir_grafico_a_base64()
 
 def generar_graficos_ingresos_diarios_por_cesfam():
-    """Genera gráficos separados de ingresos diarios para cada CESFAM"""
-    try:         
-        # Obtenemos la lista de CESFAMs
+    try:
+       
         cesfams = Cesfam.objects.all().values_list('nombre_cesfam', flat=True)
         
         if not cesfams:
-            print("No hay CESFAMs registrados")
+            print("No hay CESFAMs registrados en el sistema")
             return None
 
-        # Diccionario para almacenar los gráficos
         graficos_por_cesfam = {}
-
-        for cesfam in cesfams:
-            # Consulta para un CESFAM específico
-            datos = (
-                Usuario.objects
-                .filter(cesfam_usuario__nombre_cesfam=cesfam, fecha_ingreso__isnull=False)
-                .annotate(fecha=TruncDate('fecha_ingreso'))
-                .values('fecha')
-                .annotate(cantidad=Count('id_manychat'))
-                .order_by('fecha')
-            )
-
-            # Procesamiento de datos
-            fechas = [dato['fecha'].strftime("%d-%m-%Y") for dato in datos if dato['fecha']]
-            cantidades = [dato['cantidad'] for dato in datos if dato['fecha']]
-
-            if not fechas:
-                print(f"No hay datos para el CESFAM: {cesfam}")
-                continue
-
-            # Creación del gráfico individual
-            plt.figure(figsize=(12, 6))
-            plt.plot(fechas, cantidades, marker="o", linestyle="-", color="#79addc")
-            
-            # Personalización
-            plt.xlabel("Fecha")
-            plt.ylabel("Número de Ingresos")
-            plt.title(f"Ingresos Diarios - {cesfam}", pad=20)
-            plt.xticks(rotation=45)
-            plt.grid(True, linestyle='--', alpha=0.3)
-            plt.tight_layout()
-
-            # Añadir anotaciones
-            for fecha, cantidad in zip(fechas, cantidades):
-                plt.annotate(
-                    f"{cantidad}", 
-                    (fecha, cantidad), 
-                    textcoords="offset points", 
-                    xytext=(0,5), 
-                    ha='center'
+        colores = ['#4e79a7', '#e15759', '#76b7b2', '#59a14f', '#edc948']
+        
+        for i, cesfam_nombre in enumerate(cesfams):
+            try:
+                datos = (
+                    Usuario.objects
+                    .filter(cesfam_usuario__nombre_cesfam=cesfam_nombre, fecha_ingreso__isnull=False)
+                    .annotate(fecha=TruncDate('fecha_ingreso'))
+                    .values('fecha')
+                    .annotate(cantidad=Count('id_manychat'))
+                    .order_by('fecha')
                 )
 
-            # Convertir a base64 y guardar
-            graficos_por_cesfam[cesfam] = convertir_grafico_a_base64()
+                datos_validos = [d for d in datos if d['fecha'] is not None]
+                
+                if not datos_validos:
+                    print(f"No hay datos válidos para {cesfam_nombre}")
+                    plt.figure(figsize=(12, 6))
+                    plt.text(0.5, 0.5, 'Sin datos disponibles', 
+                            ha='center', va='center', fontsize=12)
+                    plt.title(f"Ingresos Diarios - {cesfam_nombre}", pad=20)
+                    graficos_por_cesfam[cesfam_nombre] = convertir_grafico_a_base64()
+                    continue
+
+                fechas = [d['fecha'].strftime("%d-%m-%Y") for d in datos_validos]
+                cantidades = [d['cantidad'] for d in datos_validos]
+
+                plt.figure(figsize=(12, 6))
+                plt.plot(fechas, cantidades, marker="o", linestyle="-", 
+                        color=colores[i % len(colores)], linewidth=2.5, markersize=8)
+                
+                plt.xlabel("Fecha", fontsize=12)
+                plt.ylabel("Ingresos Diarios", fontsize=12)
+                plt.title(f"Ingresos Diarios - {cesfam_nombre}", pad=20, fontsize=14)
+                plt.xticks(rotation=45, ha='right')
+                plt.grid(True, linestyle='--', alpha=0.3)
+                
+                for fecha, cantidad in zip(fechas, cantidades):
+                    plt.annotate(
+                        f"{cantidad}",
+                        (fecha, cantidad),
+                        textcoords="offset points",
+                        xytext=(0, 5),
+                        ha='center',
+                        fontsize=9
+                    )
+                
+                plt.tight_layout()
+                graficos_por_cesfam[cesfam_nombre] = convertir_grafico_a_base64()
+
+            except Exception as e:
+                print(f"Error generando gráfico para {cesfam_nombre}: {str(e)}")
+                continue
 
         return graficos_por_cesfam if graficos_por_cesfam else None
 
     except Exception as e:
-        print(f"Error generando gráficos por CESFAM: {str(e)}")
+        print(f"Error general en generar_grafico_ingresos_diarios_por_cesfam: {str(e)}")
         return None
-
-
 
 # ------------------------------------------------------------------ #
 # ---------------------- Respuestas Usuarias ----------------------- #
