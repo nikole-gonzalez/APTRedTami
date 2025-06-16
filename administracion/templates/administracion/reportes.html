@@ -37,6 +37,13 @@
     {% empty %}
         <p>No hay datos disponibles por CESFAM</p>
     {% endfor %}
+    <br>
+    <h2>PAP en los últimos 3 años por CESFAM</h2>
+    {% if imagen_base64_pap_por_cesfam %}
+    <img src="data:image/png;base64,{{ imagen_base64_pap_por_cesfam }}" alt="Gráfico PAP" style="width: 50%;">
+    {% else %}
+    <p>No hay datos para mostrar el gráfico de PAP.</p>
+    {% endif %}
     
     {% else %}
         <p>No hay reportes disponibles en este momento.</p>

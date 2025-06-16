@@ -113,7 +113,8 @@ def reportes(request):
     grafico_resp_diarias = generar_grafico_respuestas_por_dia()
     grafico_usuarias_edad = generar_grafico_usuario_por_edad()
     grafico_usuarias_cesfam = generar_grafico_usuarios_por_cesfam()
-    grafico_ingresos_diarios_cesfam = generar_graficos_ingresos_diarios_por_cesfam() 
+    grafico_ingresos_diarios_cesfam = generar_graficos_ingresos_diarios_por_cesfam()
+    grafico_realizado_pap_cesfam = generar_grafico_realizado_pap_por_cesfam()
     data = {
         "imagen_base64_personas_por_genero": grafico_genero,
         "imagen_base64_ingresos_por_comuna": grafico_comuna,
@@ -124,6 +125,7 @@ def reportes(request):
         "imagen_base64_usuarias_por_edad": grafico_usuarias_edad,
         "imagen_base64_usuarias_por_cesfam": grafico_usuarias_cesfam,
         "imagen_base64_ingresos_diarios_por_cesfam": grafico_ingresos_diarios_cesfam,
+        "imagen_base64_realizado_pap_por_cesfam": grafico_realizado_pap_cesfam,
         "hay_datos": grafico_genero or grafico_comuna or grafico_pap_tres_anios or grafico_escolaridad
             or grafico_anio_nac or grafico_resp_diarias or grafico_usuarias_edad or grafico_usuarias_cesfam or 
             grafico_ingresos_diarios_cesfam
@@ -509,6 +511,49 @@ def generar_graficos_ingresos_diarios_por_cesfam():
 
     except Exception as e:
         print(f"Error general en generar_grafico_ingresos_diarios_por_cesfam: {str(e)}")
+        return None
+
+def generar_grafico_realizado_pap_por_cesfam():
+    try:
+        cesfams = Cesfam.objects.all()
+        if not cesfams:
+            print("No hay CESFAMs registrados.")
+            return None
+
+        datos_por_cesfam = {}
+        colores = ['#79addc', '#EFB0C9', '#A5F8CE', '#f4a261', '#2a9d8f']
+
+        for i, cesfam in enumerate(cesfams):
+
+            usuarios_ids = Usuario.objects.filter(cesfam_usuario=cesfam).values_list('id_manychat', flat=True)
+
+            # Filtrar respuestas de esos usuarios que dijeron que SÍ se han hecho el PAP (id_opc_tm = 1)
+            total_pap = RespTM.objects.filter(
+                id_manychat__in=usuarios_ids,
+                id_opc_tm__id_opc_tm=1
+            ).count()
+
+            if total_pap == 0:
+                print(f"No hay respuestas en {cesfam.nombre_cesfam}")
+                continue
+
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.pie(
+                [total_pap],
+                labels=["Sí"],
+                autopct='%1.1f%%',
+                startangle=90,
+                colors=[colores[i % len(colores)]]
+            )
+            plt.title(f'PAP realizado en - {cesfam.nombre_cesfam}')
+            plt.tight_layout()
+
+            datos_por_cesfam[cesfam.nombre_cesfam] = convertir_grafico_a_base64()
+
+        return datos_por_cesfam if datos_por_cesfam else None
+
+    except Exception as e:
+        print(f"Error al generar gráficos de PAP por CESFAM: {str(e)}")
         return None
 
 
