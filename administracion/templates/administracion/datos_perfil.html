@@ -38,10 +38,10 @@
                     <td>{{ forloop.counter }}
                     <td>{{ dato.id_manychat }}</td>
                     <td>{{ dato.rut_usuario }}-{{ dato.dv_rut }}</td>
-                    <td>{{ dato.fecha_nacimiento}}</td>
+                    <td>{{ dato.fecha_nacimiento|date:"d-m-Y"}}</td>
                     <td>{{ dato.num_whatsapp}}</td>
-                    <td>{{ dato.cod_comuna }}</td>
-                    <td>{{ dato.fecha_ingreso }}</td>
+                    <td>{{ dato.cod_comuna.nombre_comuna }}</td>
+                    <td>{{ dato.fecha_ingreso|date:"d-m-Y H:i:s" }}</td>
                 {% endfor %}
             </tbody>
         </table>

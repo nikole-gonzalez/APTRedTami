@@ -32,7 +32,7 @@
                     <td>{{ dato.id_manychat__rut_usuario }}-{{ dato.id_manychat__dv_rut }}</td>
                     <td>{{ dato.id_opc_ds__id_preg_ds__preg_ds }}</td>
                     <td>{{ dato.id_opc_ds__opc_resp_ds }}</td>
-                    <td>{{ dato.fecha_respuesta_ds }}</td>
+                    <td>{{ dato.fecha_respuesta_ds|date:"d-m-Y H:i:s" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

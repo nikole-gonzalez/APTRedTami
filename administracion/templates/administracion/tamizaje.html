@@ -30,7 +30,7 @@
                     <td>{{ dato.id_manychat__rut_usuario }}-{{ dato.id_manychat__dv_rut }}</td>
                     <td>{{ dato.id_opc_tm__id_preg_tm__preg_tm }}</td>
                     <td>{{ dato.id_opc_tm__opc_resp_tm }}</td>
-                    <td>{{ dato.fecha_respuesta_tm }}</td>
+                    <td>{{ dato.fecha_respuesta_tm|date:"d-m-Y H:i:s" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -56,12 +56,17 @@
     {% else %}
     <p>No hay datos ingresados</p>
     {% endif %}
+
     <div style="text-align: center;">
         <form action="{% url 'crear_excel_datos_tamizaje' %}" method="post">
             {% csrf_token %}
             <button type="submit">Descargar como Excel</button>
         </form>
+        <a href="{% url 'crear_pdf_datos_tamizaje' %}" class="btn btn-danger">
+            <i class="fas fa-file-pdf"></i> Exportar a PDF
+        </a>
     </div>
+
     <a class="button" href="{% url 'respuestas' %}">Volver</a>
 </section>
 
