@@ -11,40 +11,40 @@
     <div class="chart-container">
     {% if hay_datos %}
     <h2>Año de nacimiento</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_anio_nacimiento}}" alt="Año de nacimiento", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_anio_nacimiento}}" alt="Año de nacimiento", style="width: 90%; height: auto;">
     <h2>Usuarias/os por edad</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_usuarias_por_edad}}" alt="Usuaria/os por edad", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_usuarias_por_edad}}" alt="Usuaria/os por edad", style="width: 85%; height: auto;">
     <h2>Género</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_personas_por_genero}}" alt="Género", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_personas_por_genero}}" alt="Género", style="width: 80%; height: auto;">
     <h2>Comuna</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_ingresos_por_comuna}}" alt="Comuna", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_ingresos_por_comuna}}" alt="Comuna", style="width: 75%; height: auto;">
     <h2>PAP en los últimos 3 años</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_realizado_pap_tres_anios}}" alt="PAP realizado", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_realizado_pap_tres_anios}}" alt="PAP realizado", style="width: 70%; height: auto;">
+    <h2>PAP en los últimos 3 años por CESFAM</h2>
+    {% if imagen_base64_pap_por_cesfam %}
+    <img src="data:image/png;base64,{{ imagen_base64_pap_por_cesfam }}" alt="Gráfico PAP" style="width: 65%;">
+    {% else %}
+    <p>No hay datos para mostrar el gráfico de PAP.</p>
+    {% endif %}
     <h2>Escolaridad</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_escolaridad}}" alt="Escolaridad", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_escolaridad}}" alt="Escolaridad", style="width: 60%; height: auto;">
     <h2>Respuestas por día</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_resp_por_dia}}" alt="Respuestas por día", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_resp_por_dia}}" alt="Respuestas por día", style="width: 90%; height: auto;">
     <br>
     <h2>Usuarias/os por CESFAM</h2>
-    <img src="data:imagen/png;base64,{{imagen_base64_usuarias_por_cesfam}}" alt="Usuarias por Cesfam", style="width: 45%; height: auto;">
+    <img src="data:imagen/png;base64,{{imagen_base64_usuarias_por_cesfam}}" alt="Usuarias por Cesfam", style="width: 80%; height: auto;">
     <br>
     <h2>Respuestas diarias por CESFAM</h2>
     {% for cesfam, imagen_base64 in imagen_base64_ingresos_diarios_por_cesfam.items %}
         <h3>{{ cesfam }}</h3>
         <img src="data:image/png;base64,{{ imagen_base64 }}" 
              alt="Ingresos diarios {{ cesfam }}" 
-             style="width: 45%; height: auto; margin-bottom: 20px;">
+             style="width: 100%; height: auto; margin-bottom: 20px;">
     {% empty %}
         <p>No hay datos disponibles por CESFAM</p>
     {% endfor %}
     <br>
-    <h2>PAP en los últimos 3 años por CESFAM</h2>
-    {% if imagen_base64_pap_por_cesfam %}
-    <img src="data:image/png;base64,{{ imagen_base64_pap_por_cesfam }}" alt="Gráfico PAP" style="width: 50%;">
-    {% else %}
-    <p>No hay datos para mostrar el gráfico de PAP.</p>
-    {% endif %}
-    
+   
     {% else %}
         <p>No hay reportes disponibles en este momento.</p>
     {% endif %}
