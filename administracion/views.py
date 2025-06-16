@@ -513,32 +513,35 @@ def generar_graficos_ingresos_diarios_por_cesfam():
         print(f"Error general en generar_grafico_ingresos_diarios_por_cesfam: {str(e)}")
         return None
 
-def generar_grafico_realizado_pap_por_cesfam(): 
+def generar_grafico_realizado_pap_por_cesfam():
     try:
-        usuarios_ids_con_si = RespTM.objects.filter(
-            id_opc_tm__id_opc_tm=1
-        ).values_list('id_manychat', flat=True).distinct()
-
-        usuarios_con_si = Usuario.objects.filter(
-            id_manychat__in=usuarios_ids_con_si,
-            cesfam_usuario__isnull=False
-        )
-
-        # Contar usuarios por CESFAM
-        conteo_por_cesfam = usuarios_con_si.values(
-            'cesfam_usuario__nombre_cesfam'
-        ).annotate(
-            cantidad=Count('id_manychat')
-        ).order_by('cesfam_usuario__nombre_cesfam')
-
-        if not conteo_por_cesfam:
-            print("No hay datos para mostrar el gráfico de PAP")
+        cesfams = Cesfam.objects.all()
+        if not cesfams:
+            print("No hay CESFAMs registrados.")
             return None
 
-        etiquetas = [item['cesfam_usuario__nombre_cesfam'] for item in conteo_por_cesfam]
-        cantidades = [item['cantidad'] for item in conteo_por_cesfam]
+        etiquetas = []
+        cantidades = []
 
-        colores = plt.cm.tab20.colors  # paleta de colores
+        for cesfam in cesfams:
+            usuarios_ids = Usuario.objects.filter(
+                cesfam_usuario=cesfam
+            ).values_list('id_manychat', flat=True)
+
+            cantidad_si = RespTM.objects.filter(
+                id_manychat__in=usuarios_ids,
+                id_opc_tm__id_opc_tm=1
+            ).count()
+
+            if cantidad_si > 0:
+                etiquetas.append(cesfam.nombre_cesfam)
+                cantidades.append(cantidad_si)
+
+        if not cantidades:
+            print("No hay datos para mostrar el gráfico de PAP.")
+            return None
+
+        colores = plt.cm.tab20.colors
 
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.pie(
@@ -557,6 +560,9 @@ def generar_grafico_realizado_pap_por_cesfam():
     except Exception as e:
         print(f"Error al generar gráfico de PAP por CESFAM: {str(e)}")
         return None
+    
+
+
 
 # ------------------------------------------------------------------ #
 # ---------------------- Respuestas Usuarias ----------------------- #
