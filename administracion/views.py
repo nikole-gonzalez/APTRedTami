@@ -335,6 +335,7 @@ def generar_grafico_anio_nacimiento():
     plt.bar(anios, cantidades, color="#79addc")
     plt.xlabel("Año de Nacimiento")
     plt.ylabel("Número de Usuarios")
+    plt.yticks(range(0, max(cantidades) + 1))
     plt.title("Usuarias por Año de Nacimiento", pad=20)
     plt.xticks(range(min(anios), max(anios)+1, 1), rotation=90)
 
@@ -368,6 +369,7 @@ def generar_grafico_respuestas_por_dia():
     plt.plot(fechas, cantidades, marker="o", linestyle="-", color="#79addc")
     plt.xlabel("Fecha de Respuesta")
     plt.ylabel("Número de Respuestas")
+    plt.yticks(range(0, max(cantidades) + 1))
     plt.title("Respuestas por Día", pad=20)
     plt.xticks(rotation=90)
     plt.tight_layout()
@@ -398,6 +400,7 @@ def generar_grafico_usuario_por_edad():
     plt.bar(edades_ordenadas, cantidades, color="#79addc")
     plt.xlabel("Edad")
     plt.ylabel("Número de Usuarias")
+    plt.yticks(range(0, max(cantidades) + 1))
     plt.title("Usuarias por edad", pad=20)
     
     if edades_ordenadas:
@@ -437,6 +440,7 @@ def generar_grafico_usuarios_por_cesfam():
     
     plt.xlabel('CESFAM', labelpad=15)
     plt.ylabel('Número de Usuarios', labelpad=15)
+    plt.yticks(range(0, max(totales) + 1))
     plt.title('Distribución de Usuarios por CESFAM', pad=20)
     plt.xticks(rotation=45, ha='right') 
     
@@ -486,6 +490,7 @@ def generar_graficos_ingresos_diarios_por_cesfam():
                 
                 plt.xlabel("Fecha", fontsize=12)
                 plt.ylabel("Ingresos Diarios", fontsize=12)
+                plt.yticks(range(0, max(cantidades) + 1)) 
                 plt.title(f"Ingresos Diarios - {cesfam.nombre_cesfam}", pad=20, fontsize=14)
                 plt.xticks(rotation=45, ha='right')
                 plt.grid(True, linestyle='--', alpha=0.3)
