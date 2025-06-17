@@ -38,6 +38,9 @@ urlpatterns = [
     path('datos_FRNM1/',views.datos_FRNM1, name="datos_FRNM1"),
     path('datos_FRNM2/', views.datos_FRNM2, name="datos_FRNM2"),
 
+    #Contraseña de descargas
+    path('validar-password/', views.validar_password, name='validar_password'),
+
     #Desacargar en excel
     path('crear_excel_datos_tamizaje/', views.crear_excel_datos_tamizaje, name="crear_excel_datos_tamizaje"),
     path('crear_excel_datos_frm1/', views.crear_excel_datos_frm1, name="crear_excel_datos_frm1"),

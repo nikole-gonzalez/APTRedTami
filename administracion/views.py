@@ -12,7 +12,7 @@ matplotlib.use('Agg')
 from io import BytesIO
 import requests
 import numpy as np
-
+from django.contrib.sessions.backends.db import SessionStore
 from django.contrib import auth, messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -635,175 +635,191 @@ def tamizaje(request):
     
     return render(request, 'administracion/tamizaje.html', {"page_obj": page_obj})
 
-def crear_excel_datos_tamizaje(request):
+#Validar contraseña de descargas
+def validar_password(request):
     if request.method == 'POST':
         password = request.POST.get('password')
-        if password != settings.DOWNLOAD_PASSWORD:  # Asegúrate de definir esto en settings.py
-            return HttpResponseForbidden("Contraseña incorrecta para descargar el archivo")
-    else:
-        return HttpResponseForbidden("Método no permitido")
+        if password == settings.DOWNLOAD_PASSWORD:
+            session = SessionStore()
+            session['password_validated'] = True
+            session.set_expiry(300) 
+            session.save()
+            return JsonResponse({
+                'valid': True, 
+                'session_key': session.session_key
+            })
+        else:
+            return JsonResponse({'valid': False, 'error': 'Contraseña incorrecta'})
+    return JsonResponse({'valid': False, 'error': 'Método no permitido'})
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Resultados Tamizaje"
+def crear_excel_datos_tamizaje(request):
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
 
-    ws.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Resultados Tamizaje"
 
-    respuestas = RespTM.objects.select_related(
-        'id_opc_tm__id_preg_tm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_tm__id_preg_tm__preg_tm',
-        'id_opc_tm__opc_resp_tm',
-        'fecha_respuesta_tm'
-    ).order_by('-fecha_respuesta_tm')
+            ws.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
-    for r in respuestas:
-        fecha = r['fecha_respuesta_tm']
-        fecha_str = fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
-        
-        ws.append([
-            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-            r['id_opc_tm__id_preg_tm__preg_tm'],
-            r['id_opc_tm__opc_resp_tm'],
-            fecha_str,
-        ])
+            respuestas = RespTM.objects.select_related(
+                'id_opc_tm__id_preg_tm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_tm__id_preg_tm__preg_tm',
+                'id_opc_tm__opc_resp_tm',
+                'fecha_respuesta_tm'
+            ).order_by('-fecha_respuesta_tm')
 
-    ajustar_ancho_columnas(ws)
-    background_colors(ws)
+            for r in respuestas:
+                fecha = r['fecha_respuesta_tm']
+                fecha_str = fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
+                
+                ws.append([
+                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+                    r['id_opc_tm__id_preg_tm__preg_tm'],
+                    r['id_opc_tm__opc_resp_tm'],
+                    fecha_str,
+                ])
 
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response['Content-Disposition'] = 'attachment; filename="datos_tamizaje.xlsx"'
-    
-    wb.save(response)
-    return response
+            ajustar_ancho_columnas(ws)
+            background_colors(ws)
+
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response['Content-Disposition'] = 'attachment; filename="datos_tamizaje.xlsx"'
+            
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 def crear_pdf_datos_tamizaje(request):
-    if request.method == 'POST':
-        password = request.POST.get('password')
-        if password != settings.DOWNLOAD_PASSWORD:  
-            return HttpResponseForbidden("Contraseña incorrecta para descargar el archivo")
-    else:
-        return HttpResponseForbidden("Método no permitido")
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
 
-    def truncate_text(text, max_length):
-        if not text:
-            return text
-        return (text[:max_length-3] + '...') if len(text) > max_length else text
+            def truncate_text(text, max_length):
+                if not text:
+                    return text
+                return (text[:max_length-3] + '...') if len(text) > max_length else text
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        leftMargin=1*cm,
-        rightMargin=1*cm,
-        topMargin=1.5*cm,
-        bottomMargin=1.5*cm
-    )
-    
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name='Small',
-        parent=styles['Normal'],
-        fontSize=7,
-        leading=9
-    ))
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                leftMargin=1*cm,
+                rightMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1.5*cm
+            )
+            
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(
+                name='Small',
+                parent=styles['Normal'],
+                fontSize=7,
+                leading=9
+            ))
 
-    respuestas = RespTM.objects.select_related(
-        'id_opc_tm__id_preg_tm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_tm__id_preg_tm__preg_tm',
-        'id_opc_tm__opc_resp_tm',
-        'fecha_respuesta_tm'
-    ).order_by('id_manychat__rut_usuario')
+            respuestas = RespTM.objects.select_related(
+                'id_opc_tm__id_preg_tm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_tm__id_preg_tm__preg_tm',
+                'id_opc_tm__opc_resp_tm',
+                'fecha_respuesta_tm'
+            ).order_by('id_manychat__rut_usuario')
 
-    # Procesamiento de datos
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_tm__id_preg_tm__preg_tm']
-        respuesta_usuario = respuesta['id_opc_tm__opc_resp_tm']
-        fecha = respuesta['fecha_respuesta_tm']
-        
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {
-                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
-                'respuestas': {}
-            }
-        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+            # Procesamiento de datos
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_tm__id_preg_tm__preg_tm']
+                respuesta_usuario = respuesta['id_opc_tm__opc_resp_tm']
+                fecha = respuesta['fecha_respuesta_tm']
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {
+                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
+                        'respuestas': {}
+                    }
+                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
-    data = [encabezados]
+            encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
+            data = [encabezados]
 
-    for rut, datos in dict_respuestas.items():
-        for pregunta, respuesta in datos['respuestas'].items():
-            data.append([
-                rut,
-                truncate_text(pregunta, 40),
-                truncate_text(respuesta, 30),
-                datos['fecha']
+            for rut, datos in dict_respuestas.items():
+                for pregunta, respuesta in datos['respuestas'].items():
+                    data.append([
+                        rut,
+                        truncate_text(pregunta, 40),
+                        truncate_text(respuesta, 30),
+                        datos['fecha']
+                    ])
+
+            tabla = Table(data, repeatRows=1)
+            
+            # Calcular ancho de columnas
+            ancho_total = landscape(A4)[0] - 2*cm 
+            ancho_rut = 4*cm
+            ancho_fecha = 3*cm
+            ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
+            ancho_respuesta = (ancho_total - ancho_rut - ancho_fecha) * 0.4
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ('WORDWRAP', (0, 0), (-1, -1), True),
             ])
+            
+            # Aplicar anchos de columnas
+            estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+            estilo.add('COLWIDTH', (1, 0), (1, -1), ancho_pregunta)
+            estilo.add('COLWIDTH', (2, 0), (2, -1), ancho_respuesta)
+            estilo.add('COLWIDTH', (3, 0), (3, -1), ancho_fecha)
+            
+            # Filas alternadas
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            tabla.setStyle(estilo)
 
-    tabla = Table(data, repeatRows=1)
-    
-    # Calcular ancho de columnas
-    ancho_total = landscape(A4)[0] - 2*cm 
-    ancho_rut = 4*cm
-    ancho_fecha = 3*cm
-    ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
-    ancho_respuesta = (ancho_total - ancho_rut - ancho_fecha) * 0.4
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
-        ('FONTSIZE', (0, 1), (-1, -1), 7),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
-    ])
-    
-    # Aplicar anchos de columnas
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
-    estilo.add('COLWIDTH', (1, 0), (1, -1), ancho_pregunta)
-    estilo.add('COLWIDTH', (2, 0), (2, -1), ancho_respuesta)
-    estilo.add('COLWIDTH', (3, 0), (3, -1), ancho_fecha)
-    
-    # Filas alternadas
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    tabla.setStyle(estilo)
+            elementos = [
+                Paragraph("Tamizaje", styles['Title']),
+                Spacer(1, 0.5*cm),
+                Paragraph(f"Total de respuestas: {len(data)-1}", styles['Normal']),
+                Spacer(1, 0.5*cm),
+                tabla,
+                Spacer(1, 0.3*cm),
+                Paragraph(f"Generado el: {timezone.now().strftime('%d-%m-%Y %H:%M:%S')}", styles['Small'])
+            ]
 
-    elementos = [
-        Paragraph("Tamizaje", styles['Title']),
-        Spacer(1, 0.5*cm),
-        Paragraph(f"Total de respuestas: {len(data)-1}", styles['Normal']),
-        Spacer(1, 0.5*cm),
-        tabla,
-        Spacer(1, 0.3*cm),
-        Paragraph(f"Generado el: {timezone.now().strftime('%d-%m-%Y %H:%M:%S')}", styles['Small'])
-    ]
-
-    doc.build(elementos)
-    
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="Tamizaje.pdf"'
-    return response 
+            doc.build(elementos)
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="Tamizaje.pdf"'
+            return response 
+    return HttpResponseForbidden("Acceso no autorizado")
 
 # ------------- #
 # ---- FRM ---- #
 # ------------- #
-
 
 @login_required
 def datos_FRM1(request):
@@ -825,153 +841,165 @@ def datos_FRM1(request):
 
 
 def crear_excel_datos_frm1(request):
-    wb = Workbook()
-    ws_FRM_V1 = wb.active
-    ws_FRM_V1.title = "Factores de riesgo modificables"
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            wb = Workbook()
+            ws_FRM_V1 = wb.active
+            ws_FRM_V1.title = "Factores de riesgo modificables"
 
-    ws_FRM_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
+            ws_FRM_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
-    respuestas = RespFRM.objects.select_related(
-        'id_opc_frm__id_preg_frm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frm__id_preg_frm__preg_frm',
-        'id_opc_frm__opc_resp_frm',
-        'fecha_respuesta_frm'
-    ).order_by('id_manychat__rut_usuario')
+            respuestas = RespFRM.objects.select_related(
+                'id_opc_frm__id_preg_frm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frm__id_preg_frm__preg_frm',
+                'id_opc_frm__opc_resp_frm',
+                'fecha_respuesta_frm'
+            ).order_by('id_manychat__rut_usuario')
 
-    for r in respuestas:
-        fecha = r['fecha_respuesta_frm']
-        ws_FRM_V1.append([
-            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-            r['id_opc_frm__id_preg_frm__preg_frm'],
-            r['id_opc_frm__opc_resp_frm'],
-            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
-        ])
+            for r in respuestas:
+                fecha = r['fecha_respuesta_frm']
+                ws_FRM_V1.append([
+                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+                    r['id_opc_frm__id_preg_frm__preg_frm'],
+                    r['id_opc_frm__opc_resp_frm'],
+                    fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
+                ])
 
-    ajustar_ancho_columnas(ws_FRM_V1)
-    background_colors(ws_FRM_V1)
+            ajustar_ancho_columnas(ws_FRM_V1)
+            background_colors(ws_FRM_V1)
 
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="FactoresMod_V1.xlsx"'
-    wb.save(response)
-    return response
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = 'attachment; filename="FactoresMod_V1.xlsx"'
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 def crear_pdf_datos_frm1(request):
-    # Función auxiliar para truncar texto largo
-    def truncate_text(text, max_length):
-        if not text:
-            return text
-        return (text[:max_length-3] + '...') if len(text) > max_length else text
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        leftMargin=1*cm,
-        rightMargin=1*cm,
-        topMargin=1.5*cm,
-        bottomMargin=1.5*cm
-    )
-    
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name='Small',
-        parent=styles['Normal'],
-        fontSize=7,
-        leading=9
-    ))
+            def truncate_text(text, max_length):
+                if not text:
+                    return text
+                return (text[:max_length-3] + '...') if len(text) > max_length else text
 
-    respuestas = RespFRM.objects.select_related(
-        'id_opc_frm__id_preg_frm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frm__id_preg_frm__preg_frm',
-        'id_opc_frm__opc_resp_frm',
-        'fecha_respuesta_frm'
-    ).order_by('id_manychat__rut_usuario')
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                leftMargin=1*cm,
+                rightMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1.5*cm
+            )
+            
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(
+                name='Small',
+                parent=styles['Normal'],
+                fontSize=7,
+                leading=9
+            ))
 
-    # Procesamiento de datos
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
-        respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
-        fecha = respuesta['fecha_respuesta_frm']
-        
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {
-                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
-                'respuestas': {}
-            }
-        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+            respuestas = RespFRM.objects.select_related(
+                'id_opc_frm__id_preg_frm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frm__id_preg_frm__preg_frm',
+                'id_opc_frm__opc_resp_frm',
+                'fecha_respuesta_frm'
+            ).order_by('id_manychat__rut_usuario')
 
-    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
-    data = [encabezados]
+            # Procesamiento de datos
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
+                respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
+                fecha = respuesta['fecha_respuesta_frm']
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {
+                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
+                        'respuestas': {}
+                    }
+                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    for rut, datos in dict_respuestas.items():
-        for pregunta, respuesta in datos['respuestas'].items():
-            data.append([
-                rut,
-                truncate_text(pregunta, 40),
-                truncate_text(respuesta, 30),
-                datos['fecha']
+            encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
+            data = [encabezados]
+
+            for rut, datos in dict_respuestas.items():
+                for pregunta, respuesta in datos['respuestas'].items():
+                    data.append([
+                        rut,
+                        truncate_text(pregunta, 40),
+                        truncate_text(respuesta, 30),
+                        datos['fecha']
+                    ])
+
+            tabla = Table(data, repeatRows=1)
+            
+            # Calcular ancho de columnas
+            ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
+            ancho_rut = 4*cm
+            ancho_fecha = 3*cm
+            ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
+            ancho_respuesta = (ancho_total - ancho_rut - ancho_fecha) * 0.4
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ('WORDWRAP', (0, 0), (-1, -1), True),
             ])
+            
+            # Aplicar anchos de columnas
+            estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+            estilo.add('COLWIDTH', (1, 0), (1, -1), ancho_pregunta)
+            estilo.add('COLWIDTH', (2, 0), (2, -1), ancho_respuesta)
+            estilo.add('COLWIDTH', (3, 0), (3, -1), ancho_fecha)
+            
+            # Filas alternadas
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            tabla.setStyle(estilo)
 
-    tabla = Table(data, repeatRows=1)
-    
-    # Calcular ancho de columnas
-    ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
-    ancho_rut = 4*cm
-    ancho_fecha = 3*cm
-    ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
-    ancho_respuesta = (ancho_total - ancho_rut - ancho_fecha) * 0.4
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
-        ('FONTSIZE', (0, 1), (-1, -1), 7),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
-    ])
-    
-    # Aplicar anchos de columnas
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
-    estilo.add('COLWIDTH', (1, 0), (1, -1), ancho_pregunta)
-    estilo.add('COLWIDTH', (2, 0), (2, -1), ancho_respuesta)
-    estilo.add('COLWIDTH', (3, 0), (3, -1), ancho_fecha)
-    
-    # Filas alternadas
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    tabla.setStyle(estilo)
+            elementos = [
+                Paragraph("Factores de Riesgo Modificables V1", styles['Title']),
+                Spacer(1, 0.5*cm),
+                Paragraph(f"Total de respuestas: {len(data)-1}", styles['Normal']),
+                Spacer(1, 0.5*cm),
+                tabla,
+                Spacer(1, 0.3*cm),
+                Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')}", styles['Small'])
+            ]
 
-    elementos = [
-        Paragraph("Factores de Riesgo Modificables V1", styles['Title']),
-        Spacer(1, 0.5*cm),
-        Paragraph(f"Total de respuestas: {len(data)-1}", styles['Normal']),
-        Spacer(1, 0.5*cm),
-        tabla,
-        Spacer(1, 0.3*cm),
-        Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')}", styles['Small'])
-    ]
-
-    doc.build(elementos)
-    
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="FactoresMod_V1_vertical.pdf"'
-    return response
+            doc.build(elementos)
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="FactoresMod_V1_vertical.pdf"'
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def datos_FRM2(request):
@@ -1206,125 +1234,137 @@ def datos_FRNM1(request):
     return render(request, 'administracion/datos_FRNM1.html', {"page_obj": page_obj})
 
 def crear_excel_datos_frnm1(request):
-    wb = Workbook()
-    ws_FRNM_V1 = wb.active
-    ws_FRNM_V1.title = "Riesgos no modificables"
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            wb = Workbook()
+            ws_FRNM_V1 = wb.active
+            ws_FRNM_V1.title = "Riesgos no modificables"
 
-    ws_FRNM_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
+            ws_FRNM_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
-    respuestas = RespFRNM.objects.select_related(
-        'id_opc_frnm__id_preg_frnm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frnm__id_preg_frnm__preg_frnm',
-        'id_opc_frnm__opc_resp_frnm',
-        'fecha_respuesta_frnm'
-    ).order_by('id_manychat__rut_usuario')
+            respuestas = RespFRNM.objects.select_related(
+                'id_opc_frnm__id_preg_frnm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frnm__id_preg_frnm__preg_frnm',
+                'id_opc_frnm__opc_resp_frnm',
+                'fecha_respuesta_frnm'
+            ).order_by('id_manychat__rut_usuario')
 
-    for r in respuestas:
-        fecha = r['fecha_respuesta_frnm']
-        ws_FRNM_V1.append([
-            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-            r['id_opc_frnm__id_preg_frnm__preg_frnm'],
-            r['id_opc_frnm__opc_resp_frnm'],
-            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
-        ])
+            for r in respuestas:
+                fecha = r['fecha_respuesta_frnm']
+                ws_FRNM_V1.append([
+                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+                    r['id_opc_frnm__id_preg_frnm__preg_frnm'],
+                    r['id_opc_frnm__opc_resp_frnm'],
+                    fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
+                ])
 
-    ajustar_ancho_columnas(ws_FRNM_V1)
-    background_colors(ws_FRNM_V1)
+            ajustar_ancho_columnas(ws_FRNM_V1)
+            background_colors(ws_FRNM_V1)
 
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V1.xlsx"'
-    wb.save(response)
-    return response
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V1.xlsx"'
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def crear_pdf_datos_frnm1(request):
-    respuestas = RespFRNM.objects.select_related(
-        'id_opc_frnm__id_preg_frnm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frnm__id_preg_frnm__preg_frnm',
-        'id_opc_frnm__opc_resp_frnm',
-        'fecha_respuesta_frnm'
-    ).order_by('-fecha_respuesta_frnm')
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            respuestas = RespFRNM.objects.select_related(
+                'id_opc_frnm__id_preg_frnm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frnm__id_preg_frnm__preg_frnm',
+                'id_opc_frnm__opc_resp_frnm',
+                'fecha_respuesta_frnm'
+            ).order_by('-fecha_respuesta_frnm')
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        leftMargin=1.5*cm,
-        rightMargin=1.5*cm,
-        topMargin=2*cm,
-        bottomMargin=2*cm
-    )
-    
-    styles = getSampleStyleSheet()
-    if 'Small' not in styles:
-        styles.add(ParagraphStyle(
-            name='Small',
-            parent=styles['Normal'],
-            fontSize=8,
-            leading=10
-        ))
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=letter,
+                leftMargin=1.5*cm,
+                rightMargin=1.5*cm,
+                topMargin=2*cm,
+                bottomMargin=2*cm
+            )
+            
+            styles = getSampleStyleSheet()
+            if 'Small' not in styles:
+                styles.add(ParagraphStyle(
+                    name='Small',
+                    parent=styles['Normal'],
+                    fontSize=8,
+                    leading=10
+                ))
 
-    data = []
-    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
-    data.append(encabezados)
+            data = []
+            encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
+            data.append(encabezados)
 
-    for r in respuestas:
-        fecha = r['fecha_respuesta_frnm']
-        data.append([
-            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-            r['id_opc_frnm__id_preg_frnm__preg_frnm'],
-            r['id_opc_frnm__opc_resp_frnm'],
-            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
-        ])
+            for r in respuestas:
+                fecha = r['fecha_respuesta_frnm']
+                data.append([
+                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+                    r['id_opc_frnm__id_preg_frnm__preg_frnm'],
+                    r['id_opc_frnm__opc_resp_frnm'],
+                    fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
+                ])
 
-    tabla = Table(data, repeatRows=1)
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
-    ])
-    
-    ancho_columnas = [7*cm, 8*cm, 6*cm, 4*cm]
-    for i, width in enumerate(ancho_columnas):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), width)
-    
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    tabla.setStyle(estilo)
+            tabla = Table(data, repeatRows=1)
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('WORDWRAP', (0, 0), (-1, -1), True),
+            ])
+            
+            ancho_columnas = [7*cm, 8*cm, 6*cm, 4*cm]
+            for i, width in enumerate(ancho_columnas):
+                estilo.add('COLWIDTH', (i, 0), (i, -1), width)
+            
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            tabla.setStyle(estilo)
 
-    elementos = [
-        Paragraph("Factores de Riesgo No Modificables V1", styles['Title']),
-        Spacer(1, 0.5*cm),
-        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
-        Spacer(1, 0.5*cm),
-        tabla,
-        Spacer(1, 0.3*cm),
-        Paragraph("Generado el: " + timezone.now().strftime('%d/%m/%Y %H:%M'), styles['Small'])  
-    ]
+            elementos = [
+                Paragraph("Factores de Riesgo No Modificables V1", styles['Title']),
+                Spacer(1, 0.5*cm),
+                Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+                Spacer(1, 0.5*cm),
+                tabla,
+                Spacer(1, 0.3*cm),
+                Paragraph("Generado el: " + timezone.now().strftime('%d/%m/%Y %H:%M'), styles['Small'])  
+            ]
 
-    doc.build(elementos)
-    
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="FactoresNoMod_V1.pdf"'
-    return response
+            doc.build(elementos)
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="FactoresNoMod_V1.pdf"'
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def datos_FRNM2(request):
@@ -1555,109 +1595,121 @@ def datos_DS1(request):
     return render(request, 'administracion/datos_DS1.html', {"page_obj": page_obj})
 
 def crear_excel_datos_ds1(request):
-    wb = Workbook()
-    ws_DS_V1 = wb.active
-    ws_DS_V1.title = "Determinantes sociales"
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            wb = Workbook()
+            ws_DS_V1 = wb.active
+            ws_DS_V1.title = "Determinantes sociales"
 
-    ws_DS_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
+            ws_DS_V1.append(['Rut', 'Pregunta', 'Respuesta', 'Fecha Respuesta'])
 
-    respuestas = RespDS.objects.select_related(
-        'id_opc_ds__id_preg_ds', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_ds__id_preg_ds__preg_ds',
-        'id_opc_ds__opc_resp_ds',
-        'fecha_respuesta_ds'
-    ).order_by('id_manychat__rut_usuario')
+            respuestas = RespDS.objects.select_related(
+                'id_opc_ds__id_preg_ds', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_ds__id_preg_ds__preg_ds',
+                'id_opc_ds__opc_resp_ds',
+                'fecha_respuesta_ds'
+            ).order_by('id_manychat__rut_usuario')
 
-    for r in respuestas:
-        fecha = r['fecha_respuesta_ds']
-        ws_DS_V1.append([
-            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-            r['id_opc_ds__id_preg_ds__preg_ds'],
-            r['id_opc_ds__opc_resp_ds'],
-            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
-        ])
-    
-    ajustar_ancho_columnas(ws_DS_V1)
-    background_colors(ws_DS_V1)
+            for r in respuestas:
+                fecha = r['fecha_respuesta_ds']
+                ws_DS_V1.append([
+                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+                    r['id_opc_ds__id_preg_ds__preg_ds'],
+                    r['id_opc_ds__opc_resp_ds'],
+                    fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
+                ])
+            
+            ajustar_ancho_columnas(ws_DS_V1)
+            background_colors(ws_DS_V1)
 
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="DeterminantesSociales_V1.xlsx"'
-    wb.save(response)
-    return response
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = 'attachment; filename="DeterminantesSociales_V1.xlsx"'
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def crear_pdf_datos_ds1(request):
-    respuestas = RespDS.objects.select_related(
-        'id_opc_ds__id_preg_ds', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_ds__id_preg_ds__preg_ds',
-        'id_opc_ds__opc_resp_ds',
-        'fecha_respuesta_ds'
-    ).order_by('-fecha_respuesta_ds') 
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            respuestas = RespDS.objects.select_related(
+                'id_opc_ds__id_preg_ds', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_ds__id_preg_ds__preg_ds',
+                'id_opc_ds__opc_resp_ds',
+                'fecha_respuesta_ds'
+            ).order_by('-fecha_respuesta_ds') 
 
-    data = []
-    
-    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
-    data.append(encabezados)
+            data = []
+            
+            encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
+            data.append(encabezados)
 
-    for r in respuestas:
-        fecha = r['fecha_respuesta_ds']
-        data.append([
-            f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-            r['id_opc_ds__id_preg_ds__preg_ds'],
-            r['id_opc_ds__opc_resp_ds'],
-            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
-        ])
+            for r in respuestas:
+                fecha = r['fecha_respuesta_ds']
+                data.append([
+                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
+                    r['id_opc_ds__id_preg_ds__preg_ds'],
+                    r['id_opc_ds__opc_resp_ds'],
+                    fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
+                ])
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    
-    tabla = Table(data)
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-    ])
-    
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    ancho_columnas = [100, 200, 150, 100] 
-    for i, width in enumerate(ancho_columnas):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), width)
-    
-    tabla.setStyle(estilo)
-    
-    elementos = []
-    
-    titulo = Paragraph("Determinantes Sociales V1", styles['Title'])
-    elementos.append(titulo)
-    
-    elementos.append(Paragraph("<br/><br/>", styles['Normal']))
-    
-    elementos.append(tabla)
-    
-    doc.build(elementos)
-    
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="DeterminantesSociales_V1.pdf"'
-    
-    return response
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            
+            tabla = Table(data)
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ])
+            
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            ancho_columnas = [100, 200, 150, 100] 
+            for i, width in enumerate(ancho_columnas):
+                estilo.add('COLWIDTH', (i, 0), (i, -1), width)
+            
+            tabla.setStyle(estilo)
+            
+            elementos = []
+            
+            titulo = Paragraph("Determinantes Sociales V1", styles['Title'])
+            elementos.append(titulo)
+            
+            elementos.append(Paragraph("<br/><br/>", styles['Normal']))
+            
+            elementos.append(tabla)
+            
+            doc.build(elementos)
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="DeterminantesSociales_V1.pdf"'
+            
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def datos_DS2(request):
@@ -2127,103 +2179,114 @@ def preg_especialista(request):
     return render(request, "administracion/preg_especialista.html", {"page_obj": page_obj})
 
 def crear_excel_preg_especialista(request):
-    wb = Workbook()
-    ws_preg_esp = wb.active
-    ws_preg_esp.title = "Preguntas especialistas"
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            
+            wb = Workbook()
+            ws_preg_esp = wb.active
+            ws_preg_esp.title = "Preguntas especialistas"
 
-    lista_preguntas = ['ID ManyChat', 'RUT', 'Pregunta', 'Fecha Pregunta']
-    ws_preg_esp.append(lista_preguntas)
+            lista_preguntas = ['ID ManyChat', 'RUT', 'Pregunta', 'Fecha Pregunta']
+            ws_preg_esp.append(lista_preguntas)
 
-    preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all()
+            preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all()
 
-    for pregunta in preguntas:
-        fila = [
-            str(pregunta.id_manychat.id_manychat), 
-            f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
-            pregunta.texto_pregunta,
-            pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else ''
-        ]
-        ws_preg_esp.append(fila)
+            for pregunta in preguntas:
+                fila = [
+                    str(pregunta.id_manychat.id_manychat), 
+                    f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
+                    pregunta.texto_pregunta,
+                    pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else ''
+                ]
+                ws_preg_esp.append(fila)
 
-    ajustar_ancho_columnas(ws_preg_esp)
-    background_colors(ws_preg_esp)
+            ajustar_ancho_columnas(ws_preg_esp)
+            background_colors(ws_preg_esp)
 
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="Preguntas_Especialista.xlsx"'
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = 'attachment; filename="Preguntas_Especialista.xlsx"'
 
-    wb.save(response)
-    return response
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
   
 @login_required
 def crear_pdf_preg_especialista(request):
-    preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all().order_by("-fecha_pregunta_texto")
-    
-    data = []
-    
-    encabezados = [
-        'ID ManyChat', 
-        'RUT', 
-        'Pregunta', 
-        'Fecha Pregunta'
-    ]
-    data.append(encabezados)
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all().order_by("-fecha_pregunta_texto")
+            
+            data = []
+            
+            encabezados = [
+                'ID ManyChat', 
+                'RUT', 
+                'Pregunta', 
+                'Fecha Pregunta'
+            ]
+            data.append(encabezados)
 
-    for pregunta in preguntas:
-        fila = [
-            pregunta.id_manychat.id_manychat,
-            f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
-            pregunta.texto_pregunta,
-            pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else 'Sin fecha'
-        ]
-        data.append(fila)
+            for pregunta in preguntas:
+                fila = [
+                    pregunta.id_manychat.id_manychat,
+                    f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
+                    pregunta.texto_pregunta,
+                    pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else 'Sin fecha'
+                ]
+                data.append(fila)
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    
-    tabla = Table(data)
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')), 
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),
-    ])
-    
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    tabla.setStyle(estilo)
-    
-    ancho_columnas = [60, 80, 200, 100] 
-    for i, width in enumerate(ancho_columnas):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), width)
-    
-    elementos = []
-    
-    titulo = Paragraph("Preguntas a Especialistas", styles['Title'])
-    elementos.append(titulo)
-    
-    elementos.append(Paragraph("<br/><br/>", styles['Normal']))
-    
-    elementos.append(tabla)
-    
-    doc.build(elementos)
-    
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="Preguntas_Especialistas.pdf"'
-    
-    return response
-  
-  
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            
+            tabla = Table(data)
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')), 
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ])
+            
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            tabla.setStyle(estilo)
+            
+            ancho_columnas = [60, 80, 200, 100] 
+            for i, width in enumerate(ancho_columnas):
+                estilo.add('COLWIDTH', (i, 0), (i, -1), width)
+            
+            elementos = []
+            
+            titulo = Paragraph("Preguntas a Especialistas", styles['Title'])
+            elementos.append(titulo)
+            
+            elementos.append(Paragraph("<br/><br/>", styles['Normal']))
+            
+            elementos.append(tabla)
+            
+            doc.build(elementos)
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="Preguntas_Especialistas.pdf"'
+            
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
+
 # ----------------------------------------------------------- #
 # ---------------------- CRUD USUARIO ----------------------- #
 # ----------------------------------------------------------- #
