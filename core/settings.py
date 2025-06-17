@@ -32,13 +32,19 @@ MANYCHAT_API_URL = "https://api.manychat.com/fb/sending/sendContent"
 
 CORS_ALLOWED_ORIGINS = [
     "https://manychat.com",
-    "https://nikogonzalez.pythonanywhere.com"
+    "https://nikogonzalez.pythonanywhere.com",
+    "https://redtamivph.pythonanywhere.com"
 ]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'redtamivph.pythonanywhere.com', 
+    'nikogonzalez.pythonanywhere.com',  
+    'localhost',
+    '127.0.0.1'
+]
 
 LOGIN_URL = reverse_lazy('login')
 
