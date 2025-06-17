@@ -26,7 +26,7 @@
                         <td>{{ forloop.counter }}</td>
                         <td>{{ respuesta.id_opc_tm.id_preg_tm.preg_tm }}</td>
                         <td>{{ respuesta.id_opc_tm.opc_resp_tm }}</td>
-                        <td>{{ respuesta.fecha_respuesta_tm|date:"d/m/Y H:i" }}</td>
+                        <td>{{ respuesta.fecha_respuesta_tm|date:"d-m-Y H:i:s" }}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -55,7 +55,7 @@
                         <td>{{ forloop.counter }}</td>
                         <td>{{ respuesta.id_opc_frnm.id_preg_frnm.preg_frnm }}</td>
                         <td>{{ respuesta.id_opc_frnm.opc_resp_frnm }}</td>
-                        <td>{{ respuesta.fecha_respuesta_frnm|date:"d/m/Y H:i" }}</td>
+                        <td>{{ respuesta.fecha_respuesta_frnm|date:"d-m-Y H:i:s" }}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -84,7 +84,7 @@
                         <td>{{ forloop.counter }}</td>
                         <td>{{ respuesta.id_opc_frm.id_preg_frm.preg_frm }}</td>
                         <td>{{ respuesta.id_opc_frm.opc_resp_frm }}</td>
-                        <td>{{ respuesta.fecha_respuesta_frm|date:"d/m/Y H:i" }}</td>
+                        <td>{{ respuesta.fecha_respuesta_frm|date:"d-m-Y H:i:s" }}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -113,7 +113,7 @@
                         <td>{{ forloop.counter }}</td>
                         <td>{{ respuesta.id_opc_ds.id_preg_ds.preg_ds }}</td>
                         <td>{{ respuesta.id_opc_ds.opc_resp_ds }}</td>
-                        <td>{{ respuesta.fecha_respuesta_ds|date:"d/m/Y H:i" }}</td>
+                        <td>{{ respuesta.fecha_respuesta_ds|date:"d-m-Y H:i:s" }}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -140,7 +140,7 @@
                     <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>{{ pregunta.texto_pregunta }}</td>
-                        <td>{{ pregunta.fecha_pregunta_texto|date:"d/m/Y H:i" }}</td>
+                        <td>{{ pregunta.fecha_pregunta_texto|date:"d-m-Y H:i:s" }}</td>
                     </tr>
                     {% empty %}
                     <tr>

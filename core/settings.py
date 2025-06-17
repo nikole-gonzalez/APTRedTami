@@ -27,6 +27,8 @@ SECRET_KEY = 'django-insecure-pwga6pyb(rscvvxf*&g*h(j+x93_xk7!@#-+(m1i(au%&6v$^r
 
 ACCESO_LISTADO = os.getenv('ACCESO_LISTADO') 
 
+DOWNLOAD_PASSWORD = os.getenv('DOWNLOAD_PASSWORD')
+
 MANYCHAT_API_KEY = os.getenv('MANYCHAT_API_KEY')
 MANYCHAT_API_URL = "https://api.manychat.com/fb/sending/sendContent"
 
