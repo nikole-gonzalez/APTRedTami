@@ -491,6 +491,7 @@ def generar_graficos_ingresos_diarios_por_cesfam():
                 plt.xlabel("Fecha", fontsize=12)
                 plt.ylabel("Ingresos Diarios", fontsize=12)
                 plt.yticks(range(0, max(cantidades) + 1)) 
+                plt.ylim(top=max(cantidades) + 2) 
                 plt.title(f"Ingresos Diarios - {cesfam.nombre_cesfam}", pad=20, fontsize=14)
                 plt.xticks(rotation=45, ha='right')
                 plt.grid(True, linestyle='--', alpha=0.3)
@@ -500,7 +501,7 @@ def generar_graficos_ingresos_diarios_por_cesfam():
                         f"{cantidad}",
                         (fecha, cantidad),
                         textcoords="offset points",
-                        xytext=(0, 5),
+                        xytext=(0, 10),
                         ha='center',
                         fontsize=9
                     )
