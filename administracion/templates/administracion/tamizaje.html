@@ -36,22 +36,26 @@
             </tbody>
         </table>
     </div>
-    <div class="pagination" style="text-align: center; margin: 20px 0;">
-        <span class="step-links">
+    <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+        <div class="pagination-left">
             {% if page_obj.has_previous %}
                 <a href="?page=1" class="button small">&laquo; Primera</a>
                 <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
             {% endif %}
+        </div>
 
+        <div class="pagination-center">
             <span class="current">
                 Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
             </span>
+        </div>
 
+        <div class="pagination-right">
             {% if page_obj.has_next %}
                 <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
                 <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
             {% endif %}
-        </span>
+        </div>
     </div>
     {% else %}
     <p>No hay datos ingresados</p>
