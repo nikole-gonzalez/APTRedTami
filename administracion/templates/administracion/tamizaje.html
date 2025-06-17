@@ -57,19 +57,63 @@
     {% endif %}
 
     <div style="text-align: center;">
-        <form action="{% url 'crear_excel_datos_tamizaje' %}" method="post">
+        <form id="excelForm" action="{% url 'crear_excel_datos_tamizaje' %}" method="post" style="display:inline;">
             {% csrf_token %}
-            <button type="submit">Descargar como Excel</button>
+            <input type="hidden" name="password" id="excelPasswordInput">
+            <button type="button" onclick="showPasswordModal('excel')" class="button">Descargar como Excel</button>
         </form>
-        <a href="{% url 'crear_pdf_datos_tamizaje' %}" class="btn btn-danger">
-            <i class="fas fa-file-pdf"></i> Exportar a PDF
-        </a>
+        <form id="pdfForm" action="{% url 'crear_pdf_datos_tamizaje' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="password" id="pdfPasswordInput">
+            <button type="button" onclick="showPasswordModal('pdf')" class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> Exportar a PDF
+            </button>
+        </form>
     </div>
 
+    <div id="passwordModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>Ingrese la contraseña para descargar</h3>
+            <input type="password" id="downloadPassword" placeholder="Contraseña">
+            <br>
+            <button onclick="validatePassword()" class="button">Validar</button>
+            <button onclick="closeModal()" class="button cancel-btn">Cancelar</button>
+            <p id="passwordError" style="color:red; display:none;">Contraseña incorrecta</p>
+            <p id="emptyPasswordError" style="color:red; display:none;">Por favor ingrese una contraseña</p>
+            <p id="invalidPasswordError" style="color:red; display:none;">Contraseña incorrecta</p>
+        </div>
+    </div>   
     <a class="button" href="{% url 'respuestas' %}">Volver</a>
 </section>
 
 <style>
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 30%;
+    }
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
     #usuarios {
         margin-top: 2em;
     }
@@ -100,5 +144,40 @@
     }
 
 </style>
+
+<script>
+let currentDownloadType = '';
+
+function showPasswordModal(type) {
+    currentDownloadType = type;
+    document.getElementById('passwordModal').style.display = 'block';
+    document.getElementById('downloadPassword').value = '';
+    document.getElementById('passwordError').style.display = 'none';
+}
+
+function closeModal() {
+    document.getElementById('passwordModal').style.display = 'none';
+}
+
+function validatePassword() {
+    const password = document.getElementById('downloadPassword').value;
+    
+    if (currentDownloadType === 'excel') {
+        document.getElementById('excelPasswordInput').value = password;
+        document.getElementById('excelForm').submit();
+    } else if (currentDownloadType === 'pdf') {
+        document.getElementById('pdfPasswordInput').value = password;
+        document.getElementById('pdfForm').submit();
+    }
+    
+    closeModal();
+}
+
+document.getElementById('downloadPassword').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        validatePassword();
+    }
+});
+</script>
 
 {% endblock %}

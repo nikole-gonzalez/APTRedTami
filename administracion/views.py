@@ -18,7 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db import connection
 from django.db.models import Count, F, Max
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.utils import timezone
 
 from collections import Counter
@@ -636,6 +636,13 @@ def tamizaje(request):
     return render(request, 'administracion/tamizaje.html', {"page_obj": page_obj})
 
 def crear_excel_datos_tamizaje(request):
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        if password != settings.DOWNLOAD_PASSWORD:  # Asegúrate de definir esto en settings.py
+            return HttpResponseForbidden("Contraseña incorrecta para descargar el archivo")
+    else:
+        return HttpResponseForbidden("Método no permitido")
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Resultados Tamizaje"
@@ -673,6 +680,13 @@ def crear_excel_datos_tamizaje(request):
     return response
 
 def crear_pdf_datos_tamizaje(request):
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        if password != settings.DOWNLOAD_PASSWORD:  
+            return HttpResponseForbidden("Contraseña incorrecta para descargar el archivo")
+    else:
+        return HttpResponseForbidden("Método no permitido")
+
     def truncate_text(text, max_length):
         if not text:
             return text
