@@ -72,18 +72,21 @@
     </div>
 
     <div id="passwordModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h3>Ingrese la contraseña para descargar</h3>
-            <input type="password" id="downloadPassword" placeholder="Contraseña">
-            <br>
-            <button onclick="validatePassword()" class="button">Validar</button>
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3>Ingrese la contraseña para descargar</h3>
+        <input type="password" id="downloadPassword" placeholder="Contraseña">
+        <div class="button-group" style="margin-top: 15px;">
+            <button onclick="validatePassword()" class="button confirm-btn">Validar</button>
             <button onclick="closeModal()" class="button cancel-btn">Cancelar</button>
-            <p id="passwordError" style="color:red; display:none;">Contraseña incorrecta</p>
+        </div>
+        <div id="errorMessages" style="margin-top: 10px;">
             <p id="emptyPasswordError" style="color:red; display:none;">Por favor ingrese una contraseña</p>
             <p id="invalidPasswordError" style="color:red; display:none;">Contraseña incorrecta</p>
         </div>
-    </div>   
+    </div>
+</div>
+</div>
     <a class="button" href="{% url 'respuestas' %}">Volver</a>
 </section>
 
@@ -147,37 +150,90 @@
 
 <script>
 let currentDownloadType = '';
+let downloadUrl = '';
+let modalOpen = false;
 
 function showPasswordModal(type) {
     currentDownloadType = type;
-    document.getElementById('passwordModal').style.display = 'block';
+    downloadUrl = type === 'excel' ? "{% url 'crear_excel_datos_tamizaje' %}" : "{% url 'crear_pdf_datos_tamizaje' %}";
+    
+    const modal = document.getElementById('passwordModal');
+    modal.style.display = 'block';
     document.getElementById('downloadPassword').value = '';
-    document.getElementById('passwordError').style.display = 'none';
+    hideAllErrors();
+    document.getElementById('downloadPassword').focus();
+    modalOpen = true;
 }
 
 function closeModal() {
-    document.getElementById('passwordModal').style.display = 'none';
+    if (modalOpen) {
+        document.getElementById('passwordModal').style.display = 'none';
+        hideAllErrors();
+        modalOpen = false;
+    }
+}
+
+function hideAllErrors() {
+    document.getElementById('emptyPasswordError').style.display = 'none';
+    document.getElementById('invalidPasswordError').style.display = 'none';
 }
 
 function validatePassword() {
-    const password = document.getElementById('downloadPassword').value;
+    const password = document.getElementById('downloadPassword').value.trim();
+    hideAllErrors();
     
-    if (currentDownloadType === 'excel') {
-        document.getElementById('excelPasswordInput').value = password;
-        document.getElementById('excelForm').submit();
-    } else if (currentDownloadType === 'pdf') {
-        document.getElementById('pdfPasswordInput').value = password;
-        document.getElementById('pdfForm').submit();
+    if (!password) {
+        document.getElementById('emptyPasswordError').style.display = 'block';
+        document.getElementById('downloadPassword').focus();
+        return;
     }
     
-    closeModal();
+    fetch("{% url 'validar_password' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: `password=${encodeURIComponent(password)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.valid) {
+            window.location.href = downloadUrl + '?session_key=' + data.session_key;
+            closeModal();
+        } else {
+            document.getElementById('invalidPasswordError').textContent = data.error || 'Contraseña incorrecta';
+            document.getElementById('invalidPasswordError').style.display = 'block';
+            document.getElementById('downloadPassword').focus();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('invalidPasswordError').textContent = 'Error al validar contraseña';
+        document.getElementById('invalidPasswordError').style.display = 'block';
+        document.getElementById('downloadPassword').focus();
+    });
 }
 
-document.getElementById('downloadPassword').addEventListener('keypress', function(e) {
+window.onclick = function(event) {
+    const modal = document.getElementById('passwordModal');
+    if (event.target === modal && modalOpen) {
+        closeModal();
+    }
+}
+
+document.getElementById('downloadPassword').addEventListener('keyup', function(e) {
     if (e.key === 'Enter') {
         validatePassword();
     }
 });
-</script>
 
+document.getElementById('passwordModal').addEventListener('click', function(e) {
+    e.stopPropagation();
+});
+
+document.getElementById('downloadPassword').addEventListener('input', function(e) {
+    hideAllErrors();
+});
+</script>
 {% endblock %}
