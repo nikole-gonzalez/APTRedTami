@@ -654,7 +654,7 @@ def crear_excel_datos_tamizaje(request):
 
     for r in respuestas:
         fecha = r['fecha_respuesta_tm']
-        fecha_str = fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
+        fecha_str = fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
         
         ws.append([
             f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
@@ -671,6 +671,120 @@ def crear_excel_datos_tamizaje(request):
     
     wb.save(response)
     return response
+
+def crear_pdf_datos_tamizaje(request):
+    def truncate_text(text, max_length):
+        if not text:
+            return text
+        return (text[:max_length-3] + '...') if len(text) > max_length else text
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=1*cm,
+        rightMargin=1*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
+    
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='Small',
+        parent=styles['Normal'],
+        fontSize=7,
+        leading=9
+    ))
+
+    respuestas = RespTM.objects.select_related(
+        'id_opc_tm__id_preg_tm', 'id_manychat'
+    ).values(
+        'id_manychat__rut_usuario',
+        'id_manychat__dv_rut',
+        'id_opc_tm__id_preg_tm__preg_tm',
+        'id_opc_tm__opc_resp_tm',
+        'fecha_respuesta_tm'
+    ).order_by('id_manychat__rut_usuario')
+
+    # Procesamiento de datos
+    dict_respuestas = {}
+    for respuesta in respuestas:
+        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+        pregunta = respuesta['id_opc_tm__id_preg_tm__preg_tm']
+        respuesta_usuario = respuesta['id_opc_tm__opc_resp_tm']
+        fecha = respuesta['fecha_respuesta_tm']
+        
+        if rut not in dict_respuestas:
+            dict_respuestas[rut] = {
+                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
+                'respuestas': {}
+            }
+        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+
+    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
+    data = [encabezados]
+
+    for rut, datos in dict_respuestas.items():
+        for pregunta, respuesta in datos['respuestas'].items():
+            data.append([
+                rut,
+                truncate_text(pregunta, 40),
+                truncate_text(respuesta, 30),
+                datos['fecha']
+            ])
+
+    tabla = Table(data, repeatRows=1)
+    
+    # Calcular ancho de columnas
+    ancho_total = landscape(A4)[0] - 2*cm 
+    ancho_rut = 4*cm
+    ancho_fecha = 3*cm
+    ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
+    ancho_respuesta = (ancho_total - ancho_rut - ancho_fecha) * 0.4
+    
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
+    ])
+    
+    # Aplicar anchos de columnas
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+    estilo.add('COLWIDTH', (1, 0), (1, -1), ancho_pregunta)
+    estilo.add('COLWIDTH', (2, 0), (2, -1), ancho_respuesta)
+    estilo.add('COLWIDTH', (3, 0), (3, -1), ancho_fecha)
+    
+    # Filas alternadas
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+    
+    tabla.setStyle(estilo)
+
+    elementos = [
+        Paragraph("Tamizaje", styles['Title']),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"Total de respuestas: {len(data)-1}", styles['Normal']),
+        Spacer(1, 0.5*cm),
+        tabla,
+        Spacer(1, 0.3*cm),
+        Paragraph(f"Generado el: {timezone.now().strftime('%d-%m-%Y %H:%M:%S')}", styles['Small'])
+    ]
+
+    doc.build(elementos)
+    
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Tamizaje.pdf"'
+    return response 
 
 # ------------- #
 # ---- FRM ---- #
@@ -719,7 +833,7 @@ def crear_excel_datos_frm1(request):
             f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_frm__id_preg_frm__preg_frm'],
             r['id_opc_frm__opc_resp_frm'],
-            fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
+            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
         ])
 
     ajustar_ancho_columnas(ws_FRM_V1)
@@ -775,12 +889,12 @@ def crear_pdf_datos_frm1(request):
         
         if rut not in dict_respuestas:
             dict_respuestas[rut] = {
-                'fecha': fecha.strftime('%d/%m/%Y %H:%M') if fecha else 'Sin fecha',
+                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
                 'respuestas': {}
             }
         dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha']
+    encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
     data = [encabezados]
 
     for rut, datos in dict_respuestas.items():
@@ -874,7 +988,7 @@ def datos_FRM2(request):
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
                 "rut_completo": rut_completo,
-                "fecha": respuesta["fecha_respuesta_frm"],
+                "fecha": respuesta["fecha_respuesta_frm"].strftime("%d-%m-%Y %H:%M:%S"),
                 "respuestas": {}
             }
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
@@ -898,7 +1012,7 @@ def crear_excel_datos_frm2(request):
     ws_FRM_V2.title = "Factores de riesgo mod 2"
     
     preguntas = PregFRM.objects.all().order_by('id_preg_frm')
-    lista_preguntas = ['Rut'] + [pregunta.preg_frm for pregunta in preguntas]
+    lista_preguntas = ['Rut'] + [pregunta.preg_frm for pregunta in preguntas] + ['Fecha Respuesta']
     ws_FRM_V2.append(lista_preguntas)
 
     respuestas = RespFRM.objects.select_related(
@@ -907,7 +1021,8 @@ def crear_excel_datos_frm2(request):
         'id_manychat__rut_usuario',
         'id_manychat__dv_rut',
         'id_opc_frm__id_preg_frm__preg_frm',
-        'id_opc_frm__opc_resp_frm'
+        'id_opc_frm__opc_resp_frm',
+        'fecha_respuesta_frm'
     )
 
     dict_respuestas = {}
@@ -915,16 +1030,21 @@ def crear_excel_datos_frm2(request):
         rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
         pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
         respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
+        fecha = respuesta['fecha_respuesta_frm'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_frm'] else ''
         
         if rut not in dict_respuestas:
-            dict_respuestas[rut] = {}
-        dict_respuestas[rut][pregunta] = respuesta_usuario
+            dict_respuestas[rut] = {
+                "respuestas": {},
+                "fecha": fecha
+            }
+        dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
 
     for rut, respuestas_usuario in dict_respuestas.items():
         fila = [rut]
         for pregunta in preguntas:
-            respuesta = respuestas_usuario.get(pregunta.preg_frm, '')
+            respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_frm, '')
             fila.append(respuesta)
+        fila.append(respuestas_usuario["fecha"])
         ws_FRM_V2.append(fila)
    
     ajustar_ancho_columnas(ws_FRM_V2)
@@ -964,7 +1084,7 @@ def crear_pdf_datos_frm2(request):
         
         if rut not in dict_respuestas:
             dict_respuestas[rut] = {
-                'fecha': fecha.strftime('%d/%m/%Y %H:%M') if fecha else 'Sin fecha',
+                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
                 'respuestas': {}
             }
         dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
@@ -987,7 +1107,7 @@ def crear_pdf_datos_frm2(request):
         leading=9
     ))
 
-    encabezados = ['RUT'] + [truncate_text(p.preg_frm, 25) for p in preguntas] + ['Fecha']
+    encabezados = ['RUT'] + [truncate_text(p.preg_frm, 25) for p in preguntas] + ['Fecha Respuesta']
     data = [encabezados]
 
     for rut, datos in dict_respuestas.items():
@@ -1094,7 +1214,7 @@ def crear_excel_datos_frnm1(request):
             f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_frnm__id_preg_frnm__preg_frnm'],
             r['id_opc_frnm__opc_resp_frnm'],
-            fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
+            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
         ])
 
     ajustar_ancho_columnas(ws_FRNM_V1)
@@ -1146,7 +1266,7 @@ def crear_pdf_datos_frnm1(request):
             f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_frnm__id_preg_frnm__preg_frnm'],
             r['id_opc_frnm__opc_resp_frnm'],
-            fecha.strftime('%d/%m/%Y %H:%M') if fecha else 'Sin fecha'
+            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
         ])
 
     tabla = Table(data, repeatRows=1)
@@ -1221,7 +1341,7 @@ def datos_FRNM2(request):
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
                 "rut_completo": rut_completo,
-                "fecha": respuesta["fecha_respuesta_frnm"],
+                "fecha": respuesta["fecha_respuesta_frnm"].strftime("%d-%m-%Y %H:%M:%S"),
                 "respuestas": {}
             }
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
@@ -1245,7 +1365,7 @@ def crear_excel_datos_frnm2(request):
     ws_FRNM_V2.title = "Factores de riesgo no mod 2"
     
     preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
-    lista_preguntas = ['Rut'] + [pregunta.preg_frnm for pregunta in preguntas]
+    lista_preguntas = ['Rut'] + [pregunta.preg_frnm for pregunta in preguntas] + ['Fecha Respuesta']
     ws_FRNM_V2.append(lista_preguntas)
 
     respuestas = RespFRNM.objects.select_related(
@@ -1254,7 +1374,8 @@ def crear_excel_datos_frnm2(request):
         'id_manychat__rut_usuario',
         'id_manychat__dv_rut',
         'id_opc_frnm__id_preg_frnm__preg_frnm',
-        'id_opc_frnm__opc_resp_frnm'
+        'id_opc_frnm__opc_resp_frnm',
+        'fecha_respuesta_frnm'
     )
 
     dict_respuestas = {}
@@ -1262,16 +1383,21 @@ def crear_excel_datos_frnm2(request):
         rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
         pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
         respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
+        fecha = respuesta['fecha_respuesta_frnm'].strftime('%d-%m-%Y %H-%M-%S')if respuesta['fecha_respuesta_frnm'] else ''
         
         if rut not in dict_respuestas:
-            dict_respuestas[rut] = {}
-        dict_respuestas[rut][pregunta] = respuesta_usuario
+            dict_respuestas[rut] = {
+                "respuestas": {},
+                "fecha": fecha
+            }
+        dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
 
     for rut, respuestas_usuario in dict_respuestas.items():
         fila = [rut]
         for pregunta in preguntas:
-            respuesta = respuestas_usuario.get(pregunta.preg_frnm, '')
+            respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_frnm, '')
             fila.append(respuesta)
+        fila.append(respuestas_usuario["fecha"])
         ws_FRNM_V2.append(fila)
    
     ajustar_ancho_columnas(ws_FRNM_V2)
@@ -1331,7 +1457,7 @@ def crear_pdf_datos_frnm2(request):
         leading=8
     ))
 
-    encabezados = ['RUT'] + [truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha']
+    encabezados = ['RUT'] + [truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha Respuesta']
     data = [encabezados]
 
     for rut, datos in dict_respuestas.items():
@@ -1339,7 +1465,7 @@ def crear_pdf_datos_frnm2(request):
         for p in preguntas:
             respuesta = datos['respuestas'].get(p.preg_frnm, 'NR')  
             fila.append(truncate_text(respuesta, 20))
-        fila.append(datos['fecha'].strftime('%d/%m/%Y') if datos['fecha'] else 'S/F')
+        fila.append(datos['fecha'].strftime('%d-%m-%Y %H:%M:%S') if datos['fecha'] else 'S/F')
         data.append(fila)
 
     tabla = Table(data, repeatRows=1)
@@ -1437,7 +1563,7 @@ def crear_excel_datos_ds1(request):
             f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_ds__id_preg_ds__preg_ds'],
             r['id_opc_ds__opc_resp_ds'],
-            fecha.strftime('%Y-%m-%d %H:%M:%S') if fecha else ''
+            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
         ])
     
     ajustar_ancho_columnas(ws_DS_V1)
@@ -1471,7 +1597,7 @@ def crear_pdf_datos_ds1(request):
             f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
             r['id_opc_ds__id_preg_ds__preg_ds'],
             r['id_opc_ds__opc_resp_ds'],
-            fecha.strftime('%Y-%m-%d %H:%M') if fecha else 'Sin fecha'
+            fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
         ])
 
     buffer = BytesIO()
@@ -1548,7 +1674,7 @@ def datos_DS2(request):
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
                 "rut_completo": rut_completo,
-                "fecha": respuesta["fecha_respuesta_ds"],
+                "fecha": respuesta["fecha_respuesta_ds"].strftime('%d-%m-%Y %H:%M:%S'),
                 "respuestas": {}
             }
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
@@ -1572,7 +1698,7 @@ def crear_excel_datos_ds2(request):
     ws_DS_V2.title = "Determinantes salud 2"
     
     preguntas = PregDS.objects.all().order_by('id_preg_ds')
-    lista_preguntas = ['Rut'] + [pregunta.preg_ds for pregunta in preguntas]
+    lista_preguntas = ['Rut'] + [pregunta.preg_ds for pregunta in preguntas] + ['Fecha Respuesta']
     ws_DS_V2.append(lista_preguntas)
 
     respuestas = RespDS.objects.select_related(
@@ -1581,7 +1707,8 @@ def crear_excel_datos_ds2(request):
         'id_manychat__rut_usuario',
         'id_manychat__dv_rut',
         'id_opc_ds__id_preg_ds__preg_ds',
-        'id_opc_ds__opc_resp_ds'
+        'id_opc_ds__opc_resp_ds',
+        'fecha_respuesta_ds'
     )
 
     dict_respuestas = {}
@@ -1589,16 +1716,21 @@ def crear_excel_datos_ds2(request):
         rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
         pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
         respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
+        fecha = respuesta['fecha_respuesta_ds'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_ds'] else ''
         
         if rut not in dict_respuestas:
-            dict_respuestas[rut] = {}
-        dict_respuestas[rut][pregunta] = respuesta_usuario
+            dict_respuestas[rut] = {
+                "respuestas": {},
+                "fecha": fecha
+            }
+        dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
 
     for rut, respuestas_usuario in dict_respuestas.items():
         fila = [rut]
         for pregunta in preguntas:
-            respuesta = respuestas_usuario.get(pregunta.preg_ds, '')
+            respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_ds, '')
             fila.append(respuesta)
+        fila.append(respuestas_usuario["fecha"])
         ws_DS_V2.append(fila)
    
     ajustar_ancho_columnas(ws_DS_V2)
@@ -1611,6 +1743,12 @@ def crear_excel_datos_ds2(request):
 
 @login_required
 def crear_pdf_datos_ds2(request):
+    def truncate_text(text, max_length):
+        if not text:
+            return text
+        return (text[:max_length-3] + '...') if len(text) > max_length else text
+
+ 
     preguntas = PregDS.objects.all().order_by('id_preg_ds')
     
     respuestas = RespDS.objects.select_related(
@@ -1619,7 +1757,8 @@ def crear_pdf_datos_ds2(request):
         'id_manychat__rut_usuario',
         'id_manychat__dv_rut',
         'id_opc_ds__id_preg_ds__preg_ds',
-        'id_opc_ds__opc_resp_ds'
+        'id_opc_ds__opc_resp_ds',
+        'fecha_respuesta_ds'
     )
 
     dict_respuestas = {}
@@ -1627,69 +1766,94 @@ def crear_pdf_datos_ds2(request):
         rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
         pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
         respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
+        fecha = respuesta['fecha_respuesta_ds']
         
         if rut not in dict_respuestas:
-            dict_respuestas[rut] = {}
-        dict_respuestas[rut][pregunta] = respuesta_usuario
-
-    data = []
-    
-    encabezados = ['RUT'] + [pregunta.preg_ds for pregunta in preguntas]
-    data.append(encabezados)
-
-    for rut, respuestas_usuario in dict_respuestas.items():
-        fila = [rut]
-        for pregunta in preguntas:
-            respuesta = respuestas_usuario.get(pregunta.preg_ds, 'No respondió')
-            fila.append(respuesta)
-        data.append(fila)
+            dict_respuestas[rut] = {
+                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
+                'respuestas': {}
+            }
+        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
-    styles = getSampleStyleSheet()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=1*cm,
+        rightMargin=1*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
     
-    tabla = Table(data)
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name='Small',
+        parent=styles['Normal'],
+        fontSize=7,
+        leading=9
+    ))
+
+    encabezados = ['RUT'] + [truncate_text(p.preg_ds, 25) for p in preguntas] + ['Fecha Respuesta']
+    data = [encabezados]
+
+    for rut, datos in dict_respuestas.items():
+        fila = [rut]
+        for p in preguntas:
+            respuesta = datos['respuestas'].get(p.preg_ds, 'NR') 
+            fila.append(truncate_text(respuesta, 20))
+        fila.append(datos['fecha'])
+        data.append(fila)
+
+
+    tabla = Table(data, repeatRows=1)
+    
+    ancho_total = landscape(A4)[0] - 2*cm  
+    ancho_rut = 6*cm
+    ancho_fecha = 4*cm
+    ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
     
     estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),  
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8), 
+        ('FONTSIZE', (0, 0), (-1, 0), 7),
+        ('FONTSIZE', (0, 1), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  
-        ('FONTSIZE', (0, 1), (-1, -1), 7),  
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
     ])
+    
+    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+    for i in range(1, len(preguntas)+1):
+        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
+    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
+    
     
     for i in range(1, len(data)):
         if i % 2 == 0:
             estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
     
-    ancho_rut = 60
-    ancho_preguntas = (landscape(letter)[0] - ancho_rut) / len(preguntas)
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
-    for i in range(1, len(encabezados)):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
-    
     tabla.setStyle(estilo)
-    
-    elementos = []
-    
-    titulo = Paragraph("Determinantes de Salud V2", styles['Title'])
-    elementos.append(titulo)
-    elementos.append(Paragraph("<br/><br/>", styles['Normal']))
-    
-    elementos.append(tabla)
-    
+
+  
+    elementos = [
+        Paragraph("Determinantes de Salud V2", styles['Title']),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+        Spacer(1, 0.5*cm),
+        tabla,
+        Spacer(1, 0.3*cm),
+        Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')} | NR = No Respondió", styles['Small'])
+    ]
+
     doc.build(elementos)
-    
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="DeterminantesSalud_V2.pdf"'
-    
-    return response 
-
+    return response
 # ----------------------------------------------------------------- #
 # ---------------------- Listado priorizado ----------------------- #
 # ----------------------------------------------------------------- #
@@ -1953,20 +2117,20 @@ def crear_excel_preg_especialista(request):
     ws_preg_esp = wb.active
     ws_preg_esp.title = "Preguntas especialistas"
 
-    lista_preguntas = ['ID ManyChat', 'RUT', 'Pregunta', 'Fecha Pregunta'] 
+    lista_preguntas = ['ID ManyChat', 'RUT', 'Pregunta', 'Fecha Pregunta']
     ws_preg_esp.append(lista_preguntas)
 
     preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all()
 
     for pregunta in preguntas:
         fila = [
-            pregunta.id_manychat, 
-            f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}", 
+            str(pregunta.id_manychat.id_manychat), 
+            f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
             pregunta.texto_pregunta,
-            pregunta.fecha_pregunta.strftime('%Y-%m-%d %H:%M:%S') if pregunta.fecha_pregunta else ''
+            pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else ''
         ]
         ws_preg_esp.append(fila)
-    
+
     ajustar_ancho_columnas(ws_preg_esp)
     background_colors(ws_preg_esp)
 
@@ -1975,6 +2139,7 @@ def crear_excel_preg_especialista(request):
 
     wb.save(response)
     return response
+
   
 @login_required
 def crear_pdf_preg_especialista(request):
@@ -1992,10 +2157,10 @@ def crear_pdf_preg_especialista(request):
 
     for pregunta in preguntas:
         fila = [
-            str(pregunta.id_manychat),
+            pregunta.id_manychat.id_manychat,
             f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
             pregunta.texto_pregunta,
-            pregunta.fecha_pregunta_texto.strftime('%Y-%m-%d %H:%M:%S') if pregunta.fecha_pregunta_texto else 'Sin fecha'
+            pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else 'Sin fecha'
         ]
         data.append(fila)
 

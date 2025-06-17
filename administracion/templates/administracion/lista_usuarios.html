@@ -8,6 +8,9 @@
     </header>
     <a href="{% url 'crear_usuario' %}" class="button primary icon solid fa-plus">Crear nuevo usuario</a>
     <div class="table-wrapper" style="margin-top: 20px;">
+      <section>
+      <a class="button" href="{% url 'admin_index' %}">Volver</a>
+    </section>
       <table>
         <thead>
           <tr>
@@ -42,5 +45,8 @@
       </table>
     </div>
   </div>
+  <section>
+     <a class="button" href="{% url 'admin_index' %}">Volver</a>
+  </section>
 </section>
 {% endblock %}
