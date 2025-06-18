@@ -3,30 +3,19 @@ name: Enviar Recordatorios Chile
 on:
   schedule:
     # Horario de invierno (UTC-4)
-    - cron: '55 10 * * *'  # 7 AM Chile (UTC-4)
-    - cron: '55 18 * * *'  # 3 PM Chile (UTC-4)
+    - cron: '0 10 * * *'  # 7 AM Chile (UTC-4)
+    - cron: '0 19 * * *'  # 3 PM Chile (UTC-4)
     
-    # Horario de verano (UTC-3) - actualiza manualmente cuando cambie el horario
-    # - cron: '55 09 * * *'  # 7 AM Chile (UTC-3)
-    # - cron: '55 17 * * *'  # 3 PM Chile (UTC-3)
+    # Horario de verano (UTC-3) - recuerda actualizar manualmente cuando cambie el horario
+    # - cron: '0 09 * * *'  # 7 AM Chile (UTC-3)
+    # - cron: '0 18 * * *'  # 3 PM Chile (UTC-3)
+
   workflow_dispatch:
 
 jobs:
   enviar:
     runs-on: ubuntu-latest
     steps:
-      - name: Calcular delay para ejecución exacta
-        id: delay
-        run: |
-          # Obtiene el minuto actual (0-59) y calcula los segundos restantes
-          CURRENT_MINUTE=$(date -u +%M)
-          SECONDS_TO_WAIT=$(( (60 - $CURRENT_MINUTE) * 60 ))
-          echo "::set-output name=seconds_to_wait::$SECONDS_TO_WAIT"
-
-      - name: Esperar hasta la hora exacta
-        if: steps.delay.outputs.seconds_to_wait > 0
-        run: sleep ${{ steps.delay.outputs.seconds_to_wait }}
-
       - name: Mostrar fecha/hora Chile actual
         run: TZ="America/Santiago" date
 
