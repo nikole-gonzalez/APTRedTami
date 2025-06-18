@@ -40,7 +40,7 @@
                                 <td>{{ agenda.id_cesfam.nombre_cesfam }}</td>
                                 <td>{{ agenda.id_procedimiento.nombre_procedimiento }}</td>
                                 <td>{{ agenda.requisito_examen }}</td>
-                                <td>{{ agenda.fecha_atencion|date:"d/m/Y" }}</td>
+                                <td>{{ agenda.fecha_atencion|date:"d-m-Y" }}</td>
                                 <td>{{ agenda.hora_atencion|time:"H:i" }}</td>
                             </tr>
                             {% endfor %}
