@@ -547,17 +547,15 @@ def generar_grafico_realizado_pap_por_cesfam():
             print("No hay datos para mostrar el gráfico de PAP.")
             return None
 
-        colores = plt.cm.tab20.colors
-
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.pie(
             cantidades,
-            labels=etiquetas,
+            labels=None,
             autopct='%1.1f%%',
             startangle=90,
-            colors=colores[:len(etiquetas)],
-            wedgeprops={'edgecolor': 'black'}
+            colors=['#79addc', '#EFB0C9', '#A5F8CE', '#FFD166', '#06D6A0']
         )
+        ax.legend(cantidades, title="Respuestas", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
         plt.title('Usuarios que se realizaron PAP en los últimos 3 años por CESFAM', pad=20)
         plt.tight_layout()
 
