@@ -109,6 +109,7 @@ def agendamiento(request):
         context = {
             'perfil': perfil,
             'agendamientos': agendamientos,
+            'page_obj': agendamientos,
             'sin_atenciones': not agendamientos_list.exists()
         }
         
