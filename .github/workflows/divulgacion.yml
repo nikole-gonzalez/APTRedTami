@@ -12,7 +12,7 @@ jobs:
       - name: Ejecutar envío
         env:
           API_URL: "https://nikogonzalez.pythonanywhere.com/API/divulgaciones-enviar/"
-          API_KEY: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+          API_KEY: ${{ secrets.API_TOKEN }}
         run: |
           curl -X POST "$API_URL" \
             -H "Authorization: Token $API_KEY" \
