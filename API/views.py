@@ -33,6 +33,7 @@ from .serializer import *
 import pytz
 from django.db.models import F, Value, ExpressionWrapper, DateTimeField
 from django.db.models.functions import Concat, Cast
+from rest_framework.authentication import TokenAuthentication
 
 def home_api(request):
     return render(request, 'api/index.html')
@@ -679,6 +680,7 @@ def enviar_email_recordatorio(recordatorio):
     email.send()
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def enviar_divulgaciones(request):
     try:
