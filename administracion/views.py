@@ -548,14 +548,17 @@ def generar_grafico_realizado_pap_por_cesfam():
             return None
 
         fig, ax = plt.subplots(figsize=(8, 8))
-        ax.pie(
+        wedges, texts, autotexts = ax.pie(
             cantidades,
             labels=None,
             autopct='%1.1f%%',
             startangle=90,
             colors=['#79addc', '#EFB0C9', '#A5F8CE', '#FFD166', '#06D6A0']
         )
-        ax.legend(cantidades, title="Respuestas", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+
+        leyenda = [f"{nombre} ({cantidad})" for nombre, cantidad in zip(etiquetas, cantidades)]
+
+        ax.legend(wedges, leyenda, title="CESFAM", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
         plt.title('Usuarios que se realizaron PAP en los últimos 3 años por CESFAM', pad=20)
         plt.tight_layout()
 
