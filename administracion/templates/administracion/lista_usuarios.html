@@ -6,11 +6,14 @@
     <header class="major">
       <h2>Usuarios Registrados</h2>
     </header>
+
     <a href="{% url 'crear_usuario' %}" class="button primary icon solid fa-plus">Crear nuevo usuario</a>
+
     <div class="table-wrapper" style="margin-top: 20px;">
       <section>
-      <a class="button" href="{% url 'admin_index' %}">Volver</a>
-    </section>
+        <a class="button" href="{% url 'admin_index' %}">Volver</a>
+      </section>
+
       <table>
         <thead>
           <tr>
@@ -25,12 +28,11 @@
         <tbody>
           {% for perfil in perfiles %}
           <tr>
-            <td>{{ perfil.user.username}}</td>
-            <td>{{ perfil.user.first_name}}</td>
-            <td>{{ perfil.user.last_name}}</td>
+            <td>{{ perfil.user.username }}</td>
+            <td>{{ perfil.user.first_name }}</td>
+            <td>{{ perfil.user.last_name }}</td>
             <td>{{ perfil.user.email }}</td>
             <td>{{ perfil.telefono }}</td>
-            <br>
             <td>
               <a href="{% url 'editar_usuario' perfil.id_perfil %}" class="button small">Editar</a>
               <a href="{% url 'eliminar_usuario' perfil.id_perfil %}" class="button small alt">Eliminar</a>
@@ -38,15 +40,32 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="4">No hay usuarios registrados aún.</td>
+            <td colspan="6">No hay usuarios registrados aún.</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+
+      <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap:30px; margin: 20px 0;">
+        {% if page_obj.has_previous %}
+          <a href="?page=1" class="button small">&laquo; Primera</a>
+          <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+        {% endif %}
+
+        <span class="current">
+          Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+        {% endif %}
+      </div>
     </div>
   </div>
+
   <section>
-     <a class="button" href="{% url 'admin_index' %}">Volver</a>
+    <a class="button" href="{% url 'admin_index' %}">Volver</a>
   </section>
 </section>
 {% endblock %}
