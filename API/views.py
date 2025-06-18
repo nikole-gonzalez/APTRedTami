@@ -34,6 +34,8 @@ import pytz
 from django.db.models import F, Value, ExpressionWrapper, DateTimeField
 from django.db.models.functions import Concat, Cast
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
+
 
 def home_api(request):
     return render(request, 'api/index.html')
@@ -679,10 +681,33 @@ def enviar_email_recordatorio(recordatorio):
     )
     email.send()
 
+@csrf_exempt
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
+@authentication_classes([])
+@permission_classes([])
 def enviar_divulgaciones(request):
+    # Validar token secreto en header Authorization
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        logger.error("Falta header de Authorization")
+        return Response({'error': 'Se requiere token de autenticación'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    parts = auth_header.strip().split()
+    if len(parts) != 2 or parts[0] != 'Token':
+        logger.error(f"Formato de token inválido. Header recibido: {auth_header}")
+        return Response({'error': 'Formato de autorización inválido. Use: Token <token>'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    received_token = parts[1].strip()
+    expected_token = getattr(settings, 'GITHUB_WEBHOOK_SECRET', '').strip()
+    
+    if not expected_token:
+        logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
+        return Response({'error': 'Configuración del servidor incompleta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    if not secrets.compare_digest(received_token, expected_token):
+        logger.error("Token no coincide")
+        return Response({'error': 'Token inválido'}, status=status.HTTP_401_UNAUTHORIZED)
+    
     try:
         divulgacion = DivulgacionService.obtener_divulgacion_pendiente()
         if not divulgacion:
@@ -725,7 +750,7 @@ def enviar_divulgaciones(request):
     except Exception as e:
         logger.error(f"Error en enviar_divulgaciones: {str(e)}")
         return Response({"error": str(e)}, status=500)
-    
+
 @api_view(['GET'])
 def baja_usuario(request, id_manychat):
     try:
