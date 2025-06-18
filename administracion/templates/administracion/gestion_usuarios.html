@@ -28,6 +28,22 @@
               <a href="{% url 'eliminar_usuario' perfil.id_perfil %}" class="button small alt">Eliminar</a>
             </td>
           </tr>
+      <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap:30px; margin: 20px 0;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="button small">&laquo; Primera</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+        {% endif %}
+
+        <span class="current">
+          Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+        {% endif %}
+      </div>
+    
           {% empty %}
           <tr>
             <td colspan="4">No hay usuarios registrados aún.</td>

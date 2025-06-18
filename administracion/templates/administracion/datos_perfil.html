@@ -7,6 +7,7 @@
 <a class="button" href="{% url 'respuestas' %}">Volver</a>
 <form method="get" action="" style="text-align:center; margin-bottom: 20px;">
     <input type="text" name="q" placeholder="Buscar por RUT, ID ManyChat, WhatsApp" value="{{ query|default:'' }}" style="padding: 8px; width: 300px;">
+    <br>
     <button type="submit" class="button small">Buscar</button>
     <br>
     <br>
@@ -46,23 +47,22 @@
             </tbody>
         </table>
     </div>
-    <div class="pagination" style="text-align: center; margin: 20px 0;">
-        <span class="step-links">
-            {% if page_obj.has_previous %}
-                <a href="?page=1" class="button small">&laquo; Primera</a>
-                <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
-            {% endif %}
+        <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap:30px; margin: 20px 0;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="button small">&laquo; Primera</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+        {% endif %}
 
-            <span class="current">
-                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-            </span>
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
-            {% endif %}
-        </span>
+    <span class="current">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </span>
+        
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+    {% endif %}
     </div>
+
     {% else %}
     <p>No hay datos ingresados</p>
     {% endif %}

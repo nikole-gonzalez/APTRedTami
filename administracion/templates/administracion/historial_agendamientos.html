@@ -7,6 +7,7 @@
 <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
 <form method="get" style="text-align: center; margin-bottom: 20px;">
     <input type="text" name="search" placeholder="Buscar por RUT, correo o CESFAM" value="{{ search_query }}">
+    <br>
     <button type="submit" class="button small">Buscar</button>
     <br>
     <br>
@@ -48,23 +49,23 @@
         </table>
     </div>
 
-    <div class="pagination" style="text-align: center; margin: 20px 0;">
-        <span class="step-links">
-            {% if page_obj.has_previous %}
-                <a href="?search={{ search_query }}&page=1" class="button small">&laquo; Primera</a>
-                <a href="?search={{ search_query }}&page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
-            {% endif %}
+    <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; gap:30px; margin: 20px 0;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="button small">&laquo; Primera</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
+        {% endif %}
 
-            <span class="current">
-                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-            </span>
-
-            {% if page_obj.has_next %}
-                <a href="?search={{ search_query }}&page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
-                <a href="?search={{ search_query }}&page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
-            {% endif %}
-        </span>
+    <span class="current">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </span>
+        
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+    {% endif %}
     </div>
+
+    
     {% else %}
     <p>No hay agendamientos registrados.</p>
     {% endif %}
