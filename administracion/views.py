@@ -1049,167 +1049,179 @@ def datos_FRM2(request):
     })
 
 def crear_excel_datos_frm2(request):
-    wb = Workbook()
-    ws_FRM_V2 = wb.active
-    ws_FRM_V2.title = "Factores de riesgo mod 2"
-    
-    preguntas = PregFRM.objects.all().order_by('id_preg_frm')
-    lista_preguntas = ['Rut'] + [pregunta.preg_frm for pregunta in preguntas] + ['Fecha Respuesta']
-    ws_FRM_V2.append(lista_preguntas)
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            wb = Workbook()
+            ws_FRM_V2 = wb.active
+            ws_FRM_V2.title = "Factores de riesgo mod 2"
+            
+            preguntas = PregFRM.objects.all().order_by('id_preg_frm')
+            lista_preguntas = ['Rut'] + [pregunta.preg_frm for pregunta in preguntas] + ['Fecha Respuesta']
+            ws_FRM_V2.append(lista_preguntas)
 
-    respuestas = RespFRM.objects.select_related(
-        'id_opc_frm__id_preg_frm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frm__id_preg_frm__preg_frm',
-        'id_opc_frm__opc_resp_frm',
-        'fecha_respuesta_frm'
-    )
+            respuestas = RespFRM.objects.select_related(
+                'id_opc_frm__id_preg_frm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frm__id_preg_frm__preg_frm',
+                'id_opc_frm__opc_resp_frm',
+                'fecha_respuesta_frm'
+            )
 
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
-        respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
-        fecha = respuesta['fecha_respuesta_frm'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_frm'] else ''
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
+                respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
+                fecha = respuesta['fecha_respuesta_frm'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_frm'] else ''
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {
+                        "respuestas": {},
+                        "fecha": fecha
+                    }
+                dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+
+            for rut, respuestas_usuario in dict_respuestas.items():
+                fila = [rut]
+                for pregunta in preguntas:
+                    respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_frm, '')
+                    fila.append(respuesta)
+                fila.append(respuestas_usuario["fecha"])
+                ws_FRM_V2.append(fila)
         
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {
-                "respuestas": {},
-                "fecha": fecha
-            }
-        dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+            ajustar_ancho_columnas(ws_FRM_V2)
+            background_colors(ws_FRM_V2)
 
-    for rut, respuestas_usuario in dict_respuestas.items():
-        fila = [rut]
-        for pregunta in preguntas:
-            respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_frm, '')
-            fila.append(respuesta)
-        fila.append(respuestas_usuario["fecha"])
-        ws_FRM_V2.append(fila)
-   
-    ajustar_ancho_columnas(ws_FRM_V2)
-    background_colors(ws_FRM_V2)
-
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="FactoresMod_V2.xlsx"'
-    wb.save(response)
-    return response
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = 'attachment; filename="FactoresMod_V2.xlsx"'
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def crear_pdf_datos_frm2(request):
-    def truncate_text(text, max_length):
-        if not text:
-            return text
-        return (text[:max_length-3] + '...') if len(text) > max_length else text
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            def truncate_text(text, max_length):
+                if not text:
+                    return text
+                return (text[:max_length-3] + '...') if len(text) > max_length else text
 
- 
-    preguntas = PregFRM.objects.all().order_by('id_preg_frm')
-    
-    respuestas = RespFRM.objects.select_related(
-        'id_opc_frm__id_preg_frm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frm__id_preg_frm__preg_frm',
-        'id_opc_frm__opc_resp_frm',
-        'fecha_respuesta_frm'
-    )
-
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
-        respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
-        fecha = respuesta['fecha_respuesta_frm']
         
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {
-                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
-                'respuestas': {}
-            }
-        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+            preguntas = PregFRM.objects.all().order_by('id_preg_frm')
+            
+            respuestas = RespFRM.objects.select_related(
+                'id_opc_frm__id_preg_frm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frm__id_preg_frm__preg_frm',
+                'id_opc_frm__opc_resp_frm',
+                'fecha_respuesta_frm'
+            )
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        leftMargin=1*cm,
-        rightMargin=1*cm,
-        topMargin=1.5*cm,
-        bottomMargin=1.5*cm
-    )
-    
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name='Small',
-        parent=styles['Normal'],
-        fontSize=7,
-        leading=9
-    ))
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
+                respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
+                fecha = respuesta['fecha_respuesta_frm']
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {
+                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
+                        'respuestas': {}
+                    }
+                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    encabezados = ['RUT'] + [truncate_text(p.preg_frm, 25) for p in preguntas] + ['Fecha Respuesta']
-    data = [encabezados]
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                leftMargin=1*cm,
+                rightMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1.5*cm
+            )
+            
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(
+                name='Small',
+                parent=styles['Normal'],
+                fontSize=7,
+                leading=9
+            ))
 
-    for rut, datos in dict_respuestas.items():
-        fila = [rut]
-        for p in preguntas:
-            respuesta = datos['respuestas'].get(p.preg_frm, 'NR') 
-            fila.append(truncate_text(respuesta, 20))
-        fila.append(datos['fecha'])
-        data.append(fila)
+            encabezados = ['RUT'] + [truncate_text(p.preg_frm, 25) for p in preguntas] + ['Fecha Respuesta']
+            data = [encabezados]
+
+            for rut, datos in dict_respuestas.items():
+                fila = [rut]
+                for p in preguntas:
+                    respuesta = datos['respuestas'].get(p.preg_frm, 'NR') 
+                    fila.append(truncate_text(respuesta, 20))
+                fila.append(datos['fecha'])
+                data.append(fila)
 
 
-    tabla = Table(data, repeatRows=1)
-    
-    ancho_total = landscape(A4)[0] - 2*cm  
-    ancho_rut = 6*cm
-    ancho_fecha = 4*cm
-    ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 7),
-        ('FONTSIZE', (0, 1), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
-    ])
-    
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
-    for i in range(1, len(preguntas)+1):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
-    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
-    
-    
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    tabla.setStyle(estilo)
+            tabla = Table(data, repeatRows=1)
+            
+            ancho_total = landscape(A4)[0] - 2*cm  
+            ancho_rut = 6*cm
+            ancho_fecha = 4*cm
+            ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('FONTSIZE', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ('WORDWRAP', (0, 0), (-1, -1), True),
+            ])
+            
+            estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+            for i in range(1, len(preguntas)+1):
+                estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
+            estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
+            
+            
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            tabla.setStyle(estilo)
 
-  
-    elementos = [
-        Paragraph("Factores de Riesgo Modificables V2", styles['Title']),
-        Spacer(1, 0.5*cm),
-        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
-        Spacer(1, 0.5*cm),
-        tabla,
-        Spacer(1, 0.3*cm),
-        Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')} | NR = No Respondió", styles['Small'])
-    ]
+        
+            elementos = [
+                Paragraph("Factores de Riesgo Modificables V2", styles['Title']),
+                Spacer(1, 0.5*cm),
+                Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+                Spacer(1, 0.5*cm),
+                tabla,
+                Spacer(1, 0.3*cm),
+                Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')} | NR = No Respondió", styles['Small'])
+            ]
 
-    doc.build(elementos)
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="FactoresMod_V2.pdf"'
-    return response
+            doc.build(elementos)
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="FactoresMod_V2.pdf"'
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 # -------------- #
 # ---- FRNM ---- #
@@ -1414,163 +1426,174 @@ def datos_FRNM2(request):
     })
 
 def crear_excel_datos_frnm2(request):
-    wb = Workbook()
-    ws_FRNM_V2 = wb.active
-    ws_FRNM_V2.title = "Factores de riesgo no mod 2"
-    
-    preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
-    lista_preguntas = ['Rut'] + [pregunta.preg_frnm for pregunta in preguntas] + ['Fecha Respuesta']
-    ws_FRNM_V2.append(lista_preguntas)
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            wb = Workbook()
+            ws_FRNM_V2 = wb.active
+            ws_FRNM_V2.title = "Factores de riesgo no mod 2"
+            
+            preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
+            lista_preguntas = ['Rut'] + [pregunta.preg_frnm for pregunta in preguntas] + ['Fecha Respuesta']
+            ws_FRNM_V2.append(lista_preguntas)
 
-    respuestas = RespFRNM.objects.select_related(
-        'id_opc_frnm__id_preg_frnm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frnm__id_preg_frnm__preg_frnm',
-        'id_opc_frnm__opc_resp_frnm',
-        'fecha_respuesta_frnm'
-    )
+            respuestas = RespFRNM.objects.select_related(
+                'id_opc_frnm__id_preg_frnm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frnm__id_preg_frnm__preg_frnm',
+                'id_opc_frnm__opc_resp_frnm',
+                'fecha_respuesta_frnm'
+            )
 
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
-        respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
-        fecha = respuesta['fecha_respuesta_frnm'].strftime('%d-%m-%Y %H-%M-%S')if respuesta['fecha_respuesta_frnm'] else ''
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
+                respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
+                fecha = respuesta['fecha_respuesta_frnm'].strftime('%d-%m-%Y %H-%M-%S')if respuesta['fecha_respuesta_frnm'] else ''
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {
+                        "respuestas": {},
+                        "fecha": fecha
+                    }
+                dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+
+            for rut, respuestas_usuario in dict_respuestas.items():
+                fila = [rut]
+                for pregunta in preguntas:
+                    respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_frnm, '')
+                    fila.append(respuesta)
+                fila.append(respuestas_usuario["fecha"])
+                ws_FRNM_V2.append(fila)
         
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {
-                "respuestas": {},
-                "fecha": fecha
-            }
-        dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+            ajustar_ancho_columnas(ws_FRNM_V2)
+            background_colors(ws_FRNM_V2)
 
-    for rut, respuestas_usuario in dict_respuestas.items():
-        fila = [rut]
-        for pregunta in preguntas:
-            respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_frnm, '')
-            fila.append(respuesta)
-        fila.append(respuestas_usuario["fecha"])
-        ws_FRNM_V2.append(fila)
-   
-    ajustar_ancho_columnas(ws_FRNM_V2)
-    background_colors(ws_FRNM_V2)
-
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V2.xlsx"'
-    wb.save(response)
-    return response
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = 'attachment; filename="FactoresNoMod_V2.xlsx"'
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def crear_pdf_datos_frnm2(request):
-    def truncate_text(text, max_length):
-        """Trunca texto largo agregando '...' si excede el máximo"""
-        if not text:
-            return text
-        return (text[:max_length-3] + '...') if len(text) > max_length else text
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            def truncate_text(text, max_length):
+                if not text:
+                    return text
+                return (text[:max_length-3] + '...') if len(text) > max_length else text
 
-    preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
-    
-    respuestas = RespFRNM.objects.select_related(
-        'id_opc_frnm__id_preg_frnm', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_frnm__id_preg_frnm__preg_frnm',
-        'id_opc_frnm__opc_resp_frnm',
-        'fecha_respuesta_frnm'
-    )
+            preguntas = PregFRNM.objects.all().order_by('id_preg_frnm')
+            
+            respuestas = RespFRNM.objects.select_related(
+                'id_opc_frnm__id_preg_frnm', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_frnm__id_preg_frnm__preg_frnm',
+                'id_opc_frnm__opc_resp_frnm',
+                'fecha_respuesta_frnm'
+            )
 
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
-        respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
-        fecha = respuesta['fecha_respuesta_frnm']
-        
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {'fecha': fecha, 'respuestas': {}}
-        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
+                respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
+                fecha = respuesta['fecha_respuesta_frnm']
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {'fecha': fecha, 'respuestas': {}}
+                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        leftMargin=1*cm,
-        rightMargin=1*cm,
-        topMargin=1.5*cm,
-        bottomMargin=1.5*cm
-    )
-    
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name='SmallText',
-        parent=styles['Normal'],
-        fontSize=6,
-        leading=8
-    ))
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                leftMargin=1*cm,
+                rightMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1.5*cm
+            )
+            
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(
+                name='SmallText',
+                parent=styles['Normal'],
+                fontSize=6,
+                leading=8
+            ))
 
-    encabezados = ['RUT'] + [truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha Respuesta']
-    data = [encabezados]
+            encabezados = ['RUT'] + [truncate_text(p.preg_frnm, 25) for p in preguntas] + ['Fecha Respuesta']
+            data = [encabezados]
 
-    for rut, datos in dict_respuestas.items():
-        fila = [rut]
-        for p in preguntas:
-            respuesta = datos['respuestas'].get(p.preg_frnm, 'NR')  
-            fila.append(truncate_text(respuesta, 20))
-        fila.append(datos['fecha'].strftime('%d-%m-%Y %H:%M:%S') if datos['fecha'] else 'S/F')
-        data.append(fila)
+            for rut, datos in dict_respuestas.items():
+                fila = [rut]
+                for p in preguntas:
+                    respuesta = datos['respuestas'].get(p.preg_frnm, 'NR')  
+                    fila.append(truncate_text(respuesta, 20))
+                fila.append(datos['fecha'].strftime('%d-%m-%Y %H:%M:%S') if datos['fecha'] else 'S/F')
+                data.append(fila)
 
-    tabla = Table(data, repeatRows=1)
-    
-    ancho_total = landscape(A4)[0] - 2*cm 
-    ancho_rut = 6*cm
-    ancho_fecha = 3*cm
-    ancho_preguntas = max(2.5*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')), 
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 7),
-        ('FONTSIZE', (0, 1), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ('WORDWRAP', (0, 0), (-1, -1), True),  
-        ('LEADING', (0, 0), (-1, -1), 7), 
-    ])
-    
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut) 
-    for i in range(1, len(preguntas)+1):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)  
-    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)  
-    
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    tabla.setStyle(estilo)
+            tabla = Table(data, repeatRows=1)
+            
+            ancho_total = landscape(A4)[0] - 2*cm 
+            ancho_rut = 6*cm
+            ancho_fecha = 3*cm
+            ancho_preguntas = max(2.5*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')), 
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('FONTSIZE', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ('WORDWRAP', (0, 0), (-1, -1), True),  
+                ('LEADING', (0, 0), (-1, -1), 7), 
+            ])
+            
+            estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut) 
+            for i in range(1, len(preguntas)+1):
+                estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)  
+            estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)  
+            
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            tabla.setStyle(estilo)
 
-    elementos = [
-        Paragraph("Factores de Riesgo No Modificables V2", styles['Title']),
-        Spacer(1, 0.5*cm),
-        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
-        Spacer(1, 0.3*cm),
-        tabla,
-        Spacer(1, 0.3*cm),
-        Paragraph("NR = No Respondió | S/F = Sin Fecha", styles['SmallText'])
-    ]
+            elementos = [
+                Paragraph("Factores de Riesgo No Modificables V2", styles['Title']),
+                Spacer(1, 0.5*cm),
+                Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+                Spacer(1, 0.3*cm),
+                tabla,
+                Spacer(1, 0.3*cm),
+                Paragraph("NR = No Respondió | S/F = Sin Fecha", styles['SmallText'])
+            ]
 
-    doc.build(elementos)
-    
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="FactoresRiesgoNoMod_V2.pdf"'
-    return response
+            doc.build(elementos)
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="FactoresRiesgoNoMod_V2.pdf"'
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 # ------------ #
 # ---- DS ---- #
@@ -1759,167 +1782,179 @@ def datos_DS2(request):
     })
 
 def crear_excel_datos_ds2(request):
-    wb = Workbook()
-    ws_DS_V2 = wb.active
-    ws_DS_V2.title = "Determinantes salud 2"
-    
-    preguntas = PregDS.objects.all().order_by('id_preg_ds')
-    lista_preguntas = ['Rut'] + [pregunta.preg_ds for pregunta in preguntas] + ['Fecha Respuesta']
-    ws_DS_V2.append(lista_preguntas)
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            wb = Workbook()
+            ws_DS_V2 = wb.active
+            ws_DS_V2.title = "Determinantes salud 2"
+            
+            preguntas = PregDS.objects.all().order_by('id_preg_ds')
+            lista_preguntas = ['Rut'] + [pregunta.preg_ds for pregunta in preguntas] + ['Fecha Respuesta']
+            ws_DS_V2.append(lista_preguntas)
 
-    respuestas = RespDS.objects.select_related(
-        'id_opc_ds__id_preg_ds', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_ds__id_preg_ds__preg_ds',
-        'id_opc_ds__opc_resp_ds',
-        'fecha_respuesta_ds'
-    )
+            respuestas = RespDS.objects.select_related(
+                'id_opc_ds__id_preg_ds', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_ds__id_preg_ds__preg_ds',
+                'id_opc_ds__opc_resp_ds',
+                'fecha_respuesta_ds'
+            )
 
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
-        respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
-        fecha = respuesta['fecha_respuesta_ds'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_ds'] else ''
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
+                respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
+                fecha = respuesta['fecha_respuesta_ds'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_ds'] else ''
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {
+                        "respuestas": {},
+                        "fecha": fecha
+                    }
+                dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+
+            for rut, respuestas_usuario in dict_respuestas.items():
+                fila = [rut]
+                for pregunta in preguntas:
+                    respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_ds, '')
+                    fila.append(respuesta)
+                fila.append(respuestas_usuario["fecha"])
+                ws_DS_V2.append(fila)
         
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {
-                "respuestas": {},
-                "fecha": fecha
-            }
-        dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+            ajustar_ancho_columnas(ws_DS_V2)
+            background_colors(ws_DS_V2)
 
-    for rut, respuestas_usuario in dict_respuestas.items():
-        fila = [rut]
-        for pregunta in preguntas:
-            respuesta = respuestas_usuario["respuestas"].get(pregunta.preg_ds, '')
-            fila.append(respuesta)
-        fila.append(respuestas_usuario["fecha"])
-        ws_DS_V2.append(fila)
-   
-    ajustar_ancho_columnas(ws_DS_V2)
-    background_colors(ws_DS_V2)
-
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="DeterminantesSalud_V2.xlsx"'
-    wb.save(response)
-    return response
+            response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            response["Content-Disposition"] = 'attachment; filename="DeterminantesSalud_V2.xlsx"'
+            wb.save(response)
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
 
 @login_required
 def crear_pdf_datos_ds2(request):
-    def truncate_text(text, max_length):
-        if not text:
-            return text
-        return (text[:max_length-3] + '...') if len(text) > max_length else text
+    session_key = request.GET.get('session_key')
+    if session_key:
+        session = SessionStore(session_key=session_key)
+        if session.get('password_validated', False):
+            session.flush()
+            def truncate_text(text, max_length):
+                if not text:
+                    return text
+                return (text[:max_length-3] + '...') if len(text) > max_length else text
 
- 
-    preguntas = PregDS.objects.all().order_by('id_preg_ds')
-    
-    respuestas = RespDS.objects.select_related(
-        'id_opc_ds__id_preg_ds', 'id_manychat'
-    ).values(
-        'id_manychat__rut_usuario',
-        'id_manychat__dv_rut',
-        'id_opc_ds__id_preg_ds__preg_ds',
-        'id_opc_ds__opc_resp_ds',
-        'fecha_respuesta_ds'
-    )
-
-    dict_respuestas = {}
-    for respuesta in respuestas:
-        rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-        pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
-        respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
-        fecha = respuesta['fecha_respuesta_ds']
         
-        if rut not in dict_respuestas:
-            dict_respuestas[rut] = {
-                'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
-                'respuestas': {}
-            }
-        dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+            preguntas = PregDS.objects.all().order_by('id_preg_ds')
+            
+            respuestas = RespDS.objects.select_related(
+                'id_opc_ds__id_preg_ds', 'id_manychat'
+            ).values(
+                'id_manychat__rut_usuario',
+                'id_manychat__dv_rut',
+                'id_opc_ds__id_preg_ds__preg_ds',
+                'id_opc_ds__opc_resp_ds',
+                'fecha_respuesta_ds'
+            )
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        leftMargin=1*cm,
-        rightMargin=1*cm,
-        topMargin=1.5*cm,
-        bottomMargin=1.5*cm
-    )
-    
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name='Small',
-        parent=styles['Normal'],
-        fontSize=7,
-        leading=9
-    ))
+            dict_respuestas = {}
+            for respuesta in respuestas:
+                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
+                pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
+                respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
+                fecha = respuesta['fecha_respuesta_ds']
+                
+                if rut not in dict_respuestas:
+                    dict_respuestas[rut] = {
+                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
+                        'respuestas': {}
+                    }
+                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
 
-    encabezados = ['RUT'] + [truncate_text(p.preg_ds, 25) for p in preguntas] + ['Fecha Respuesta']
-    data = [encabezados]
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                leftMargin=1*cm,
+                rightMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1.5*cm
+            )
+            
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(
+                name='Small',
+                parent=styles['Normal'],
+                fontSize=7,
+                leading=9
+            ))
 
-    for rut, datos in dict_respuestas.items():
-        fila = [rut]
-        for p in preguntas:
-            respuesta = datos['respuestas'].get(p.preg_ds, 'NR') 
-            fila.append(truncate_text(respuesta, 20))
-        fila.append(datos['fecha'])
-        data.append(fila)
+            encabezados = ['RUT'] + [truncate_text(p.preg_ds, 25) for p in preguntas] + ['Fecha Respuesta']
+            data = [encabezados]
 
+            for rut, datos in dict_respuestas.items():
+                fila = [rut]
+                for p in preguntas:
+                    respuesta = datos['respuestas'].get(p.preg_ds, 'NR') 
+                    fila.append(truncate_text(respuesta, 20))
+                fila.append(datos['fecha'])
+                data.append(fila)
 
-    tabla = Table(data, repeatRows=1)
-    
-    ancho_total = landscape(A4)[0] - 2*cm  
-    ancho_rut = 6*cm
-    ancho_fecha = 4*cm
-    ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
-    
-    estilo = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 7),
-        ('FONTSIZE', (0, 1), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
-    ])
-    
-    estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
-    for i in range(1, len(preguntas)+1):
-        estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
-    estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
-    
-    
-    for i in range(1, len(data)):
-        if i % 2 == 0:
-            estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
-    
-    tabla.setStyle(estilo)
+            tabla = Table(data, repeatRows=1)
+            
+            ancho_total = landscape(A4)[0] - 2*cm  
+            ancho_rut = 6*cm
+            ancho_fecha = 4*cm
+            ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
+            
+            estilo = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c6fffa')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('FONTSIZE', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ('WORDWRAP', (0, 0), (-1, -1), True),
+            ])
+            
+            estilo.add('COLWIDTH', (0, 0), (0, -1), ancho_rut)
+            for i in range(1, len(preguntas)+1):
+                estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
+            estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
+            
+            
+            for i in range(1, len(data)):
+                if i % 2 == 0:
+                    estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
+            
+            tabla.setStyle(estilo)
 
-  
-    elementos = [
-        Paragraph("Determinantes de Salud V2", styles['Title']),
-        Spacer(1, 0.5*cm),
-        Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
-        Spacer(1, 0.5*cm),
-        tabla,
-        Spacer(1, 0.3*cm),
-        Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')} | NR = No Respondió", styles['Small'])
-    ]
+        
+            elementos = [
+                Paragraph("Determinantes de Salud V2", styles['Title']),
+                Spacer(1, 0.5*cm),
+                Paragraph(f"Total de registros: {len(data)-1}", styles['Normal']),
+                Spacer(1, 0.5*cm),
+                tabla,
+                Spacer(1, 0.3*cm),
+                Paragraph(f"Generado el: {timezone.now().strftime('%d/%m/%Y %H:%M')} | NR = No Respondió", styles['Small'])
+            ]
 
-    doc.build(elementos)
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="DeterminantesSalud_V2.pdf"'
-    return response
+            doc.build(elementos)
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="DeterminantesSalud_V2.pdf"'
+            return response
+    return HttpResponseForbidden("Acceso no autorizado")
+    
 # ----------------------------------------------------------------- #
 # ---------------------- Listado priorizado ----------------------- #
 # ----------------------------------------------------------------- #
