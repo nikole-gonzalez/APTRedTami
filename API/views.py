@@ -612,11 +612,11 @@ def enviar_recordatorios_pendientes(request):
         
         fecha_actual = ahora_chile.date()
         
-        if ahora_chile.hour == 7 and ahora_chile.minute <= 15:
+        if ahora_chile.hour == 7 and ahora_chile.minute <= 25:
             hora_inicio = time(8, 0)
             hora_fin = time(14, 59)
             tipo_recordatorio = "mañana"
-        elif ahora_chile.hour == 15  and ahora_chile.minute <= 15:
+        elif ahora_chile.hour == 15  and ahora_chile.minute <= 25:
             hora_inicio = time(15, 0)
             hora_fin = time(23, 0)
             tipo_recordatorio = "tarde"
