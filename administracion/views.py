@@ -2292,8 +2292,13 @@ def crear_pdf_preg_especialista(request):
 # ----------------------------------------------------------- #
 @login_required
 def lista_usuarios(request):
-    perfiles = PerfilUsuario.objects.select_related('user','usuario_sist')
-    return render (request, 'administracion/lista_usuarios.html', {'perfiles': perfiles})
+    perfiles = PerfilUsuario.objects.select_related('user','usuario_sist').order_by('id_perfil')
+
+    page_obj = paginacion_queryset1(request, perfiles)
+    
+    return render (request, 'administracion/lista_usuarios.html', {'page_obj': page_obj, 'perfiles': perfiles})
+
+
 
 from django.contrib import messages
 
