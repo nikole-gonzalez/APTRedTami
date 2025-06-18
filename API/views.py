@@ -7,7 +7,7 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAdminUser, AllowAny
+from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
 from rest_framework.parsers import JSONParser
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes,authentication_classes
@@ -33,6 +33,7 @@ from .serializer import *
 import pytz
 from django.db.models import F, Value, ExpressionWrapper, DateTimeField
 from django.db.models.functions import Concat, Cast
+from rest_framework.authentication import TokenAuthentication
 
 def home_api(request):
     return render(request, 'api/index.html')
@@ -679,6 +680,8 @@ def enviar_email_recordatorio(recordatorio):
     email.send()
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def enviar_divulgaciones(request):
     try:
         divulgacion = DivulgacionService.obtener_divulgacion_pendiente()
