@@ -700,12 +700,6 @@ def enviar_divulgaciones(request):
     received_token = parts[1].strip()
     expected_token = getattr(settings, 'GITHUB_WEBHOOK_SECRET', '').strip()
 
-    logger.warning(f"🧪 Token recibido: '{received_token}'")
-    logger.warning(f"🧪 Token esperado: '{expected_token}'")
-    logger.warning(f"🧪 repr(token recibido): {repr(received_token)}")
-    logger.warning(f"🧪 repr(token esperado): {repr(expected_token)}")
-
-    
     if not expected_token:
         logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
         return Response({'error': 'Configuración del servidor incompleta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
