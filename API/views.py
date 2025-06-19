@@ -766,3 +766,56 @@ def baja_usuario(request, id_manychat):
     except Exception as e:
         logger.error(f"Error en baja_usuario: {str(e)}")
         return HttpResponse("Ocurrió un error al procesar tu solicitud", status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verificar_perfil_usuario(request):
+    """
+    Versión corregida que maneja correctamente la relación con usuario_sist_id
+    """
+    if not request.data or 'id_manychat' not in request.data:
+        return Response(
+            {'registrado': 'false', 'error': 'id_manychat es requerido'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    id_manychat = request.data['id_manychat']
+
+    try:
+        # Convertir a entero si es necesario
+        try:
+            id_manychat_int = int(id_manychat)
+        except ValueError:
+            id_manychat_int = id_manychat
+
+        # Buscar directamente en PerfilUsuario
+        perfil = PerfilUsuario.objects.filter(usuario_sist_id=id_manychat_int).first()
+        
+        if perfil:
+            return Response({
+                'registrado': 'true'
+            })
+        
+        # Búsqueda alternativa por si acaso
+        usuario_manychat = Usuario.objects.filter(id_manychat=str(id_manychat_int)).first()
+        if usuario_manychat and hasattr(usuario_manychat, 'perfilusuario'):
+            perfil = usuario_manychat.perfilusuario
+            return Response({
+                'registrado': 'true',
+                'nombre_completo': perfil.user.get_full_name(),
+                'email': perfil.user.email,
+                'fecha_registro': perfil.user.date_joined,
+                'tipo_usuario': perfil.tipo_usuario
+            })
+
+        return Response({
+            'registrado': 'false',
+            'error': 'Usuario no registrado en el sistema'
+        })
+
+    except Exception as e:
+        return Response({
+            'registrado': 'false',
+            'error': f'Error en la verificación: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    

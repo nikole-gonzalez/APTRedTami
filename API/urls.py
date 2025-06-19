@@ -29,7 +29,8 @@ from .views import (
     enviar_recordatorios_pendientes,
     verificar_habilitado_para_reservar,
     enviar_divulgaciones,
-    baja_usuario
+    baja_usuario,
+    verificar_perfil_usuario
 
 )
 
@@ -66,6 +67,7 @@ urlpatterns = [
     path('enviar-recordatorios/', enviar_recordatorios_pendientes, name='enviar_recordatorios'),
     path('habilitar-reserva/', verificar_habilitado_para_reservar, name='habilitar_reserva'),
     path('divulgaciones-enviar/', enviar_divulgaciones, name='enviar_divulgaciones'),
-    path('baja/<str:id_manychat>/', baja_usuario, name='baja_usuario')
+    path('baja/<str:id_manychat>/', baja_usuario, name='baja_usuario'),
+    path('verificar-perfil/', verificar_perfil_usuario, name ='verificar-perfil'),
     
 ]
