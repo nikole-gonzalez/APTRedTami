@@ -8,7 +8,7 @@
 <div id="wrapper">
     <header id="header">
         <div class="inner">
-            <a href="{% url 'pag_informativa' %}" class="logo">
+            <a href="{% url 'pagina_informativa' %}" class="logo">
                 <span class="symbol"><img src="{% static 'images/logo.png' %}" alt="Logo" /></span>
                 <span class="title">Red TAMI</span>
             </a>
@@ -23,7 +23,7 @@
     <nav id="menu">
         <h2>Menú</h2>
         <ul>
-            <li><a href="{% url 'pag_informativa' %}">Inicio</a></li>
+            <li><a href="{% url 'pagina_informativa' %}">Inicio</a></li>
             <li><a href="#que-es">¿Qué es?</a></li>
             <li><a href="#vph">VPH</a></li>
             <li><a href="#factores-riesgo">Factores de riesgo</a></li>
@@ -282,14 +282,15 @@
                 <div class="registration-section">
                     <h2>¿Ya respondiste nuestro cuestionario por WhatsApp?</h2>
                     <p>Regístrate ahora para acceder a tu historial de agendamientos y gestionar tu perfil.</p>
-                    <a href="{% url 'registro_usuario' %}" class="button primary large">Crear mi cuenta</a>
+                    <a href="{% url 'autorregistro' %}" class="button primary large">Crear mi cuenta</a>
                     
                     <div class="registration-info">
                         <h3>¿Qué necesitas para registrarte?</h3>
                         <ol>
-                            <li>El código de verificación que recibiste por WhatsApp</li>
+                            <li>Nombre de usuario para el sistema</li>
                             <li>Tu nombre completo</li>
                             <li>Un email válido</li>
+                            <li>Rut</li>
                             <li>Tu número de teléfono</li>
                             <li>Una contraseña segura</li>
                         </ol>

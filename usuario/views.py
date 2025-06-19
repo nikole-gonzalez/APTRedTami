@@ -23,11 +23,8 @@ def usuario_index(request):
         'perfil': perfil
     })
 
-def pag_informativa(request):
+def pagina_informativa(request):
     return render(request, 'usuario/informativo.html')
-
-def registro_usuario(request):
-    return render(request, 'usuario/registro.html')
 
 @login_required
 def agendamiento(request):
@@ -72,7 +69,7 @@ def eliminar_datos_usuario(request):
         user.delete()
 
         messages.success(request, "Se ha eliminado tu cuenta y todos tus datos correctamente.")
-        return redirect('pag_informativa')
+        return redirect('pagina_informativa')
 
     return render(request, 'usuario/confirmar_eliminacion.html')
 

@@ -32,7 +32,7 @@ def custom_login(request):
                     return redirect('usuario_index')
 
             # Caso 3: no tiene perfil 
-            return redirect('pag_informativa')
+            return redirect('pagina_informativa')
         
         else:
             messages.error(request, "Credenciales inválidas")
