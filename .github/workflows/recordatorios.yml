@@ -3,7 +3,7 @@ name: Enviar Recordatorios Chile
 on:
   schedule:
     # Horario de invierno (UTC-4)
-    - cron: '0 10 * * *'  # 7 AM Chile (UTC-4)
+    - cron: '0 11 * * *'  # 7 AM Chile (UTC-4)
     - cron: '0 19 * * *'  # 3 PM Chile (UTC-4)
     
     # Horario de verano (UTC-3) - recuerda actualizar manualmente cuando cambie el horario
