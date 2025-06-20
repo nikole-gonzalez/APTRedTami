@@ -4,15 +4,16 @@
 
 {% block content %}
 <div id="wrapper">
-    <header id="header">
+     <header id="header">
         <div class="inner">
-            <a href="{% url 'pagina_informativa' %}" class="logo">
+            <a href="{% url 'home' %}" class="logo">
                 <span class="symbol"><img src="{% static 'images/logo.png' %}" alt="Logo" /></span>
                 <span class="title">Red TAMI</span>
             </a>
             <nav>
-                <ul>
-                    <li><a href="#menu">Menú</a></li>
+                <ul style="list-style-type: none; padding: 0; margin: 0; display: flex;">
+                    <li style="margin-right: 15px;"><a href="#menu">Menú</a></li>
+                    <li><a href="{% url 'login' %}">Login</a></li>
                 </ul>
             </nav>
         </div>
@@ -21,7 +22,7 @@
     <nav id="menu">
         <h2>Menú</h2>
         <ul>
-            <li><a href="{% url 'pagina_informativa' %}">Inicio</a></li>
+            <li><a href="{% url 'home' %}">Inicio</a></li>
             <li><a href="#que-es">¿Qué es?</a></li>
             <li><a href="#vph">VPH</a></li>
             <li><a href="#factores-riesgo">Factores de riesgo</a></li>

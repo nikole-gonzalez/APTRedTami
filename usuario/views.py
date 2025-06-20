@@ -69,7 +69,7 @@ def eliminar_datos_usuario(request):
         user.delete()
 
         messages.success(request, "Se ha eliminado tu cuenta y todos tus datos correctamente.")
-        return redirect('pagina_informativa')
+        return redirect('home')
 
     return render(request, 'usuario/confirmar_eliminacion.html')
 
