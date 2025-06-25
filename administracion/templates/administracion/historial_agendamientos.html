@@ -42,7 +42,7 @@
                     <td>{{ ag.id_manychat.email }}</td>
                     <td>{{ ag.id_cesfam.nombre_cesfam }}</td>
                     <td>{{ ag.id_procedimiento.nombre_procedimiento|default:"No especificado" }}</td>
-                    <td>{{ ag.fecha_atencion|date:"d-m-Y H:i:s" }}</td>
+                    <td>{{ ag.fecha_atencion|date:"d-m-Y" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
