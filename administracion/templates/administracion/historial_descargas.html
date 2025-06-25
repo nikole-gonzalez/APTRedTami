@@ -20,7 +20,7 @@
         <tbody>
             {% for descarga in page_obj %}
             <tr>
-                <td>{{ descarga.fecha_descarga|date:"d/m/Y H:i" }}</td>
+                <td>{{ descarga.fecha_descarga|date:"d-m-Y H:i:s" }}</td>
                 <td>{{ descarga.usuario.get_full_name|default:descarga.usuario.username }}</td>
                 <td>{{ descarga.cesfam.nombre_cesfam }}</td>
                 <td>{{ descarga.nombre_archivo }}</td>
