@@ -2480,7 +2480,7 @@ def generar_json_por_cesfam(request, cesfam_id):
             "metadata": {
                 "sistema": "APTRedTami",
                 "version": "1.0",
-                "fecha_generacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "fecha_generacion": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
                 "total_horas": len(datos_agendas),
                 "horas_registradas": len([a for a in datos_agendas if a['tipo_usuario'] == "registrado"])
             },
