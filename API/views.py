@@ -261,11 +261,11 @@ def cuestionario_completo(request):
                 completo = False
                 break
 
-        return Response({'completo': completo})
+        return Response({'completo': 'true' if completo else 'false'})
 
     except ObjectDoesNotExist:
         return Response(
-            {'completo': False, 'error': 'Usuario no encontrado'},
+            {'completo': 'false', 'error': 'Usuario no encontrado'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
