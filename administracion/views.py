@@ -101,8 +101,6 @@ def opc_vis_DS(request):
 # ---------------------- Reportes ---------------------- #
 # ------------------------------------------------------ #
 
-# Configuración global para fuentes de gráficos
-
 @login_required
 def reportes(request):
     grafico_genero = generar_grafico_personas_por_genero()
@@ -2053,7 +2051,7 @@ def crear_excel_listado_priorizado(request):
     ]
     ws.append(encabezados)
 
-    # Obtener los datos (usando la misma consulta que en listado_priorizado)
+    # Obtener los datos
     pap_subquery = RespTM.objects.filter(
         id_manychat=OuterRef('id_manychat'),
         id_opc_tm=5
@@ -2096,7 +2094,7 @@ def crear_excel_listado_priorizado(request):
         ]
         ws.append(fila)
     
-    # Ajustar formato (puedes reutilizar tus funciones existentes)
+    # Ajustar formato
     ajustar_ancho_columnas(ws)
     background_colors(ws)
 
@@ -2338,8 +2336,6 @@ def lista_usuarios(request):
     page_obj = paginacion_queryset1(request, perfiles)
     
     return render (request, 'administracion/lista_usuarios.html', {'page_obj': page_obj, 'perfiles': perfiles})
-
-
 
 from django.contrib import messages
 

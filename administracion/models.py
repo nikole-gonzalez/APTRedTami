@@ -42,7 +42,6 @@ class Usuario(models.Model):
         return f"Usuario: {self.rut_usuario}-{self.dv_rut} ({self.id_manychat})"
     
     def cuestionario_completo(self):
-        """Verifica si respondió todas las preguntas de todos los tipos"""
         tipos = [
             ('TM', RespTM, PregTM, 'id_opc_tm__id_preg_tm'),
             ('DS', RespDS, PregDS, 'id_opc_ds__id_preg_ds'),
@@ -53,7 +52,7 @@ class Usuario(models.Model):
         for tipo, modelo_resp, modelo_preg, relacion in tipos:
             # Verifica que haya al menos una respuesta
             if not modelo_resp.objects.filter(id_manychat=self).exists():
-                return False
+                return 'false'
                 
             # Verifica completitud
             total = modelo_preg.objects.count()
@@ -62,9 +61,9 @@ class Usuario(models.Model):
             ).values_list(relacion, flat=True).distinct().count()
             
             if respondidas < total:
-                return False
+                return 'false'
                 
-        return True
+        return 'true'
 
 class Region(models.Model):
     cod_region = models.IntegerField(primary_key=True, verbose_name= "Cod region")
