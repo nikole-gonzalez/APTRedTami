@@ -309,499 +309,551 @@
                 </div>
             </div>
         </section>
+         </div>
     </div>
+     <footer id="footer">
+        <div class="inner">
+            <section>
+                <h2>Contacto</h2>
+                <address>
+                    <p><i class="icon solid fa-phone"></i> Teléfono: <a href="tel:+56912345678">+56 9 1234 5678</a></p>
+                    <p><i class="icon solid fa-envelope"></i> Email: <a href="mailto: redtamicervicouterino@gmail.com">contacto@redtami.cl</a></p>
+                </address>
+            </section>
+        </div>
+    </footer>
 </main>
 {% endblock %}
 
 {% block extra_css %}
 <style>
     /* Fondo de la página */
-    body {
-        background-color: #c6fffa;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        margin: 0;
-        padding: 0;
-    }
+body {
+    background-color: #c6fffa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
 
-    /* Estilos Phantom solo para el menú */
-    #wrapper {
-        position: relative;
-        z-index: 1;
-    }
-    
-    #header {
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        background: #fff;
-        position: fixed;
-        top: 0;
-        width: 100%;
-        z-index: 1000;
-    }
-    
-    #header .inner {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    #menu {
-        display: none;
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 300px;
-        height: 100%;
-        background: #fff;
-        padding: 20px;
-        box-shadow: -5px 0 10px rgba(0,0,0,0.1);
-        z-index: 1001;
-        overflow-y: auto;
-    }
-    
-    #menu.active {
-        display: block;
-    }
-    
-    #menu h2 {
-        margin-top: 0;
-        color: #2c3e50;
-    }
-    
-    #menu ul {
-        list-style: none;
-        padding: 0;
-    }
-    
-    #menu ul li {
-        margin-bottom: 10px;
-    }
-    
-    #menu ul li a {
-        color: #2c3e50;
-        text-decoration: none;
-        font-weight: 500;
-    }
-    
-    #menu ul li a:hover {
-        color: #f2849e !important; /* Cambio a rosa */
-    }
-    
-    .logo {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        color: #2c3e50;
-        font-weight: bold;
-    }
-    
-    .logo .symbol img {
-        height: 40px;
-        margin-right: 10px;
-    }
+/* Estilos Phantom solo para el menú */
+#wrapper {
+    position: relative;
+    z-index: 1;
+}
 
-    /* Contenido principal */
-    #main {
-        margin-top: 80px;
-        padding-bottom: 40px;
+#header {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background: #fff;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+#header .inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+#menu {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 100%;
+    background: #fff;
+    padding: 20px;
+    box-shadow: -5px 0 10px rgba(0,0,0,0.1);
+    z-index: 1001;
+    overflow-y: auto;
+}
+
+#menu.active {
+    display: block;
+}
+
+#menu h2 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+#menu ul {
+    list-style: none;
+    padding: 0;
+}
+
+#menu ul li {
+    margin-bottom: 10px;
+}
+
+#menu ul li a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+#menu ul li a:hover {
+    color: #f2849e !important; /* Cambio a rosa */
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.logo .symbol img {
+    height: 40px;
+    margin-right: 10px;
+}
+
+/* Contenido principal */
+#main {
+    margin-top: 80px;
+    padding-bottom: 40px;
+}
+
+#main .inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Hero Section - estilo similar al registro */
+.hero {
+    background-color: #f2849e;
+    color: white;
+    background-image: none;
+    height: auto;
+    padding: 60px 20px;
+    margin: 30px 0;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero p {
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+    color: white;
+}
+
+/* Botones */
+.button {
+    display: inline-block;
+    padding: 12px 25px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.button.primary {
+    background-color: white;
+    color: #f2849e;
+    border: 2px solid white;
+}
+
+.button.primary:hover {
+    background-color: transparent;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.button.small {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+}
+
+/* Secciones de contenido */
+.content-section {
+    padding: 40px;
+    margin: 20px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #e0e0e0;
+    background-color: #f9f9f9;
+}
+
+.gray-bg {
+    background-color: #f0f0f0;
+    border: none;
+}
+
+.accent-bg {
+    background-color: #f2849e;
+    color: white;
+    border: none;
+}
+
+/* Títulos */
+h1, h2, h3, h4 {
+    color: #2c3e50;
+}
+
+.accent-bg h1, 
+.accent-bg h2, 
+.accent-bg h3, 
+.accent-bg h4 {
+    color: white;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+}
+
+h2 {
+    font-size: 2.2rem;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+h2:after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: #f2849e;
+    margin: 15px 0;
+}
+
+.accent-bg h2:after {
+    background: white;
+}
+
+h3 {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+}
+
+h4 {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+}
+
+/* Navegación de secciones */
+.section-nav {
+    margin-bottom: 2em;
+    padding: 1em;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.section-nav h2 {
+    margin-top: 0;
+    font-size: 1.3em;
+    color: #333;
+}
+
+.section-nav ul {
+    list-style: none;
+    padding-left: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+}
+
+.section-nav ul li a {
+    text-decoration: none;
+    font-weight: bold;
+    color: #0077cc;
+}
+
+.section-nav ul li a:hover {
+    color: #f2849e !important;
+    text-decoration: underline;
+}
+
+/* Columnas */
+.two-columns {
+    display: flex;
+    gap: 30px;
+    margin: 30px 0;
+}
+
+.column {
+    flex: 1;
+}
+
+/* Tarjetas de riesgo */
+.risk-cards {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 30px 0;
+}
+
+.risk-card {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    flex: 1;
+    min-width: 250px;
+    max-width: 350px;
+}
+
+/* Cajas destacadas */
+.highlight-box, .warning-box {
+    padding: 20px;
+    border-radius: 8px;
+    margin: 30px 0;
+}
+
+.highlight-box {
+    background-color: #fddde6;
+    border-left: 4px solid #f2849e;
+}
+
+.warning-box {
+    background-color: #fddde6;
+    border-left: 4px solid #f2849e;
+}
+
+/* Carrusel de una sola noticia */
+.single-carousel-container {
+    position: relative;
+    margin: 40px auto;
+    max-width: 800px;
+}
+
+.single-carousel {
+    display: flex;
+    overflow: hidden;
+    scroll-behavior: smooth;
+    border-radius: 8px;
+}
+
+.single-carousel-item {
+    min-width: 100%;
+    transition: transform 0.5s ease;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.resource-card-large {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+}
+
+.resource-card-large img {
+    width: 200px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 20px;
+}
+
+.resource-content {
+    max-width: 600px;
+}
+
+.single-carousel-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #2c3e50;
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 10;
+    opacity: 0.8;
+    transition: opacity 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.single-carousel-button:hover {
+    opacity: 1;
+}
+
+.single-carousel-button.prev {
+    left: 10px;
+}
+
+.single-carousel-button.next {
+    right: 10px;
+}
+
+.single-carousel-dots {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    gap: 10px;
+}
+
+.single-carousel-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ccc;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.single-carousel-dot.active {
+    background: #2c3e50;
+}
+
+/* Sección de registro */
+.registration-box {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.registration-text {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.registration-button {
+    display: inline-block;
+    background-color: white;
+    color: #f2849e;
+    border: 2px solid white;
+    padding: 15px 30px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    margin-bottom: 30px;
+    transition: all 0.3s;
+}
+
+.registration-button:hover {
+    background-color: transparent;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.requirements-box {
+    background: rgba(255,255,255,0.3);
+    padding: 20px;
+    border-radius: 8px;
+    text-align: left;
+    display: inline-block;
+}
+
+.requirements-box ol {
+    text-align: left;
+    padding-left: 20px;
+}
+
+/* Footer en gris claro */
+#footer {
+    background-color: #f5f5f5; /* Gris claro */
+    color: #333;
+    padding: 40px 0;
+    margin-top: 60px;
+    border-top: 1px solid #e0e0e0;
+}
+
+#footer .inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+#footer h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+#footer address p {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+#footer a {
+    color: #2c3e50;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+#footer a:hover {
+    color: #f2849e;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .two-columns {
+        flex-direction: column;
     }
     
-    #main .inner {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    /* Hero Section - estilo similar al registro */
     .hero {
-        background-color: #f2849e;
-        color: white;
-        background-image: none;
         height: auto;
-        padding: 60px 20px;
-        margin: 30px 0;
-        border-radius: 8px;
-        text-align: center;
-    }
-    
-    .hero-content {
-        max-width: 800px;
-        margin: 0 auto;
+        padding: 40px 20px;
     }
     
     .hero p {
-        font-size: 1.5rem;
-        margin-bottom: 30px;
-        color: white;
-    }
-    
-    /* Botones */
-    .button {
-        display: inline-block;
-        padding: 12px 25px;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-        transition: all 0.3s;
-    }
-    
-    .button.primary {
-        background-color: white;
-        color: #f2849e;
-        border: 2px solid white;
-    }
-    
-    .button.primary:hover {
-        background-color: transparent;
-        color: white;
-        transform: translateY(-2px);
-    }
-    
-    .button.small {
-        padding: 8px 15px;
-        font-size: 0.9rem;
-    }
-
-    /* Secciones de contenido */
-    .content-section {
-        padding: 40px;
-        margin: 20px 0;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        border: 1px solid #e0e0e0;
-        background-color: #f9f9f9;
-    }
-    
-    .gray-bg {
-        background-color: #f0f0f0;
-        border: none;
-    }
-    
-    .accent-bg {
-        background-color: #f2849e;
-        color: white;
-        border: none;
-    }
-
-    /* Títulos */
-    h1, h2, h3, h4 {
-        color: #2c3e50;
-    }
-    
-    .accent-bg h1, 
-    .accent-bg h2, 
-    .accent-bg h3, 
-    .accent-bg h4 {
-        color: white;
+        font-size: 1.2rem;
     }
     
     h1 {
-        font-size: 2.5rem;
-        margin-bottom: 30px;
+        font-size: 2rem;
     }
     
     h2 {
-        font-size: 2.2rem;
-        margin-bottom: 20px;
-        position: relative;
-    }
-    
-    h2:after {
-        content: '';
-        display: block;
-        width: 80px;
-        height: 4px;
-        background: #f2849e;
-        margin: 15px 0;
-    }
-    
-    .accent-bg h2:after {
-        background: white;
-    }
-    
-    h3 {
         font-size: 1.8rem;
-        margin-bottom: 15px;
     }
     
-    h4 {
-        font-size: 1.4rem;
-        margin-bottom: 10px;
-    }
-
-    /* Navegación de secciones */
-    .section-nav {
-        margin-bottom: 2em;
-        padding: 1em;
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+    #header .inner {
+        padding: 10px 15px;
     }
     
-    .section-nav h2 {
-        margin-top: 0;
-        font-size: 1.3em;
-        color: #333;
+    .logo .symbol img {
+        height: 30px;
     }
     
-    .section-nav ul {
-        list-style: none;
-        padding-left: 0;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1em;
+    #menu {
+        width: 250px;
     }
     
-    .section-nav ul li a {
-        text-decoration: none;
-        font-weight: bold;
-        color: #0077cc;
-    }
-    
-    .section-nav ul li a:hover {
-        color: #f2849e !important;
-        text-decoration: underline;
-    }
-
-    /* Columnas */
-    .two-columns {
-        display: flex;
-        gap: 30px;
-        margin: 30px 0;
-    }
-    
-    .column {
-        flex: 1;
-    }
-
-    /* Tarjetas de riesgo */
-    .risk-cards {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-        flex-wrap: wrap;
-        margin: 30px 0;
-    }
-    
-    .risk-card {
-        background: white;
-        border-radius: 8px;
-        padding: 25px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        flex: 1;
-        min-width: 250px;
-        max-width: 350px;
-    }
-
-    /* Cajas destacadas */
-    .highlight-box, .warning-box {
-        padding: 20px;
-        border-radius: 8px;
-        margin: 30px 0;
-    }
-    
-    .highlight-box {
-        background-color: #e8f4fc;
-        border-left: 4px solid #3498db;
-    }
-    
-    .warning-box {
-        background-color: #fff3e0;
-        border-left: 4px solid #f39c12;
-    }
-
-    /* Carrusel de una sola noticia */
-    .single-carousel-container {
-        position: relative;
-        margin: 40px auto;
-        max-width: 800px;
-    }
-    
-    .single-carousel {
-        display: flex;
-        overflow: hidden;
-        scroll-behavior: smooth;
-        border-radius: 8px;
-    }
-    
-    .single-carousel-item {
-        min-width: 100%;
-        transition: transform 0.5s ease;
-        padding: 10px;
-        box-sizing: border-box;
+    .content-section {
+        padding: 30px 20px;
     }
     
     .resource-card-large {
-        background: white;
-        border-radius: 8px;
-        padding: 30px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        height: 100%;
+        padding: 20px;
     }
     
     .resource-card-large img {
-        width: 200px;
-        height: 120px;
-        object-fit: contain;
-        margin-bottom: 20px;
+        width: 150px;
+        height: 90px;
     }
     
-    .resource-content {
-        max-width: 600px;
+    #footer {
+        padding: 30px 20px;
     }
-    
-    .single-carousel-button {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: #2c3e50;
-        color: white;
-        border: none;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        font-size: 1.5rem;
-        cursor: pointer;
-        z-index: 10;
-        opacity: 0.8;
-        transition: opacity 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .single-carousel-button:hover {
-        opacity: 1;
-    }
-    
-    .single-carousel-button.prev {
-        left: 10px;
-    }
-    
-    .single-carousel-button.next {
-        right: 10px;
-    }
-    
-    .single-carousel-dots {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-        gap: 10px;
-    }
-    
-    .single-carousel-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #ccc;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-    
-    .single-carousel-dot.active {
-        background: #2c3e50;
-    }
-
-    /* Sección de registro */
-    .registration-box {
-        text-align: center;
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    
-    .registration-text {
-        font-size: 1.2rem;
-        margin-bottom: 30px;
-    }
-    
-    .registration-button {
-        display: inline-block;
-        background-color: white;
-        color: #f2849e;
-        border: 2px solid white;
-        padding: 15px 30px;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-        margin-bottom: 30px;
-        transition: all 0.3s;
-    }
-    
-    .registration-button:hover {
-        background-color: transparent;
-        color: white;
-        transform: translateY(-2px);
-    }
-    
-    .requirements-box {
-        background: rgba(255,255,255,0.3);
-        padding: 20px;
-        border-radius: 8px;
-        text-align: left;
-        display: inline-block;
-    }
-    
-    .requirements-box ol {
-        text-align: left;
-        padding-left: 20px;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .two-columns {
-            flex-direction: column;
-        }
-        
-        .hero {
-            height: auto;
-            padding: 40px 20px;
-        }
-        
-        .hero p {
-            font-size: 1.2rem;
-        }
-        
-        h1 {
-            font-size: 2rem;
-        }
-        
-        h2 {
-            font-size: 1.8rem;
-        }
-        
-        #header .inner {
-            padding: 10px 15px;
-        }
-        
-        .logo .symbol img {
-            height: 30px;
-        }
-        
-        #menu {
-            width: 250px;
-        }
-        
-        .content-section {
-            padding: 30px 20px;
-        }
-        
-        .resource-card-large {
-            padding: 20px;
-        }
-        
-        .resource-card-large img {
-            width: 150px;
-            height: 90px;
-        }
-    }
+}
 </style>
 {% endblock %}
 
