@@ -261,11 +261,11 @@ def cuestionario_completo(request):
                 completo = False
                 break
 
-        return Response({'completo': completo})
+        return Response({'completo': 'true' if completo else 'false'})
 
     except ObjectDoesNotExist:
         return Response(
-            {'completo': False, 'error': 'Usuario no encontrado'},
+            {'completo': 'false', 'error': 'Usuario no encontrado'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
@@ -275,7 +275,7 @@ def cuestionario_completo(request):
         ) 
 
 def verificar_tipo_completo(usuario, tipo):
-    """Verifica si un usuario respondió todas las preguntas de un tipo específico"""
+    #Verifica si un usuario respondió todas las preguntas de un tipo específico
     if tipo == 'TM':
         total_preguntas = PregTM.objects.count()
         respuestas_count = RespTM.objects.filter(id_manychat=usuario).values('id_opc_tm__id_preg_tm').distinct().count()
@@ -316,15 +316,9 @@ FERIADOS_FIJOS = [
 ]
 
 def es_feriado(fecha):
-    """
-    Verifica si una fecha es feriado en Chile
-    """
     return fecha.strftime("%d-%m") in FERIADOS_FIJOS
 
 def obtener_dia_habil_siguiente(fecha):
-    """
-    Obtiene el siguiente día hábil (no fin de semana ni feriado)
-    """
     while True:
         fecha += timedelta(days=1)
         if fecha.weekday() >= 5:
@@ -476,7 +470,7 @@ def reservar_hora(request):
                         ])
                     except Exception as e:
                         logger.error("Error al crear el recordatorio: %s", str(e))
-                        # No fallar la operación completa si falla el recordatorio
+                        # No falla la operación completa si falla el recordatorio
 
                     return Response({
                         'success': "true",
@@ -770,9 +764,6 @@ def baja_usuario(request, id_manychat):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verificar_perfil_usuario(request):
-    """
-    Versión corregida que maneja correctamente la relación con usuario_sist_id
-    """
     if not request.data or 'id_manychat' not in request.data:
         return Response(
             {'registrado': 'false', 'error': 'id_manychat es requerido'},
