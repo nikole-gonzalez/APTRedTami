@@ -2721,3 +2721,25 @@ def historial_agendamientos(request):
         'agendamientos_con_datos': resultados_filtrados  
     }
     return render(request, 'administracion/historial_agendamientos.html', context)
+
+
+from django.http import HttpResponse
+from administracion.models import Usuario, Divulgacion
+from administracion.services import DivulgacionService, EmailService
+
+def prueba_envio_email(request):
+    id_manychat = '987654'  # Cambia este valor por el id_manychat que quieres probar
+    try:
+        usuario = Usuario.objects.get(id_manychat=id_manychat)
+        divulgacion = Divulgacion.objects.filter(activa=True).last()
+        if not divulgacion:
+            return HttpResponse("No hay divulgaciones activas para enviar")
+
+        email_obj = DivulgacionService.construir_email(divulgacion, usuario)
+        resultado = EmailService.enviar_email(email_obj)
+        return HttpResponse(f"Estado: {resultado['status']}, Mensaje: {resultado['message']}")
+
+    except Usuario.DoesNotExist:
+        return HttpResponse("Usuario no encontrado")
+    except Exception as e:
+        return HttpResponse(f"Error: {str(e)}")
