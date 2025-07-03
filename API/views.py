@@ -687,6 +687,7 @@ def enviar_email_recordatorio(recordatorio):
 @authentication_classes([])
 @permission_classes([])
 def enviar_divulgaciones(request):
+    # Validar token en el header Authorization
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         logger.error("Falta header de Authorization")
@@ -714,7 +715,7 @@ def enviar_divulgaciones(request):
             return Response({"status": "skip", "detail": "No hay divulgaciones pendientes"}, status=200)
 
         usuarios = DivulgacionService.obtener_usuarios_optin()
-        if not usuarios.exists():
+        if not usuarios: 
             return Response({"status": "skip", "detail": "No hay usuarios opt-in con email válido"}, status=200)
 
         resultados = []
@@ -728,7 +729,7 @@ def enviar_divulgaciones(request):
                     divulgacion=divulgacion,
                     exito=respuesta.get('status') == 'success',
                     error=respuesta.get('message') if respuesta.get('status') == 'error' else None,
-                    direccion_email=email_obj.to[0]  # ya es el descifrado
+                    direccion_email=email_obj.to[0]
                 )
 
                 resultados.append({
@@ -736,8 +737,9 @@ def enviar_divulgaciones(request):
                     "email": email_obj.to[0],
                     "status": respuesta.get('status')
                 })
+
             except Exception as e:
-                logger.warning(f"Error al enviar a {usuario.id_manychat}: {str(e)}")
+                logger.warning(f"Error al enviar email a {usuario.id_manychat}: {str(e)}")
 
         divulgacion.enviada = True
         divulgacion.fecha_envio = timezone.now()
@@ -751,9 +753,8 @@ def enviar_divulgaciones(request):
         })
 
     except Exception as e:
-        logger.error(f"Error en enviar_divulgaciones: {str(e)}")
+        logger.error(f"Error en enviar_divulgaciones: {str(e)}", exc_info=True)
         return Response({"error": str(e)}, status=500)
-
 
 @api_view(['GET'])
 def baja_usuario(request, id_manychat):

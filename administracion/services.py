@@ -11,17 +11,7 @@ from django.core.mail import EmailMultiAlternatives
 
 logger = logging.getLogger(__name__)
 
-import logging
-from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from administracion.models import Usuario, Divulgacion
-
-logger = logging.getLogger(__name__)
-
 class DivulgacionService:
-
     @classmethod
     def obtener_divulgacion_pendiente(cls):
         try:
@@ -29,6 +19,7 @@ class DivulgacionService:
                 activa=True,
                 enviada=False  
             ).latest('fecha_creacion', 'id_divulgacion') 
+        
         except Divulgacion.DoesNotExist:
             logger.info("No hay divulgaciones pendientes para enviar")
             return None
@@ -39,64 +30,41 @@ class DivulgacionService:
     @classmethod
     def obtener_usuarios_optin(cls):
         try:
-            # Usuarios que respondieron afirmativamente la TM6 y no están en opt-out
-            usuarios = Usuario.objects.filter(
+            return Usuario.objects.filter(
                 opt_out=False,
                 resptm__id_opc_tm__id_preg_tm__cod_pregunta_tm="TM6",  
-                resptm__id_opc_tm__id_opc_tm=17
-            ).distinct()
-
-            usuarios_con_email = []
-            filtrados = 0
-
-            for usuario in usuarios:
-                email_descifrado = usuario.get_email_descifrado()
-                if email_descifrado and email_descifrado.strip() != '':
-                    # Guardamos el email descifrado directamente en una propiedad temporal
-                    usuario.email_descifrado = email_descifrado
-                    usuarios_con_email.append(usuario)
-                else:
-                    filtrados += 1
-
-            logger.info(f"Usuarios opt-in encontrados: {len(usuarios)} — con email válido: {len(usuarios_con_email)}, filtrados: {filtrados}")
-            return usuarios_con_email
-
+                resptm__id_opc_tm__id_opc_tm=17,
+                email__isnull=False
+            ).exclude(email__exact='').distinct()
+            
         except Exception as e:
             logger.error(f"Error al filtrar usuarios: {str(e)}")
-            return []
+            return Usuario.objects.none()
 
     @classmethod
     def construir_email(cls, divulgacion, usuario):
-        try:
-            email_descifrado = getattr(usuario, 'email_descifrado', None) or usuario.get_email_descifrado()
-            if not email_descifrado:
-                raise ValueError(f"El usuario {usuario.id_manychat} no tiene un email válido")
-
-            context = {
-                'divulgacion': divulgacion,
-                'usuario': usuario,
-                'opt_out_url': f"{settings.BASE_URL}/API/baja/{usuario.id_manychat}"
-            }
-
-            html_content = render_to_string('divulgacion/email_template.html', context)
-            text_content = strip_tags(html_content)
-
-            email = EmailMultiAlternatives(
-                subject=f"📢 {divulgacion.asunto if hasattr(divulgacion, 'asunto') else 'Mensaje de salud'}",
-                body=text_content,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[email_descifrado],
-                reply_to=[settings.REPLY_TO_EMAIL]
-            )
-            email.attach_alternative(html_content, "text/html")
-
-            if divulgacion.imagen_url and hasattr(divulgacion, 'imagen') and divulgacion.imagen:
-                email.attach_file(divulgacion.imagen.path)
-
-            return email
-        except Exception as e:
-            logger.error(f"Error construyendo email para {usuario.id_manychat}: {str(e)}")
-            raise
+        context = {
+            'divulgacion': divulgacion,
+            'usuario': usuario,
+            'opt_out_url': f"{settings.BASE_URL}/API/baja/{usuario.id_manychat}"
+        }
+        
+        html_content = render_to_string('divulgacion/email_template.html', context)
+        text_content = strip_tags(html_content)  
+        
+        email = EmailMultiAlternatives(
+            subject=f"📢 {divulgacion.asunto if hasattr(divulgacion, 'asunto') else 'Mensaje de salud'}",
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[usuario.email],
+            reply_to=[settings.REPLY_TO_EMAIL]
+        )
+        email.attach_alternative(html_content, "text/html")
+        
+        if divulgacion.imagen_url and hasattr(divulgacion, 'imagen') and divulgacion.imagen:
+            email.attach_file(divulgacion.imagen.path)
+        
+        return email
 
 class EmailService:
     @staticmethod
