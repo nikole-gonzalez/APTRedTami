@@ -25,6 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-pwga6pyb(rscvvxf*&g*h(j+x93_xk7!@#-+(m1i(au%&6v$^r'
 
+ENCRYPT_KEY = os.getenv('ENCRYPT_KEY')
+if not ENCRYPT_KEY:
+    raise ValueError("Falta la clave de cifrado 'ENCRYPT_KEY' en el archivo .env")
+
 ACCESO_LISTADO = os.getenv('ACCESO_LISTADO') 
 
 DOWNLOAD_PASSWORD = os.getenv('DOWNLOAD_PASSWORD')

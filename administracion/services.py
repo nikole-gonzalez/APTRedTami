@@ -30,19 +30,33 @@ class DivulgacionService:
     @classmethod
     def obtener_usuarios_optin(cls):
         try:
-            return Usuario.objects.filter(
+            # Primero filtramos por los campos no cifrados
+            usuarios = Usuario.objects.filter(
                 opt_out=False,
                 resptm__id_opc_tm__id_preg_tm__cod_pregunta_tm="TM6",  
-                resptm__id_opc_tm__id_opc_tm=17,
-                email__isnull=False
-            ).exclude(email__exact='').distinct()
+                resptm__id_opc_tm__id_opc_tm=17
+            ).distinct()
+            
+            # Luego filtramos programáticamente por email descifrado
+            usuarios_con_email = []
+            for usuario in usuarios:
+                email_descifrado = usuario.get_email_descifrado()
+                if email_descifrado and email_descifrado.strip() != '':
+                    usuarios_con_email.append(usuario)
+            
+            return usuarios_con_email
             
         except Exception as e:
             logger.error(f"Error al filtrar usuarios: {str(e)}")
-            return Usuario.objects.none()
+            return []
 
     @classmethod
     def construir_email(cls, divulgacion, usuario):
+        # Obtenemos el email descifrado
+        email_descifrado = usuario.get_email_descifrado()
+        if not email_descifrado:
+            raise ValueError("El usuario no tiene un email válido")
+        
         context = {
             'divulgacion': divulgacion,
             'usuario': usuario,
@@ -56,7 +70,7 @@ class DivulgacionService:
             subject=f"📢 {divulgacion.asunto if hasattr(divulgacion, 'asunto') else 'Mensaje de salud'}",
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[usuario.email],
+            to=[email_descifrado],  # Usamos el email descifrado
             reply_to=[settings.REPLY_TO_EMAIL]
         )
         email.attach_alternative(html_content, "text/html")
@@ -65,7 +79,7 @@ class DivulgacionService:
             email.attach_file(divulgacion.imagen.path)
         
         return email
-
+    
 class EmailService:
     @staticmethod
     def enviar_email(email_obj):
