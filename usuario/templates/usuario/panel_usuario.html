@@ -13,11 +13,11 @@
                 <div class="row gtr-uniform">
                     <div class="col-12">
                         <ul class="alt">
-                            <li><strong>Nombre de usuaria: </strong> {{ perfil.user.username|default:"No especificado" }}</li>
-                            <li><strong>Nombre completo: </strong> {{ perfil.user.first_name|default:"No especificado" }} {{ perfil.user.last_name|default:"No especificado" }}</li>
-                            <li><strong>RUT:</strong> {{ rut_completo|default:"No especificado" }}</li>
-                            <li><strong>Email:</strong> {{ email_descifrado|default:"No especificado" }}</li>
-                            <li><strong>Teléfono:</strong> {{ telefono|default:"No especificado" }}</li>
+                            <li><strong>Nombre de usuaria: </strong> {{perfil.user.username|default:"No especificado" }}</li>
+                            <li><strong>Nombre completo: </strong> {{perfil.user.first_name|default:"No especificado" }} {{perfil.user.last_name|default:"No especificado" }}</li>
+                            <li><strong>RUT:</strong> {{ perfil.usuario_sist.rut_usuario|default:"No especificado" }}-{{ perfil.usuario_sist.dv_rut|default:"No especificado" }}</li>
+                            <li><strong>Email:</strong> {{ perfil.user.email|default:"No especificado" }}</li>
+                            <li><strong>Teléfono:</strong> {{ perfil.telefono|default:"No especificado" }}</li>
                         </ul>
                     </div>
                 </div>
