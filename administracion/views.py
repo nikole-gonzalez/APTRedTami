@@ -2728,12 +2728,17 @@ from administracion.models import Usuario, Divulgacion
 from administracion.services import DivulgacionService, EmailService
 
 def prueba_envio_email(request):
-    id_manychat = '987654'  # Cambia este valor por el id_manychat que quieres probar
+    id_manychat = '987654'  # Cambia por el ID a probar
     try:
         usuario = Usuario.objects.get(id_manychat=id_manychat)
         divulgacion = Divulgacion.objects.filter(activa=True).last()
         if not divulgacion:
             return HttpResponse("No hay divulgaciones activas para enviar")
+
+        # Usa el email descifrado
+        email_descifrado = usuario.get_email_descifrado()
+        if not email_descifrado or email_descifrado.strip() == '':
+            return HttpResponse("El usuario no tiene un email válido o está vacío")
 
         email_obj = DivulgacionService.construir_email(divulgacion, usuario)
         resultado = EmailService.enviar_email(email_obj)
