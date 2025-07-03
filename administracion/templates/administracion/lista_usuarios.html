@@ -22,17 +22,25 @@
             <th>Apellido</th>
             <th>Correo</th>
             <th>Teléfono</th>
+            <th>RUT</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {% for perfil in perfiles %}
+          {% for perfil in page_obj %}
           <tr>
             <td>{{ perfil.user.username }}</td>
             <td>{{ perfil.user.first_name }}</td>
             <td>{{ perfil.user.last_name }}</td>
             <td>{{ perfil.user.email }}</td>
-            <td>{{ perfil.telefono }}</td>
+            <td>{{ perfil.get_telefono_descifrado|default:"-" }}</td>
+            <td>
+              {% if perfil.get_rut_descifrado %}
+                {{ perfil.get_rut_descifrado }}-{{ perfil.get_dv_descifrado }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
             <td>
               <a href="{% url 'editar_usuario' perfil.id_perfil %}" class="button small">Editar</a>
               <a href="{% url 'eliminar_usuario' perfil.id_perfil %}" class="button small alt">Eliminar</a>
@@ -40,7 +48,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6">No hay usuarios registrados aún.</td>
+            <td colspan="7">No hay usuarios registrados aún.</td>
           </tr>
           {% endfor %}
         </tbody>

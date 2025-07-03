@@ -673,22 +673,21 @@ def crear_excel_datos_tamizaje(request):
 
             respuestas = RespTM.objects.select_related(
                 'id_opc_tm__id_preg_tm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_tm__id_preg_tm__preg_tm',
-                'id_opc_tm__opc_resp_tm',
-                'fecha_respuesta_tm'
             ).order_by('-fecha_respuesta_tm')
 
             for r in respuestas:
-                fecha = r['fecha_respuesta_tm']
+                # Obtener datos descifrados
+                rut_descifrado = r.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = r.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
+                fecha = r.fecha_respuesta_tm
                 fecha_str = fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
                 
                 ws.append([
-                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-                    r['id_opc_tm__id_preg_tm__preg_tm'],
-                    r['id_opc_tm__opc_resp_tm'],
+                    rut_completo,
+                    r.id_opc_tm.id_preg_tm.preg_tm,
+                    r.id_opc_tm.opc_resp_tm,
                     fecha_str,
                 ])
 
@@ -734,28 +733,26 @@ def crear_pdf_datos_tamizaje(request):
 
             respuestas = RespTM.objects.select_related(
                 'id_opc_tm__id_preg_tm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_tm__id_preg_tm__preg_tm',
-                'id_opc_tm__opc_resp_tm',
-                'fecha_respuesta_tm'
             ).order_by('id_manychat__rut_usuario')
 
             # Procesamiento de datos
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_tm__id_preg_tm__preg_tm']
-                respuesta_usuario = respuesta['id_opc_tm__opc_resp_tm']
-                fecha = respuesta['fecha_respuesta_tm']
+                # Obtener datos descifrados
+                rut_descifrado = respuesta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = respuesta.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
                 
-                if rut not in dict_respuestas:
-                    dict_respuestas[rut] = {
-                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
+                pregunta = respuesta.id_opc_tm.id_preg_tm.preg_tm
+                respuesta_usuario = respuesta.id_opc_tm.opc_resp_tm
+                fecha = respuesta.fecha_respuesta_tm
+                
+                if rut_completo not in dict_respuestas:
+                    dict_respuestas[rut_completo] = {
+                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
                         'respuestas': {}
                     }
-                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+                dict_respuestas[rut_completo]['respuestas'][pregunta] = respuesta_usuario
 
             encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
             data = [encabezados]
@@ -846,6 +843,7 @@ def datos_FRM1(request):
     return render(request, 'administracion/datos_FRM1.html', {"page_obj": page_obj})
 
 
+@login_required
 def crear_excel_datos_frm1(request):
     session_key = request.GET.get('session_key')
     if session_key:
@@ -860,20 +858,19 @@ def crear_excel_datos_frm1(request):
 
             respuestas = RespFRM.objects.select_related(
                 'id_opc_frm__id_preg_frm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frm__id_preg_frm__preg_frm',
-                'id_opc_frm__opc_resp_frm',
-                'fecha_respuesta_frm'
             ).order_by('id_manychat__rut_usuario')
 
             for r in respuestas:
-                fecha = r['fecha_respuesta_frm']
+                # Obtener datos descifrados
+                rut_descifrado = r.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = r.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
+                fecha = r.fecha_respuesta_frm
                 ws_FRM_V1.append([
-                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-                    r['id_opc_frm__id_preg_frm__preg_frm'],
-                    r['id_opc_frm__opc_resp_frm'],
+                    rut_completo,
+                    r.id_opc_frm.id_preg_frm.preg_frm,
+                    r.id_opc_frm.opc_resp_frm,
                     fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
                 ])
 
@@ -886,6 +883,7 @@ def crear_excel_datos_frm1(request):
             return response
     return HttpResponseForbidden("Acceso no autorizado")
 
+@login_required
 def crear_pdf_datos_frm1(request):
     session_key = request.GET.get('session_key')
     if session_key:
@@ -918,28 +916,24 @@ def crear_pdf_datos_frm1(request):
 
             respuestas = RespFRM.objects.select_related(
                 'id_opc_frm__id_preg_frm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frm__id_preg_frm__preg_frm',
-                'id_opc_frm__opc_resp_frm',
-                'fecha_respuesta_frm'
             ).order_by('id_manychat__rut_usuario')
 
-            # Procesamiento de datos
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
-                respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
-                fecha = respuesta['fecha_respuesta_frm']
+                rut_descifrado = respuesta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = respuesta.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
                 
-                if rut not in dict_respuestas:
-                    dict_respuestas[rut] = {
-                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha', 
+                pregunta = respuesta.id_opc_frm.id_preg_frm.preg_frm
+                respuesta_usuario = respuesta.id_opc_frm.opc_resp_frm
+                fecha = respuesta.fecha_respuesta_frm
+                
+                if rut_completo not in dict_respuestas:
+                    dict_respuestas[rut_completo] = {
+                        'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
                         'respuestas': {}
                     }
-                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+                dict_respuestas[rut_completo]['respuestas'][pregunta] = respuesta_usuario
 
             encabezados = ['RUT', 'Pregunta', 'Respuesta', 'Fecha Respuesta']
             data = [encabezados]
@@ -956,7 +950,7 @@ def crear_pdf_datos_frm1(request):
             tabla = Table(data, repeatRows=1)
             
             # Calcular ancho de columnas
-            ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
+            ancho_total = landscape(A4)[0] - 2*cm  
             ancho_rut = 4*cm
             ancho_fecha = 3*cm
             ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
@@ -1054,6 +1048,7 @@ def datos_FRM2(request):
         "page_obj": page_obj,
     })
 
+@login_required
 def crear_excel_datos_frm2(request):
     session_key = request.GET.get('session_key')
     if session_key:
@@ -1070,27 +1065,25 @@ def crear_excel_datos_frm2(request):
 
             respuestas = RespFRM.objects.select_related(
                 'id_opc_frm__id_preg_frm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frm__id_preg_frm__preg_frm',
-                'id_opc_frm__opc_resp_frm',
-                'fecha_respuesta_frm'
-            )
+            ).all()
 
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
-                respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
-                fecha = respuesta['fecha_respuesta_frm'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_frm'] else ''
+                # Obtener datos descifrados
+                rut_descifrado = respuesta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = respuesta.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
                 
-                if rut not in dict_respuestas:
-                    dict_respuestas[rut] = {
+                pregunta = respuesta.id_opc_frm.id_preg_frm.preg_frm
+                respuesta_usuario = respuesta.id_opc_frm.opc_resp_frm
+                fecha = respuesta.fecha_respuesta_frm.strftime("%d-%m-%Y %H:%M:%S") if respuesta.fecha_respuesta_frm else ''
+                
+                if rut_completo not in dict_respuestas:
+                    dict_respuestas[rut_completo] = {
                         "respuestas": {},
                         "fecha": fecha
                     }
-                dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+                dict_respuestas[rut_completo]["respuestas"][pregunta] = respuesta_usuario
 
             for rut, respuestas_usuario in dict_respuestas.items():
                 fila = [rut]
@@ -1121,32 +1114,29 @@ def crear_pdf_datos_frm2(request):
                     return text
                 return (text[:max_length-3] + '...') if len(text) > max_length else text
 
-        
             preguntas = PregFRM.objects.all().order_by('id_preg_frm')
             
             respuestas = RespFRM.objects.select_related(
                 'id_opc_frm__id_preg_frm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frm__id_preg_frm__preg_frm',
-                'id_opc_frm__opc_resp_frm',
-                'fecha_respuesta_frm'
-            )
+            ).all()
 
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_frm__id_preg_frm__preg_frm']
-                respuesta_usuario = respuesta['id_opc_frm__opc_resp_frm']
-                fecha = respuesta['fecha_respuesta_frm']
+                # Obtener datos descifrados
+                rut_descifrado = respuesta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = respuesta.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
                 
-                if rut not in dict_respuestas:
-                    dict_respuestas[rut] = {
+                pregunta = respuesta.id_opc_frm.id_preg_frm.preg_frm
+                respuesta_usuario = respuesta.id_opc_frm.opc_resp_frm
+                fecha = respuesta.fecha_respuesta_frm
+                
+                if rut_completo not in dict_respuestas:
+                    dict_respuestas[rut_completo] = {
                         'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
                         'respuestas': {}
                     }
-                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+                dict_respuestas[rut_completo]['respuestas'][pregunta] = respuesta_usuario
 
             buffer = BytesIO()
             doc = SimpleDocTemplate(
@@ -1172,15 +1162,14 @@ def crear_pdf_datos_frm2(request):
             for rut, datos in dict_respuestas.items():
                 fila = [rut]
                 for p in preguntas:
-                    respuesta = datos['respuestas'].get(p.preg_frm, 'NR') 
+                    respuesta = datos['respuestas'].get(p.preg_frm, 'NR')
                     fila.append(truncate_text(respuesta, 20))
                 fila.append(datos['fecha'])
                 data.append(fila)
 
-
             tabla = Table(data, repeatRows=1)
             
-            ancho_total = landscape(A4)[0] - 2*cm  
+            ancho_total = landscape(A4)[0] - 2*cm
             ancho_rut = 6*cm
             ancho_fecha = 4*cm
             ancho_preguntas = max(3*cm, (ancho_total - ancho_rut - ancho_fecha) / len(preguntas))
@@ -1204,14 +1193,12 @@ def crear_pdf_datos_frm2(request):
                 estilo.add('COLWIDTH', (i, 0), (i, -1), ancho_preguntas)
             estilo.add('COLWIDTH', (-1, 0), (-1, -1), ancho_fecha)
             
-            
             for i in range(1, len(data)):
                 if i % 2 == 0:
                     estilo.add('BACKGROUND', (0, i), (-1, i), colors.whitesmoke)
             
             tabla.setStyle(estilo)
 
-        
             elementos = [
                 Paragraph("Factores de Riesgo Modificables V2", styles['Title']),
                 Spacer(1, 0.5*cm),
@@ -1251,6 +1238,7 @@ def datos_FRNM1(request):
     
     return render(request, 'administracion/datos_FRNM1.html', {"page_obj": page_obj})
 
+@login_required
 def crear_excel_datos_frnm1(request):
     session_key = request.GET.get('session_key')
     if session_key:
@@ -1265,20 +1253,19 @@ def crear_excel_datos_frnm1(request):
 
             respuestas = RespFRNM.objects.select_related(
                 'id_opc_frnm__id_preg_frnm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frnm__id_preg_frnm__preg_frnm',
-                'id_opc_frnm__opc_resp_frnm',
-                'fecha_respuesta_frnm'
             ).order_by('id_manychat__rut_usuario')
 
             for r in respuestas:
-                fecha = r['fecha_respuesta_frnm']
+                # Obtener datos descifrados
+                rut_descifrado = r.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = r.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
+                fecha = r.fecha_respuesta_frnm
                 ws_FRNM_V1.append([
-                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-                    r['id_opc_frnm__id_preg_frnm__preg_frnm'],
-                    r['id_opc_frnm__opc_resp_frnm'],
+                    rut_completo,
+                    r.id_opc_frnm.id_preg_frnm.preg_frnm,
+                    r.id_opc_frnm.opc_resp_frnm,
                     fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
                 ])
 
@@ -1300,12 +1287,6 @@ def crear_pdf_datos_frnm1(request):
             session.flush()
             respuestas = RespFRNM.objects.select_related(
                 'id_opc_frnm__id_preg_frnm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frnm__id_preg_frnm__preg_frnm',
-                'id_opc_frnm__opc_resp_frnm',
-                'fecha_respuesta_frnm'
             ).order_by('-fecha_respuesta_frnm')
 
             buffer = BytesIO()
@@ -1332,11 +1313,16 @@ def crear_pdf_datos_frnm1(request):
             data.append(encabezados)
 
             for r in respuestas:
-                fecha = r['fecha_respuesta_frnm']
+                # Obtener datos descifrados
+                rut_descifrado = r.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = r.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
+                fecha = r.fecha_respuesta_frnm
                 data.append([
-                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-                    r['id_opc_frnm__id_preg_frnm__preg_frnm'],
-                    r['id_opc_frnm__opc_resp_frnm'],
+                    rut_completo,
+                    r.id_opc_frnm.id_preg_frnm.preg_frnm,
+                    r.id_opc_frnm.opc_resp_frnm,
                     fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
                 ])
 
@@ -1431,6 +1417,7 @@ def datos_FRNM2(request):
         "page_obj": page_obj,
     })
 
+@login_required
 def crear_excel_datos_frnm2(request):
     session_key = request.GET.get('session_key')
     if session_key:
@@ -1447,20 +1434,18 @@ def crear_excel_datos_frnm2(request):
 
             respuestas = RespFRNM.objects.select_related(
                 'id_opc_frnm__id_preg_frnm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frnm__id_preg_frnm__preg_frnm',
-                'id_opc_frnm__opc_resp_frnm',
-                'fecha_respuesta_frnm'
-            )
+            ).all()
 
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
-                respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
-                fecha = respuesta['fecha_respuesta_frnm'].strftime('%d-%m-%Y %H-%M-%S')if respuesta['fecha_respuesta_frnm'] else ''
+                # Obtener datos descifrados
+                rut_descifrado = respuesta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = respuesta.id_manychat.get_dv_descifrado() or ""
+                rut = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
+                pregunta = respuesta.id_opc_frnm.id_preg_frnm.preg_frnm
+                respuesta_usuario = respuesta.id_opc_frnm.opc_resp_frnm
+                fecha = respuesta.fecha_respuesta_frnm.strftime('%d-%m-%Y %H-%M-%S') if respuesta.fecha_respuesta_frnm else ''
                 
                 if rut not in dict_respuestas:
                     dict_respuestas[rut] = {
@@ -1502,20 +1487,18 @@ def crear_pdf_datos_frnm2(request):
             
             respuestas = RespFRNM.objects.select_related(
                 'id_opc_frnm__id_preg_frnm', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_frnm__id_preg_frnm__preg_frnm',
-                'id_opc_frnm__opc_resp_frnm',
-                'fecha_respuesta_frnm'
-            )
+            ).all()
 
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_frnm__id_preg_frnm__preg_frnm']
-                respuesta_usuario = respuesta['id_opc_frnm__opc_resp_frnm']
-                fecha = respuesta['fecha_respuesta_frnm']
+                # Obtener datos descifrados
+                rut_descifrado = respuesta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = respuesta.id_manychat.get_dv_descifrado() or ""
+                rut = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
+                pregunta = respuesta.id_opc_frnm.id_preg_frnm.preg_frnm
+                respuesta_usuario = respuesta.id_opc_frnm.opc_resp_frnm
+                fecha = respuesta.fecha_respuesta_frnm
                 
                 if rut not in dict_respuestas:
                     dict_respuestas[rut] = {'fecha': fecha, 'respuestas': {}}
@@ -1619,9 +1602,20 @@ def datos_DS1(request):
         "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_ds")
 
-    page_obj = paginacion_queryset1(request, datos_query) 
+    datos_procesados = []
+    for dato in datos_query:
+        datos_procesados.append({
+            **dato,
+            'rut_descifrado': Usuario.objects.get(id_manychat=dato['id_manychat']).get_rut_descifrado() or "",
+            'dv_descifrado': Usuario.objects.get(id_manychat=dato['id_manychat']).get_dv_descifrado() or ""
+        })
+
+    page_obj = paginacion_queryset1(request, datos_procesados) 
     
-    return render(request, 'administracion/datos_DS1.html', {"page_obj": page_obj})
+    return render(request, 'administracion/datos_DS1.html', {
+        "page_obj": page_obj,
+        "datos_descifrados": True 
+    })
 
 def crear_excel_datos_ds1(request):
     session_key = request.GET.get('session_key')
@@ -1637,20 +1631,15 @@ def crear_excel_datos_ds1(request):
 
             respuestas = RespDS.objects.select_related(
                 'id_opc_ds__id_preg_ds', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_ds__id_preg_ds__preg_ds',
-                'id_opc_ds__opc_resp_ds',
-                'fecha_respuesta_ds'
             ).order_by('id_manychat__rut_usuario')
 
             for r in respuestas:
-                fecha = r['fecha_respuesta_ds']
+                usuario = r.id_manychat
+                fecha = r.fecha_respuesta_ds
                 ws_DS_V1.append([
-                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-                    r['id_opc_ds__id_preg_ds__preg_ds'],
-                    r['id_opc_ds__opc_resp_ds'],
+                    f"{usuario.get_rut_descifrado() or ''}-{usuario.get_dv_descifrado() or ''}",
+                    r.id_opc_ds.id_preg_ds.preg_ds,
+                    r.id_opc_ds.opc_resp_ds,
                     fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else ''
                 ])
             
@@ -1672,12 +1661,6 @@ def crear_pdf_datos_ds1(request):
             session.flush()
             respuestas = RespDS.objects.select_related(
                 'id_opc_ds__id_preg_ds', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_ds__id_preg_ds__preg_ds',
-                'id_opc_ds__opc_resp_ds',
-                'fecha_respuesta_ds'
             ).order_by('-fecha_respuesta_ds') 
 
             data = []
@@ -1686,11 +1669,12 @@ def crear_pdf_datos_ds1(request):
             data.append(encabezados)
 
             for r in respuestas:
-                fecha = r['fecha_respuesta_ds']
+                usuario = r.id_manychat
+                fecha = r.fecha_respuesta_ds
                 data.append([
-                    f"{r['id_manychat__rut_usuario']}-{r['id_manychat__dv_rut']}",
-                    r['id_opc_ds__id_preg_ds__preg_ds'],
-                    r['id_opc_ds__opc_resp_ds'],
+                    f"{usuario.get_rut_descifrado() or ''}-{usuario.get_dv_descifrado() or ''}",
+                    r.id_opc_ds.id_preg_ds.preg_ds,
+                    r.id_opc_ds.opc_resp_ds,
                     fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha'
                 ])
 
@@ -1803,27 +1787,25 @@ def crear_excel_datos_ds2(request):
 
             respuestas = RespDS.objects.select_related(
                 'id_opc_ds__id_preg_ds', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_ds__id_preg_ds__preg_ds',
-                'id_opc_ds__opc_resp_ds',
-                'fecha_respuesta_ds'
-            )
+            ).order_by('id_manychat__rut_usuario')
 
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
-                respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
-                fecha = respuesta['fecha_respuesta_ds'].strftime("%d-%m-%Y %H:%M:%S") if respuesta['fecha_respuesta_ds'] else ''
+                usuario = respuesta.id_manychat
+                rut_descifrado = usuario.get_rut_descifrado() or ""
+                dv_descifrado = usuario.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
                 
-                if rut not in dict_respuestas:
-                    dict_respuestas[rut] = {
+                pregunta = respuesta.id_opc_ds.id_preg_ds.preg_ds
+                respuesta_usuario = respuesta.id_opc_ds.opc_resp_ds
+                fecha = respuesta.fecha_respuesta_ds.strftime("%d-%m-%Y %H:%M:%S") if respuesta.fecha_respuesta_ds else ''
+                
+                if rut_completo not in dict_respuestas:
+                    dict_respuestas[rut_completo] = {
                         "respuestas": {},
                         "fecha": fecha
                     }
-                dict_respuestas[rut]["respuestas"][pregunta] = respuesta_usuario
+                dict_respuestas[rut_completo]["respuestas"][pregunta] = respuesta_usuario
 
             for rut, respuestas_usuario in dict_respuestas.items():
                 fila = [rut]
@@ -1859,27 +1841,25 @@ def crear_pdf_datos_ds2(request):
             
             respuestas = RespDS.objects.select_related(
                 'id_opc_ds__id_preg_ds', 'id_manychat'
-            ).values(
-                'id_manychat__rut_usuario',
-                'id_manychat__dv_rut',
-                'id_opc_ds__id_preg_ds__preg_ds',
-                'id_opc_ds__opc_resp_ds',
-                'fecha_respuesta_ds'
-            )
+            ).order_by('id_manychat__rut_usuario')
 
             dict_respuestas = {}
             for respuesta in respuestas:
-                rut = f"{respuesta['id_manychat__rut_usuario']}-{respuesta['id_manychat__dv_rut']}"
-                pregunta = respuesta['id_opc_ds__id_preg_ds__preg_ds']
-                respuesta_usuario = respuesta['id_opc_ds__opc_resp_ds']
-                fecha = respuesta['fecha_respuesta_ds']
+                usuario = respuesta.id_manychat
+                rut_descifrado = usuario.get_rut_descifrado() or ""
+                dv_descifrado = usuario.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
                 
-                if rut not in dict_respuestas:
-                    dict_respuestas[rut] = {
+                pregunta = respuesta.id_opc_ds.id_preg_ds.preg_ds
+                respuesta_usuario = respuesta.id_opc_ds.opc_resp_ds
+                fecha = respuesta.fecha_respuesta_ds
+                
+                if rut_completo not in dict_respuestas:
+                    dict_respuestas[rut_completo] = {
                         'fecha': fecha.strftime('%d-%m-%Y %H:%M:%S') if fecha else 'Sin fecha',
                         'respuestas': {}
                     }
-                dict_respuestas[rut]['respuestas'][pregunta] = respuesta_usuario
+                dict_respuestas[rut_completo]['respuestas'][pregunta] = respuesta_usuario
 
             buffer = BytesIO()
             doc = SimpleDocTemplate(
@@ -2002,12 +1982,16 @@ def listado_priorizado(request):
             for usuario in usuarios:
                 edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else None
                 
+                rut_descifrado = usuario.get_rut_descifrado() or ""
+                dv_descifrado = usuario.get_dv_descifrado() or ""
+                whatsapp_descifrado = usuario.get_whatsapp_descifrado() or ""
+                email_descifrado = usuario.get_email_descifrado() or ""
+                
                 datos_procesados.append({
                     "id": usuario.id_manychat,
-                    "rut_usuario": usuario.rut_usuario, 
-                    "dv_rut": usuario.dv_rut, 
-                    "num_whatsapp": usuario.num_whatsapp, 
-                    "email": getattr(usuario, 'email', 'No disponible'), 
+                    "rut_completo": f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT",
+                    "num_whatsapp": whatsapp_descifrado,
+                    "email": email_descifrado or 'No disponible',
                     "edad": edad,
                     "nombre_comuna": usuario.nombre_comuna,
                     "pap_alterado": usuario.pap_alterado,
@@ -2084,11 +2068,16 @@ def crear_excel_listado_priorizado(request):
     for usuario in usuarios:
         edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else None
         
+        rut_descifrado = usuario.get_rut_descifrado() or ""
+        dv_descifrado = usuario.get_dv_descifrado() or ""
+        whatsapp_descifrado = usuario.get_whatsapp_descifrado() or ""
+        email_descifrado = usuario.get_email_descifrado() or ""
+        
         fila = [
             usuario.id_manychat,
-            f"{usuario.rut_usuario}-{usuario.dv_rut}",
-            usuario.num_whatsapp,
-            usuario.email or 'No disponible',
+            f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT",
+            whatsapp_descifrado,
+            email_descifrado or 'No disponible',
             edad or 'No registrada',
             usuario.nombre_comuna,
             usuario.pap_alterado,
@@ -2152,11 +2141,16 @@ def crear_pdf_listado_priorizado(request):
     for usuario in usuarios:
         edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else 'No registrada'
         
+        rut_descifrado = usuario.get_rut_descifrado() or ""
+        dv_descifrado = usuario.get_dv_descifrado() or ""
+        whatsapp_descifrado = usuario.get_whatsapp_descifrado() or ""
+        email_descifrado = usuario.get_email_descifrado() or ""
+        
         fila = [
             usuario.id_manychat,
-            f"{usuario.rut_usuario}-{usuario.dv_rut}",
-            str(usuario.num_whatsapp),
-            usuario.email or 'No disponible',
+            f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT",
+            whatsapp_descifrado,
+            email_descifrado or 'No disponible',
             str(edad),
             usuario.nombre_comuna,
             usuario.pap_alterado,
@@ -2214,16 +2208,33 @@ def crear_pdf_listado_priorizado(request):
 
 @login_required
 def preg_especialista(request):
-    datos_query = UsuarioTextoPregunta.objects.all().order_by("-fecha_pregunta_texto")
-    page_obj = paginacion_queryset1(request, datos_query) 
+    datos_query = UsuarioTextoPregunta.objects.select_related('id_manychat').all().order_by("-fecha_pregunta_texto")
     
-    return render(request, "administracion/preg_especialista.html", {"page_obj": page_obj})
+    preguntas_con_datos = []
+    for pregunta in datos_query:
+        # Accedemos directamente a los campos sin descifrar
+        rut = pregunta.id_manychat.rut_usuario or ""
+        dv = pregunta.id_manychat.dv_rut or ""
+        
+        preguntas_con_datos.append({
+            'id_manychat': pregunta.id_manychat.id_manychat,
+            'rut_completo': f"{rut}-{dv}" if rut and dv else "Sin RUT",
+            'texto_pregunta': pregunta.texto_pregunta,
+            'fecha_pregunta_texto': pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else 'Sin fecha',
+        })
+    
+    page_obj = paginacion_lista2(request, preguntas_con_datos) 
+    
+    return render(request, "administracion/preg_especialista.html", {
+        "page_obj": page_obj,
+    })
 
 def crear_excel_preg_especialista(request):
     session_key = request.GET.get('session_key')
     if session_key:
         session = SessionStore(session_key=session_key)
         if session.get('password_validated', False):
+            session.flush() 
             
             wb = Workbook()
             ws_preg_esp = wb.active
@@ -2235,9 +2246,13 @@ def crear_excel_preg_especialista(request):
             preguntas = UsuarioTextoPregunta.objects.select_related('id_manychat').all()
 
             for pregunta in preguntas:
+                rut_descifrado = pregunta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = pregunta.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
                 fila = [
                     str(pregunta.id_manychat.id_manychat), 
-                    f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
+                    rut_completo, 
                     pregunta.texto_pregunta,
                     pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else ''
                 ]
@@ -2253,7 +2268,6 @@ def crear_excel_preg_especialista(request):
             return response
     return HttpResponseForbidden("Acceso no autorizado")
 
-  
 @login_required
 def crear_pdf_preg_especialista(request):
     session_key = request.GET.get('session_key')
@@ -2274,9 +2288,13 @@ def crear_pdf_preg_especialista(request):
             data.append(encabezados)
 
             for pregunta in preguntas:
+                rut_descifrado = pregunta.id_manychat.get_rut_descifrado() or ""
+                dv_descifrado = pregunta.id_manychat.get_dv_descifrado() or ""
+                rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+                
                 fila = [
                     pregunta.id_manychat.id_manychat,
-                    f"{pregunta.id_manychat.rut_usuario}-{pregunta.id_manychat.dv_rut}",
+                    rut_completo,  
                     pregunta.texto_pregunta,
                     pregunta.fecha_pregunta_texto.strftime('%d-%m-%Y %H:%M:%S') if pregunta.fecha_pregunta_texto else 'Sin fecha'
                 ]
@@ -2333,16 +2351,33 @@ def crear_pdf_preg_especialista(request):
 # ----------------------------------------------------------- #
 @login_required
 def lista_usuarios(request):
+    # Mantenemos el queryset original sin modificaciones
     perfiles = PerfilUsuario.objects.select_related('user','usuario_sist').order_by('id_perfil')
-
+    
+    # Paginación normal
     page_obj = paginacion_queryset1(request, perfiles)
     
-    return render (request, 'administracion/lista_usuarios.html', {'page_obj': page_obj, 'perfiles': perfiles})
-
-
-
-from django.contrib import messages
-
+    # Preparamos datos para el template sin modificar el queryset original
+    usuarios_data = []
+    for perfil in page_obj.object_list:
+        usuarios_data.append({
+            'obj': perfil,  # Objeto original
+            'username': perfil.user.username,
+            'first_name': perfil.user.first_name,
+            'last_name': perfil.user.last_name,
+            'email': perfil.user.email,
+            'telefono': perfil.get_telefono_descifrado(),
+            'rut_completo': f"{perfil.get_rut_descifrado()}-{perfil.get_dv_descifrado()}" 
+                           if perfil.get_rut_descifrado() and perfil.get_dv_descifrado() 
+                           else None,
+            'id_perfil': perfil.id_perfil
+        })
+    
+    return render(request, 'administracion/lista_usuarios.html', {
+        'page_obj': page_obj,  
+        'usuarios_data': usuarios_data 
+    })
+ 
 @login_required
 def crear_usuario(request):
     if request.method == 'POST':
@@ -2352,7 +2387,6 @@ def crear_usuario(request):
         if form_user.is_valid() and form_perfil.is_valid():
             username = form_user.cleaned_data.get('username')
 
-            # Verifica que username no esté vacío
             if not username:
                 messages.error(request, 'El nombre de usuario (RUT o identificador único) es obligatorio.')
                 return render(request, 'administracion/form_usuario.html', {
@@ -2360,7 +2394,6 @@ def crear_usuario(request):
                     'form_perfil': form_perfil
                 })
 
-            # VVerifica  que username ya existe
             if User.objects.filter(username=username).exists():
                 messages.error(request, 'Ya existe un usuario con ese nombre de usuario.')
                 return render(request, 'administracion/form_usuario.html', {
@@ -2368,14 +2401,27 @@ def crear_usuario(request):
                     'form_perfil': form_perfil
                 })
 
-            # Crear el usuario
             user = form_user.save(commit=False)
-            user.set_password(form_user.cleaned_data['password'])
+            if form_user.cleaned_data['password']:
+                user.set_password(form_user.cleaned_data['password'])
             user.save()
 
-            # Crear perfil vinculado
             perfil = form_perfil.save(commit=False)
             perfil.user = user
+            
+            # Cifrar los datos antes de guardar
+            telefono = form_perfil.cleaned_data.get('telefono')
+            if telefono:
+                perfil.telefono = encrypt_data(telefono)
+            
+            rut = form_perfil.cleaned_data.get('rut_usuario')
+            if rut:
+                perfil.rut_usuario = encrypt_data(str(rut))
+            
+            dv = form_perfil.cleaned_data.get('dv_rut')
+            if dv:
+                perfil.dv_rut = encrypt_data(dv)
+            
             perfil.save()
 
             messages.success(request, 'Usuario creado correctamente.')
@@ -2389,41 +2435,66 @@ def crear_usuario(request):
         'form_perfil': form_perfil
     })
 
-@login_required
+login_required
 def editar_usuario(request, perfil_id):
     perfil = get_object_or_404(PerfilUsuario, id_perfil=perfil_id)
     user = perfil.user
 
     if request.method == 'POST':
+        # Mostrar los datos descifrados como valor inicial, para evitar ver el texto cifrado
         form_user = UserForm(request.POST, instance=user)
-        form_perfil = PerfilUsuarioForm(request.POST, instance=perfil)
+        form_perfil = PerfilUsuarioForm(
+            request.POST,
+            instance=perfil,
+            initial={
+                'telefono': perfil.get_telefono_descifrado(),
+                'rut_usuario': perfil.get_rut_descifrado(),
+                'dv_rut': perfil.get_dv_descifrado()
+            }
+        )
 
         if form_user.is_valid() and form_perfil.is_valid():
+            # Guardar datos del usuario
             user = form_user.save(commit=False)
-            if 'password' in form_user.cleaned_data and form_user.cleaned_data['password']:
+            if form_user.cleaned_data.get('password'):
                 user.set_password(form_user.cleaned_data['password'])
             user.save()
 
-            perfil = form_perfil.save()
+            # Guardar datos del perfil (los cifrará automáticamente)
+            perfil = form_perfil.save(commit=False)
+            perfil.save()
 
+            # Si tiene usuario del sistema (ManyChat), actualizamos también
             if perfil.usuario_sist:
-                perfil.usuario_sist.email = user.email
-                perfil.usuario_sist.num_whatsapp = perfil.telefono
-                perfil.usuario_sist.save()
+                usuario_sist = perfil.usuario_sist
+                usuario_sist.email = encrypt_data(user.email) if user.email else ''
+
+                telefono_perfil = perfil.get_telefono_descifrado()
+                if telefono_perfil:
+                    usuario_sist.num_whatsapp = encrypt_data(telefono_perfil)
+
+                usuario_sist.save()
 
             messages.success(request, 'Usuario actualizado correctamente.')
             return redirect('lista_usuarios')
     else:
+        # GET: Mostrar el formulario con valores iniciales descifrados
         form_user = UserForm(instance=user)
         form_user.fields['password'].initial = ''
-        form_perfil = PerfilUsuarioForm(instance=perfil)
+        form_perfil = PerfilUsuarioForm(
+            instance=perfil,
+            initial={
+                'telefono': perfil.get_telefono_descifrado(),
+                'rut_usuario': perfil.get_rut_descifrado(),
+                'dv_rut': perfil.get_dv_descifrado()
+            }
+        )
 
     return render(request, 'administracion/form_usuario.html', {
         'form_user': form_user,
         'form_perfil': form_perfil,
-        'usuario_sist': perfil.usuario_sist 
+        'usuario_sist': perfil.usuario_sist
     })
-
 
 @login_required
 def eliminar_usuario(request, perfil_id):
@@ -2453,7 +2524,9 @@ def generar_json_por_cesfam(request, cesfam_id):
         datos_agendas = []
         for agenda in agendas:
             nombre_paciente = "Paciente No Registrado"
-            rut_paciente = f"{agenda.id_manychat.rut_usuario}-{agenda.id_manychat.dv_rut}" if agenda.id_manychat.rut_usuario else "Sin RUT"
+            rut_usuario = agenda.id_manychat.get_rut_descifrado() if agenda.id_manychat.rut_usuario else None
+            dv_rut = agenda.id_manychat.get_dv_descifrado() if agenda.id_manychat.dv_rut else None
+            rut_paciente = f"{rut_usuario}-{dv_rut}" if rut_usuario and dv_rut else "Sin RUT"
             
             try:
                 if hasattr(agenda.id_manychat, 'perfilusuario') and agenda.id_manychat.perfilusuario.user:
@@ -2465,13 +2538,15 @@ def generar_json_por_cesfam(request, cesfam_id):
             if nombre_paciente == "Paciente No Registrado":
                 nombre_paciente = getattr(agenda.id_manychat, 'nombre_whatsapp', "Paciente ManyChat")
             
+            whatsapp = agenda.id_manychat.get_whatsapp_descifrado() if agenda.id_manychat.num_whatsapp else None
+            
             datos_agendas.append({
                 "rut": rut_paciente,
                 "nombre": nombre_paciente,
                 "fecha": agenda.fecha_atencion.strftime("%d-%m-%Y"),
                 "hora": agenda.hora_atencion.strftime("%H:%M"),
                 "procedimiento": agenda.id_procedimiento.nombre_procedimiento,
-                "contacto": str(agenda.id_manychat.num_whatsapp),
+                "contacto": whatsapp,
                 "manychat_id": agenda.id_manychat.id_manychat,
                 "tipo_usuario": "registrado" if hasattr(agenda.id_manychat, 'perfilusuario') else "no_registrado"
             })
@@ -2530,17 +2605,39 @@ def es_administrador(user):
 @login_required(login_url='/login/')
 @user_passes_test(es_administrador, login_url='/login/')
 def exportar_historial_excel(request):
-    search_query = request.GET.get('search', '')
+    search_query = request.GET.get('search', '').lower().strip()
 
     agendamientos = Agenda.objects.select_related(
         'id_manychat', 
         'id_cesfam', 
         'id_procedimiento'
-    ).filter(
-        Q(id_manychat__rut_usuario__icontains=search_query) |
-        Q(id_manychat__email__icontains=search_query) |
-        Q(id_manychat__id_manychat__icontains=search_query)
     ).order_by('-fecha_atencion')
+
+    resultados_filtrados = []
+
+    for agendamiento in agendamientos:
+        rut = agendamiento.id_manychat.get_rut_descifrado() or ""
+        dv = agendamiento.id_manychat.get_dv_descifrado() or ""
+        email = agendamiento.id_manychat.get_email_descifrado() or ""
+        
+        if search_query:
+            search_matches = (
+                search_query in rut.lower() or
+                search_query in email.lower() or
+                search_query in agendamiento.id_cesfam.nombre_cesfam.lower() or
+                search_query in agendamiento.id_procedimiento.nombre_procedimiento.lower() or
+                search_query in agendamiento.id_manychat.id_manychat.lower()
+            )
+            
+            if not search_matches:
+                continue  
+
+        resultados_filtrados.append({
+            'agendamiento': agendamiento,
+            'rut_completo': f"{rut}-{dv}" if rut and dv else "Sin RUT",
+            'email': email,
+    
+        })
 
     wb = Workbook()  
     ws = wb.active
@@ -2558,16 +2655,16 @@ def exportar_historial_excel(request):
     ]
     ws.append(columnas)
 
-    # Datos
-    for agendamiento in agendamientos:
+    for item in resultados_filtrados:
+        agendamiento = item['agendamiento']
         ws.append([
-            f"{agendamiento.id_manychat.rut_usuario}-{agendamiento.id_manychat.dv_rut}",
+            item['rut_completo'],
             agendamiento.id_cesfam.nombre_cesfam,
             agendamiento.id_procedimiento.nombre_procedimiento,
-            agendamiento.requisito_examen,
+            agendamiento.requisito_examen or 'No especificado',
             agendamiento.fecha_atencion.strftime('%d-%m-%Y'),
             agendamiento.hora_atencion.strftime('%H:%M'),
-            agendamiento.id_manychat.email or 'No registrado'
+            item['email'] or 'No registrado'
         ])
 
     # Preparar la respuesta
@@ -2585,22 +2682,44 @@ def exportar_historial_excel(request):
 @login_required(login_url='/login/') 
 @user_passes_test(es_administrador, login_url='/login/')
 def historial_agendamientos(request):
-    search_query = request.GET.get('search', '')
+    search_query = request.GET.get('search', '').strip()
 
-    agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento')
+    agendamientos = Agenda.objects.select_related(
+        'id_manychat', 
+        'id_cesfam', 
+        'id_procedimiento'
+    ).order_by('-fecha_atencion')
 
-    if search_query:
-        agendamientos = agendamientos.filter(
-            Q(id_manychat__rut_usuario__icontains=search_query) |
-            Q(id_manychat__email__icontains=search_query) |
-            Q(id_cesfam__nombre_cesfam__icontains=search_query)
-        )
+    resultados_filtrados = []
+    
+    for agendamiento in agendamientos:
+        rut_descifrado = agendamiento.id_manychat.get_rut_descifrado() or ""
+        dv_descifrado = agendamiento.id_manychat.get_dv_descifrado() or ""
+        email_descifrado = agendamiento.id_manychat.get_email_descifrado() or ""
+        
+        rut_completo = f"{rut_descifrado}-{dv_descifrado}" if rut_descifrado and dv_descifrado else "Sin RUT"
+        
+        if search_query:
+            search_matches = (
+                search_query.lower() in rut_descifrado.lower() or
+                search_query.lower() in email_descifrado.lower() or
+                search_query.lower() in agendamiento.id_cesfam.nombre_cesfam.lower() or
+                search_query.lower() in agendamiento.id_manychat.id_manychat.lower()
+            )
+            if not search_matches:
+                continue
+        
+        resultados_filtrados.append({
+            'agendamiento': agendamiento,
+            'rut_completo': rut_completo,
+            'email': email_descifrado
+        })
 
-    agendamientos = agendamientos.order_by('-fecha_atencion')
-    page_obj = paginacion_queryset1(request, agendamientos, items_por_pagina=10)
+    page_obj = paginacion_queryset1(request, resultados_filtrados, items_por_pagina=10)
 
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
+        'agendamientos_con_datos': resultados_filtrados  
     }
     return render(request, 'administracion/historial_agendamientos.html', context)
