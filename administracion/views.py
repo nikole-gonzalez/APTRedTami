@@ -2355,7 +2355,6 @@ def lista_usuarios(request):
     # Paginación normal
     page_obj = paginacion_queryset1(request, perfiles)
     
-<<<<<<< HEAD
     # Preparamos datos para el template sin modificar el queryset original
     usuarios_data = []
     for perfil in page_obj.object_list:
@@ -2377,12 +2376,6 @@ def lista_usuarios(request):
         'usuarios_data': usuarios_data 
     })
  
-=======
-    return render (request, 'administracion/lista_usuarios.html', {'page_obj': page_obj, 'perfiles': perfiles})
-
-from django.contrib import messages
-
->>>>>>> 94ba176a325ed323007f9ef8ae339bc99a8a51bf
 @login_required
 def crear_usuario(request):
     if request.method == 'POST':
