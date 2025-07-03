@@ -10,7 +10,7 @@ def crear_perfil_para_superuser(sender, instance, created, **kwargs):
             PerfilUsuario.objects.create(
                 user=instance,
                 tipo_usuario='administrador',
-                rut_usuario='99999999',
+                rut_usuario=99999999,
                 dv_rut='9',
-                telefono='0'
+                telefono=0
             )

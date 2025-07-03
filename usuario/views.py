@@ -20,13 +20,7 @@ def usuario_index(request):
         }, status=403)
 
     return render(request, 'usuario/index.html', {
-        'perfil': perfil,
-        'telefono': perfil.get_telefono_descifrado(),
-        'rut_completo': perfil.get_rut_completo_descifrado(),
-        'email_descifrado': (
-            perfil.usuario_sist.get_email_descifrado()
-            if perfil.usuario_sist else None
-        )
+        'perfil': perfil
     })
 
 def pagina_informativa(request):
@@ -47,13 +41,7 @@ def panel_usuario(request):
 
     if perfil.tipo_usuario == 'paciente':
         return render(request, 'usuario/panel_usuario.html', {
-            'perfil': perfil,
-            'telefono': perfil.get_telefono_descifrado(),
-            'rut_completo': perfil.get_rut_completo_descifrado(),
-            'email_descifrado': (
-                perfil.usuario_sist.get_email_descifrado()
-                if perfil.usuario_sist else None
-            )
+            'perfil': perfil
         })
 
     elif perfil.tipo_usuario == 'administrador':

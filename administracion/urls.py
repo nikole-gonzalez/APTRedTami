@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView 
 from . import views
-from administracion.views import prueba_envio_email
 
 urlpatterns = [
     path('', views.home, name='admin-index'),
@@ -77,8 +76,4 @@ urlpatterns = [
     path('descargar-json/<int:cesfam_id>/', views.generar_json_por_cesfam, name='descargar_json_por_cesfam'),
     path('descargas-json/', views.lista_descargas, name='lista_descargas'),
 
-
-
-
-    path('prueba-envio-email/', prueba_envio_email, name='prueba_envio_email'),
 ]

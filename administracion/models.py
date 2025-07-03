@@ -2,13 +2,13 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .utils import encrypt_data, decrypt_data
+
 
 class PerfilUsuario(models.Model):
     id_perfil = models.AutoField(primary_key=True, verbose_name="Id Perfil")
-    telefono = models.TextField(null=True, blank=True) 
-    rut_usuario = models.TextField(null=True, blank=True) 
-    dv_rut = models.CharField(max_length=255, null=True, blank=True)
+    telefono = models.IntegerField(default=0)
+    rut_usuario = models.IntegerField(default=0)
+    dv_rut = models.CharField(max_length=1, default='')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     usuario_sist = models.OneToOneField('Usuario', on_delete=models.CASCADE, null=True, blank=True)
@@ -18,100 +18,28 @@ class PerfilUsuario(models.Model):
         default='paciente'
     )
 
-    def get_telefono_descifrado(self):
-        """Obtiene el teléfono descifrado"""
-        return decrypt_data(self.telefono) if self.telefono else None
-    
-    def get_rut_descifrado(self):
-        """Obtiene el RUT descifrado"""
-        return decrypt_data(self.rut_usuario) if self.rut_usuario else None
-    
-    def get_dv_descifrado(self):
-        """Obtiene el DV descifrado"""
-        return decrypt_data(self.dv_rut) if self.dv_rut else None
-    
-    def get_rut_completo_descifrado(self):
-        """Obtiene RUT completo (con guión) descifrado"""
-        rut = self.get_rut_descifrado()
-        dv = self.get_dv_descifrado()
-        return f"{rut}-{dv}" if rut and dv else None
-
-    def save(self, *args, **kwargs):
-        if self.telefono and not self.telefono.startswith('gAAAA'):
-            self.telefono = encrypt_data(str(self.telefono))
-        
-        if self.rut_usuario and not self.rut_usuario.startswith('gAAAA'):
-            self.rut_usuario = encrypt_data(str(self.rut_usuario))
-        
-        if self.dv_rut and not self.dv_rut.startswith('gAAAA'):
-            self.dv_rut = encrypt_data(str(self.dv_rut))
-        
-        super().save(*args, **kwargs)
-
     def __str__(self):
-        rut = self.get_rut_completo_descifrado() or "sin_rut"
+        rut = self.usuario_sist.rut_usuario if self.usuario_sist else "sin_rut"
         return f"{self.user.username} - {rut}"
-    
+
 class Usuario(models.Model):
     id_manychat = models.CharField(primary_key=True, max_length=20, verbose_name="Id Manychat")
-    rut_usuario = models.TextField()
-    dv_rut = models.CharField(max_length=255, null=True, blank=True)  
+    rut_usuario = models.IntegerField()
+    dv_rut = models.CharField(max_length=1)
     fecha_nacimiento = models.DateTimeField()
-    num_whatsapp = models.TextField() 
+    num_whatsapp = models.BigIntegerField()
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
     cod_comuna = models.ForeignKey('Comuna', on_delete=models.CASCADE)
-    email = models.TextField(blank=True) 
-    cesfam_usuario = models.ForeignKey('usuario.Cesfam', on_delete=models.CASCADE, null=True, blank=True)
+    email = models.CharField(max_length=255, blank=True)
+    cesfam_usuario = models.ForeignKey('usuario.Cesfam', on_delete=models.CASCADE, null = True, blank= True)
     opt_out = models.BooleanField(
         default=False,
         verbose_name="No recibir mensajes",
         help_text="Si está marcado, el usuario no recibirá mensajes de divulgación"
     )
 
-    def get_rut_descifrado(self):
-        return decrypt_data(self.rut_usuario) if self.rut_usuario else None
-    
-    def get_dv_descifrado(self):
-        return decrypt_data(self.dv_rut) if self.dv_rut else None
-    
-    def get_whatsapp_descifrado(self):
-        return decrypt_data(self.num_whatsapp) if self.num_whatsapp else None
-    
-    def get_email_descifrado(self):
-        return decrypt_data(self.email) if self.email else None
-    
-    def get_rut_completo_descifrado(self):
-        rut = self.get_rut_descifrado()
-        dv = self.get_dv_descifrado()
-        return f"{rut}-{dv}" if rut and dv else None
-
-    def save(self, *args, **kwargs):
-        """Cifra los datos antes de guardar"""
-        if self.rut_usuario:
-            self.rut_usuario = str(self.rut_usuario)
-            if not self.rut_usuario.startswith('gAAAA'):
-                self.rut_usuario = encrypt_data(self.rut_usuario)
-        
-        if self.dv_rut:
-            self.dv_rut = str(self.dv_rut)
-            if not self.dv_rut.startswith('gAAAA'):
-                self.dv_rut = encrypt_data(self.dv_rut)
-        
-        if self.num_whatsapp:
-            self.num_whatsapp = str(self.num_whatsapp)
-            if not self.num_whatsapp.startswith('gAAAA'):
-                self.num_whatsapp = encrypt_data(self.num_whatsapp)
-        
-        if self.email:
-            self.email = str(self.email)
-            if not self.email.startswith('gAAAA'):
-                self.email = encrypt_data(self.email)
-        
-        super().save(*args, **kwargs)
-
     def __str__(self):
-        rut = self.get_rut_completo_descifrado() or "rut-dv"
-        return f"Usuario: {rut} ({self.id_manychat})"
+        return f"Usuario: {self.rut_usuario}-{self.dv_rut} ({self.id_manychat})"
     
     def cuestionario_completo(self):
         tipos = [
@@ -122,9 +50,11 @@ class Usuario(models.Model):
         ]
         
         for tipo, modelo_resp, modelo_preg, relacion in tipos:
+            # Verifica que haya al menos una respuesta
             if not modelo_resp.objects.filter(id_manychat=self).exists():
                 return 'false'
                 
+            # Verifica completitud
             total = modelo_preg.objects.count()
             respondidas = modelo_resp.objects.filter(
                 id_manychat=self

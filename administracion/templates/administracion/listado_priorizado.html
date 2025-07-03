@@ -18,6 +18,7 @@
                     <th>#</th>
                     <th>ID MANYCHAT</th>
                     <th>Rut</th>
+                    <th>Dígito verificador</th>
                     <th>WhatsApp</th>
                     <th>Email usuario</th>
                     <th>Edad</th>
@@ -31,7 +32,8 @@
                 <tr>
                     <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
                     <td>{{ dato.id }}</td> 
-                    <td>{{ dato.rut_completo }}</td>  
+                    <td>{{ dato.rut_usuario }}</td>
+                    <td>{{ dato.dv_rut }}</td>  
                     <td>{{ dato.num_whatsapp }}</td>  
                     <td>{{ dato.email }}</td>  
                     <td>{{ dato.edad }}</td>

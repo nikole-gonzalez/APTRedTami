@@ -27,10 +27,10 @@
                 {% for dato in page_obj %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
-                    <td>{{ dato.id_manychat }}</td>
-                    <td>{{ dato.rut_completo}}</td>
+                    <td>{{ dato.id_manychat.id_manychat }}</td>
+                    <td>{{ dato.id_manychat.rut_usuario }}-{{ dato.id_manychat.dv_rut }}</td>
                     <td>{{ dato.texto_pregunta }}</td>
-                    <td>{{ dato.fecha_pregunta_texto}}</td>
+                    <td>{{ dato.fecha_pregunta_texto|date:"d-m-Y H:i:s" }}</td>
 
                 </tr>
                 {% endfor %}
