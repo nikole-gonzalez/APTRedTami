@@ -68,3 +68,4 @@ def registro_view(request):
         'form': form,
         'manychat_id': request.GET.get('manychat_id', '')
     })
+
