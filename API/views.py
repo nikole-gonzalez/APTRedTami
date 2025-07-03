@@ -610,7 +610,7 @@ def enviar_recordatorios_pendientes(request):
             hora_inicio = time(8, 0)
             hora_fin = time(14, 59)
             tipo_recordatorio = "mañana"
-        elif ahora_chile.hour == 15  and ahora_chile.minute <= 25:
+        elif ahora_chile.hour == 15 and ahora_chile.minute <= 25:
             hora_inicio = time(15, 0)
             hora_fin = time(23, 0)
             tipo_recordatorio = "tarde"
@@ -618,24 +618,31 @@ def enviar_recordatorios_pendientes(request):
             return Response({'status': 'skipped', 'reason': 'Hora no programada'})
 
         citas_pendientes = Agenda.objects.filter(
-            fecha_atencion=fecha_actual,  
+            fecha_atencion=fecha_actual,
             hora_atencion__gte=hora_inicio,
             hora_atencion__lte=hora_fin
         ).exclude(
-            recordatorio__enviado=1  
+            recordatorio__enviado=1
         )
 
         enviados = 0
         for cita in citas_pendientes:
+            usuario = cita.id_manychat  # Este es un objeto Usuario
+            email_descifrado = usuario.get_email_descifrado()
+
+            if not email_descifrado:
+                logger.warning(f"Usuario sin email descifrado: {usuario}")
+                continue  # saltar si no tiene correo
+
             recordatorio, created = Recordatorio.objects.get_or_create(
                 agenda=cita,
                 defaults={
-                    'email': cita.id_manychat.email,
+                    'email': email_descifrado,
                     'fecha_programada': timezone.now(),
                     'enviado': 0
                 }
             )
-            
+
             if recordatorio.enviado == 0:
                 enviar_email_recordatorio(recordatorio)
                 recordatorio.enviado = 1
@@ -680,70 +687,73 @@ def enviar_email_recordatorio(recordatorio):
 @authentication_classes([])
 @permission_classes([])
 def enviar_divulgaciones(request):
-    # Validar token secreto en header Authorization
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         logger.error("Falta header de Authorization")
         return Response({'error': 'Se requiere token de autenticación'}, status=status.HTTP_401_UNAUTHORIZED)
-    
+
     parts = auth_header.strip().split()
     if len(parts) != 2 or parts[0] != 'Token':
         logger.error(f"Formato de token inválido. Header recibido: {auth_header}")
         return Response({'error': 'Formato de autorización inválido. Use: Token <token>'}, status=status.HTTP_401_UNAUTHORIZED)
-    
+
     received_token = parts[1].strip()
     expected_token = getattr(settings, 'GITHUB_WEBHOOK_SECRET', '').strip()
 
     if not expected_token:
         logger.error("GITHUB_WEBHOOK_SECRET no está configurado en settings")
         return Response({'error': 'Configuración del servidor incompleta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     if not secrets.compare_digest(received_token, expected_token):
         logger.error("Token no coincide")
         return Response({'error': 'Token inválido'}, status=status.HTTP_401_UNAUTHORIZED)
-    
+
     try:
         divulgacion = DivulgacionService.obtener_divulgacion_pendiente()
         if not divulgacion:
             return Response({"status": "skip", "detail": "No hay divulgaciones pendientes"}, status=200)
-        
+
         usuarios = DivulgacionService.obtener_usuarios_optin()
         if not usuarios.exists():
             return Response({"status": "skip", "detail": "No hay usuarios opt-in con email válido"}, status=200)
-        
+
         resultados = []
         for usuario in usuarios:
-            email_obj = DivulgacionService.construir_email(divulgacion, usuario)
-            respuesta = EmailService.enviar_email(email_obj)
-            
-            LogEnvioEmail.objects.create(
-                usuario=usuario,
-                divulgacion=divulgacion,
-                exito=respuesta.get('status') == 'success',
-                error=respuesta.get('message') if respuesta.get('status') == 'error' else None,
-                direccion_email=usuario.email
-            )
-            
-            resultados.append({
-                "usuario": usuario.id_manychat,
-                "email": usuario.email,
-                "status": respuesta.get('status')
-            })
-        
+            try:
+                email_obj = DivulgacionService.construir_email(divulgacion, usuario)
+                respuesta = EmailService.enviar_email(email_obj)
+
+                LogEnvioEmail.objects.create(
+                    usuario=usuario,
+                    divulgacion=divulgacion,
+                    exito=respuesta.get('status') == 'success',
+                    error=respuesta.get('message') if respuesta.get('status') == 'error' else None,
+                    direccion_email=email_obj.to[0]  # ya es el descifrado
+                )
+
+                resultados.append({
+                    "usuario": usuario.id_manychat,
+                    "email": email_obj.to[0],
+                    "status": respuesta.get('status')
+                })
+            except Exception as e:
+                logger.warning(f"Error al enviar a {usuario.id_manychat}: {str(e)}")
+
         divulgacion.enviada = True
         divulgacion.fecha_envio = timezone.now()
         divulgacion.save()
-        
+
         return Response({
             "status": "success",
             "divulgacion_id": divulgacion.id_divulgacion,
             "enviados": len(resultados),
             "detalle": resultados
         })
-    
+
     except Exception as e:
         logger.error(f"Error en enviar_divulgaciones: {str(e)}")
         return Response({"error": str(e)}, status=500)
+
 
 @api_view(['GET'])
 def baja_usuario(request, id_manychat):
