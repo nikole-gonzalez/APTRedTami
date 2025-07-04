@@ -6,50 +6,154 @@
     <header class="major">
       <h2>{% if form_user.instance.pk %}Editar{% else %}Crear{% endif %} Usuario</h2>
     </header>
-    <form method="post">
+    
+    {% if messages %}
+    <div class="error-message">
+      {% for message in messages %}
+        <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if form_user.non_field_errors or form_perfil.non_field_errors %}
+    <div class="error-message">
+      {% for error in form_user.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+      {% for error in form_perfil.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form method="post" id="usuarioForm">
       {% csrf_token %}
       <div class="table-wrapper">
         <table>
           <tbody>
             <tr>
               <th><label>Username</label></th>
-              <td>{{ form_user.username }}</td>
+              <td>
+                {{ form_user.username }}
+                {% if form_user.username.errors %}
+                <div class="error">{{ form_user.username.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
             <tr>
               <th><label>Nombre</label></th>
-              <td>{{ form_user.first_name }}</td>
+              <td>
+                {{ form_user.first_name }}
+                {% if form_user.first_name.errors %}
+                <div class="error">{{ form_user.first_name.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
             <tr>
               <th><label>Apellido</label></th>
-              <td>{{ form_user.last_name }}</td>
+              <td>
+                {{ form_user.last_name }}
+                {% if form_user.last_name.errors %}
+                <div class="error">{{ form_user.last_name.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
             <tr>
-              <th><label>RUT</label></th>
-              <td>{{ form_perfil.rut_usuario }}</td>
+              <th><label>RUT (sin puntos ni guión)</label></th>
+              <td>
+                {{ form_perfil.rut_usuario }}
+                {% if form_perfil.rut_usuario.errors %}
+                <div class="error">{{ form_perfil.rut_usuario.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
             <tr>
               <th><label>Dígito Verificador</label></th>
-              <td>{{ form_perfil.dv_rut }}</td>
+              <td>
+                {{ form_perfil.dv_rut }}
+                {% if form_perfil.dv_rut.errors %}
+                <div class="error">{{ form_perfil.dv_rut.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
             <tr>
               <th><label>Correo electrónico</label></th>
-              <td>{{ form_user.email }}</td>
+              <td>
+                {{ form_user.email }}
+                {% if form_user.email.errors %}
+                <div class="error">{{ form_user.email.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
+            
+            {% if creando %}
             <tr>
               <th><label>Contraseña</label></th>
-              <td>{{ form_user.password }}</td>
+              <td>
+                {{ form_user.password }}
+                {% if form_user.password.errors %}
+                <div class="error">{{ form_user.password.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
+            <tr>
+              <th><label>Confirmar Contraseña</label></th>
+              <td>
+                {{ form_user.confirm_password }}
+                {% if form_user.confirm_password.errors %}
+                <div class="error">{{ form_user.confirm_password.errors.as_text }}</div>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <th><label>Nueva Contraseña</label></th>
+              <td>
+                {{ form_user.password }}
+                <small>{{ form_user.password.help_text }}</small>
+                {% if form_user.password.errors %}
+                <div class="error">{{ form_user.password.errors.as_text }}</div>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th><label>Confirmar Nueva Contraseña</label></th>
+              <td>
+                {{ form_user.confirm_password }}
+                {% if form_user.confirm_password.errors %}
+                <div class="error">{{ form_user.confirm_password.errors.as_text }}</div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endif %}
+            
             <tr>
               <th><label>Teléfono</label></th>
-              <td>{{ form_perfil.telefono }}</td>
+              <td>
+                {{ form_perfil.telefono }}
+                <small>{{ form_perfil.telefono.help_text }}</small>
+                {% if form_perfil.telefono.errors %}
+                <div class="error">{{ form_perfil.telefono.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
             <tr>
-              <th><label>Usuario del sistema (ManyChat)</label></th>
-              <td>{{ form_perfil.usuario_sist }}</td>
-            </tr>
-             <tr>
               <th><label>Tipo de usuario</label></th>
-              <td>{{ form_perfil.tipo_usuario }}</td>
+              <td>
+                {{ form_perfil.tipo_usuario }}
+                {% if form_perfil.tipo_usuario.errors %}
+                <div class="error">{{ form_perfil.tipo_usuario.errors.as_text }}</div>
+                {% endif %}
+              </td>
+            </tr>
+            <tr id="usuarioSistRow">
+              <th><label>Usuario del sistema (ManyChat)</label></th>
+              <td>
+                {{ form_perfil.usuario_sist }}
+                {% if form_perfil.usuario_sist.errors %}
+                <div class="error">{{ form_perfil.usuario_sist.errors.as_text }}</div>
+                {% endif %}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -61,4 +165,39 @@
     </form>
   </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rutInput = document.querySelector('#id_rut_usuario');
+    if (rutInput) {
+        rutInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+    }
+});
+</script>
+
+<style>
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.error {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+small {
+    display: block;
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 5px;
+}
+</style>
 {% endblock %}

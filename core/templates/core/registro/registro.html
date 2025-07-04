@@ -139,4 +139,24 @@
     outline: none;
   }
 </style>
+
+<script>
+document.getElementById('id_rut').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/[^0-9kK\-]/g, '');
+    
+    value = value.toUpperCase();
+    
+    const guiones = value.split('-').length - 1;
+    if (guiones > 1) {
+        const parts = value.split('-');
+        value = parts[0] + '-' + parts.slice(1).join('').replace(/-/g, '');
+    }
+
+    const startPos = e.target.selectionStart;
+    const endPos = e.target.selectionEnd;
+    
+    e.target.value = value;
+    e.target.setSelectionRange(startPos, endPos);
+});
+</script>
 {% endblock %}
