@@ -5,6 +5,17 @@
 {% block content %}
 <h2 class="major">Preguntas A Especialistas</h2>
 <a class="button" href="{% url 'respuestas' %}">Volver</a>
+<form method="get" action="" style="text-align:center; margin-bottom: 20px;">
+    <input type="text" name="q" placeholder="Buscar por RUT, ID ManyChat" value="{{ query|default:'' }}" style="padding: 8px; width: 300px;">
+    <br>
+    <button type="submit" class="button small">Buscar</button>
+    <br>
+    <br>
+    {% if query %}
+        <a href="{% url 'preg_especialista' %}" class="button small" style="margin-left: 10px;">Limpiar</a>
+    {% endif %}
+</form>
+
 <section id="usuarios">
     
 

@@ -5,6 +5,16 @@
 {% block content %}
 <h2 class="major">Datos Factores Riesgos No Modificables</h2>
 <a class="button" href="{% url 'opc_vis_FRNM' %}">Volver</a>
+<form method="get" action="" style="text-align:center; margin-bottom: 20px;">
+    <input type="text" name="q" placeholder="Buscar por RUT, ID ManyChat" value="{{ query|default:'' }}" style="padding: 8px; width: 300px;">
+    <br>
+    <button type="submit" class="button small">Buscar</button>
+    <br>
+    <br>
+    {% if query %}
+        <a href="{% url 'datos_FRNM1' %}" class="button small" style="margin-left: 10px;">Limpiar</a>
+    {% endif %}
+</form>
 
 <section id = "usuarios" >
     {% if page_obj %}

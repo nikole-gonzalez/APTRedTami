@@ -6,7 +6,7 @@ from django.utils import timezone
 
 class PerfilUsuario(models.Model):
     id_perfil = models.AutoField(primary_key=True, verbose_name="Id Perfil")
-    telefono = models.IntegerField(default=0)
+    telefono = models.BigIntegerField(default=0)
     rut_usuario = models.IntegerField(default=0)
     dv_rut = models.CharField(max_length=1, default='')
     fecha_creacion = models.DateTimeField(auto_now_add=True)

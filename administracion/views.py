@@ -54,6 +54,8 @@ from django.db.models import F, Subquery, OuterRef, Case, When, Value, CharField
 from datetime import date
 
 from .utils import *
+from django.db.models.functions import Concat
+from django.views.decorators.cache import never_cache
 
 
 locale.setlocale(locale.LC_TIME, 'es_ES')
@@ -598,33 +600,59 @@ def background_colors(ws):
     for cell in ws[1]: 
         cell.fill = fill
 
-@login_required
+
 def datos_perfil(request):
-    query = request.GET.get("q", "")
-    datos_query = Usuario.objects.all().order_by("-fecha_ingreso")
+    query = request.GET.get("q", "").strip()
+    
+    datos_query = Usuario.objects.annotate(
+        rut_completo=Concat(
+            F('rut_usuario'),
+            Value('-'),
+            F('dv_rut'),
+            output_field=CharField()
+        ),
+        rut_sin_formato=Concat(
+            F('rut_usuario'),
+            F('dv_rut'),
+            output_field=CharField()
+        )
+    ).order_by("-fecha_ingreso")
 
     if query:
-        datos_query = datos_query.filter(
-            Q(rut_usuario__icontains=query)|
-            Q(id_manychat__icontains=query)|
-            Q(num_whatsapp__icontains=query)
-        )
+        cleaned_query = query.replace(".", "").replace("-", "").replace(" ", "").lower()
+        
+        filtros = Q(rut_completo__icontains=query) | Q(rut_sin_formato__icontains=cleaned_query)
+
+        if len(cleaned_query) > 1:
+            filtros |= Q(rut_usuario__icontains=cleaned_query[:-1])
+        
+        filtros |= Q(id_manychat__icontains=query) | Q(num_whatsapp__icontains=query)
+        
+        datos_query = datos_query.filter(filtros)
     
-    page_obj = paginacion_queryset1(request, datos_query) 
+    page_obj = paginacion_queryset1(request, datos_query)
+
     return render(request, 'administracion/datos_perfil.html', {
         "page_obj": page_obj,
         "query": query,
     })
-
 # ------------------ #
 # ---- Tamizaje ---- #
 # ------------------ #
 
 @login_required
 def tamizaje(request):
+    query = request.GET.get("q", "").strip()
+
     datos_query = RespTM.objects.select_related(
         "id_opc_tm", "id_opc_tm__id_preg_tm", "id_manychat"
-    ).values(
+    ).order_by("-fecha_respuesta_tm")
+
+
+    if query:
+        datos_query = filtrar_por_rut_o_manychat(datos_query, query)
+
+    datos_query = datos_query.values(
         "id_resp_tm",
         "id_manychat",
         "id_opc_tm__id_preg_tm__preg_tm",
@@ -632,12 +660,14 @@ def tamizaje(request):
         "fecha_respuesta_tm",
         "id_manychat__rut_usuario",
         "id_manychat__dv_rut"
-    ).order_by("-fecha_respuesta_tm")
+    )
 
+    page_obj = paginacion_queryset1(request, datos_query)
 
-    page_obj = paginacion_queryset1(request, datos_query) 
-    
-    return render(request, 'administracion/tamizaje.html', {"page_obj": page_obj})
+    return render(request, 'administracion/tamizaje.html', {
+        "page_obj": page_obj,
+        "query": query
+    })
 
 #Validar contraseña de descargas
 def validar_password(request):
@@ -825,8 +855,9 @@ def crear_pdf_datos_tamizaje(request):
 # ---- FRM ---- #
 # ------------- #
 
-@login_required
 def datos_FRM1(request):
+    query = request.GET.get("q", "").strip()
+
     datos_query = RespFRM.objects.select_related(
         "id_opc_frm", "id_opc_frm__id_preg_frm", "id_manychat"
     ).values(
@@ -839,10 +870,16 @@ def datos_FRM1(request):
         "id_manychat__dv_rut"
     ).order_by("-fecha_respuesta_frm")
 
-    page_obj = paginacion_queryset1(request, datos_query) 
-    
-    return render(request, 'administracion/datos_FRM1.html', {"page_obj": page_obj})
+    from .utils import filtrar_por_rut_o_manychat
+    if query:
+        datos_query = filtrar_por_rut_o_manychat(datos_query, query)
 
+    page_obj = paginacion_queryset1(request, datos_query)
+
+    return render(request, 'administracion/datos_FRM1.html', {
+        "page_obj": page_obj,
+        "query": query,
+    })
 
 def crear_excel_datos_frm1(request):
     session_key = request.GET.get('session_key')
@@ -1007,12 +1044,19 @@ def crear_pdf_datos_frm1(request):
 
 @login_required
 def datos_FRM2(request):
-    
+    query = request.GET.get("q", "").strip()
     preguntas = PregFRM.objects.all()
-    
-    usuarios_respuestas = RespFRM.objects.select_related(
-        "id_opc_frm", "id_opc_frm__id_preg_frm","id_manychat"
-    ).values(
+
+    # QuerySet base
+    usuarios_respuestas_qs = RespFRM.objects.select_related(
+        "id_opc_frm", "id_opc_frm__id_preg_frm", "id_manychat"
+    )
+
+    # Aplico el filtro del utils (la función que diste)
+    usuarios_respuestas_qs = filtrar_por_rut_o_manychat(usuarios_respuestas_qs, query)
+
+    # Ahora sí paso a .values() para procesar resultados
+    usuarios_respuestas = usuarios_respuestas_qs.values(
         "id_manychat__rut_usuario",
         "id_manychat__dv_rut",
         "id_manychat",  
@@ -1030,7 +1074,7 @@ def datos_FRM2(request):
         rut_completo = f"{rut}-{dv}"
         pregunta = respuesta["id_opc_frm__id_preg_frm__preg_frm"]
         respuesta_usuario = respuesta["id_opc_frm__opc_resp_frm"]
-        
+
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
                 "rut_completo": rut_completo,
@@ -1039,17 +1083,19 @@ def datos_FRM2(request):
             }
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
 
-    # Convertir el diccionario a una lista de listas
     tabla_respuestas = [
-        [id_manychat, data["rut_completo"]] + [data["respuestas"].get(p.preg_frm, "-") for p in preguntas] + [data["fecha"]]
+        [id_manychat, data["rut_completo"]] +
+        [data["respuestas"].get(p.preg_frm, "-") for p in preguntas] +
+        [data["fecha"]]
         for id_manychat, data in dict_respuestas.items()
     ]
 
-    page_obj = paginacion_lista2(request, tabla_respuestas) 
-    
+    page_obj = paginacion_lista2(request, tabla_respuestas)
+
     return render(request, "administracion/datos_FRM2.html", {
         "preguntas": preguntas,
         "page_obj": page_obj,
+        "query": query,
     })
 
 def crear_excel_datos_frm2(request):
@@ -1233,9 +1279,16 @@ def crear_pdf_datos_frm2(request):
 
 @login_required
 def datos_FRNM1(request):
-    datos_query = RespFRNM.objects.select_related(
+    query = request.GET.get("q", "").strip()
+
+    datos_qs = RespFRNM.objects.select_related(
         "id_opc_frnm", "id_opc_frnm__id_preg_frnm", "id_manychat"
-    ).values(
+    )
+
+    # Aplico el filtro con la función util
+    datos_qs = filtrar_por_rut_o_manychat(datos_qs, query)
+
+    datos_query = datos_qs.values(
         "id_resp_frnm",
         "id_manychat",
         "id_opc_frnm__id_preg_frnm__preg_frnm",
@@ -1246,8 +1299,11 @@ def datos_FRNM1(request):
     ).order_by("-fecha_respuesta_frnm")
 
     page_obj = paginacion_queryset1(request, datos_query) 
-    
-    return render(request, 'administracion/datos_FRNM1.html', {"page_obj": page_obj})
+
+    return render(request, 'administracion/datos_FRNM1.html', {
+        "page_obj": page_obj,
+        "query": query,
+    })
 
 def crear_excel_datos_frnm1(request):
     session_key = request.GET.get('session_key')
@@ -1384,15 +1440,20 @@ def crear_pdf_datos_frnm1(request):
 
 @login_required
 def datos_FRNM2(request):
+    query = request.GET.get("q", "").strip()
 
     preguntas = PregFRNM.objects.all()
-    
-    usuarios_respuestas = RespFRNM.objects.select_related(
-        "id_opc_frnm", "id_opc_frnm__id_preg_frnm","id_manychat"
-    ).values(
+
+    usuarios_respuestas_qs = RespFRNM.objects.select_related(
+        "id_opc_frnm", "id_opc_frnm__id_preg_frnm", "id_manychat"
+    )
+
+    usuarios_respuestas_qs = filtrar_por_rut_o_manychat(usuarios_respuestas_qs, query)
+
+    usuarios_respuestas = usuarios_respuestas_qs.values(
         "id_manychat__rut_usuario",
         "id_manychat__dv_rut",
-        "id_manychat", 
+        "id_manychat",
         "fecha_respuesta_frnm",
         "id_opc_frnm__id_preg_frnm__preg_frnm",
         "id_opc_frnm__opc_resp_frnm"
@@ -1407,7 +1468,7 @@ def datos_FRNM2(request):
         rut_completo = f"{rut}-{dv}"
         pregunta = respuesta["id_opc_frnm__id_preg_frnm__preg_frnm"]
         respuesta_usuario = respuesta["id_opc_frnm__opc_resp_frnm"]
-        
+
         if id_manychat not in dict_respuestas:
             dict_respuestas[id_manychat] = {
                 "rut_completo": rut_completo,
@@ -1416,17 +1477,17 @@ def datos_FRNM2(request):
             }
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
 
-    # Convertir el diccionario a una lista de listas
     tabla_respuestas = [
-         [id_manychat, data["rut_completo"]] + [data["respuestas"].get(p.preg_frnm, "-") for p in preguntas] + [data["fecha"]]
+        [id_manychat, data["rut_completo"]] + [data["respuestas"].get(p.preg_frnm, "-") for p in preguntas] + [data["fecha"]]
         for id_manychat, data in dict_respuestas.items()
     ]
 
-    page_obj = paginacion_lista2(request, tabla_respuestas) 
-    
+    page_obj = paginacion_lista2(request, tabla_respuestas)
+
     return render(request, "administracion/datos_FRNM2.html", {
         "preguntas": preguntas,
         "page_obj": page_obj,
+        "query": query,
     })
 
 def crear_excel_datos_frnm2(request):
@@ -1605,9 +1666,15 @@ def crear_pdf_datos_frnm2(request):
 
 @login_required
 def datos_DS1(request):
-    datos_query = RespDS.objects.select_related(
+    query = request.GET.get("q", "").strip()
+
+    datos_qs = RespDS.objects.select_related(
         "id_opc_ds", "id_opc_ds__id_preg_ds", "id_manychat"
-    ).values(
+    )
+
+    datos_qs = filtrar_por_rut_o_manychat(datos_qs, query)
+
+    datos_query = datos_qs.values(
         "id_resp_ds",
         "id_manychat",
         "id_opc_ds__id_preg_ds__preg_ds",
@@ -1618,8 +1685,11 @@ def datos_DS1(request):
     ).order_by("-fecha_respuesta_ds")
 
     page_obj = paginacion_queryset1(request, datos_query) 
-    
-    return render(request, 'administracion/datos_DS1.html', {"page_obj": page_obj})
+
+    return render(request, 'administracion/datos_DS1.html', {
+        "page_obj": page_obj,
+        "query": query,
+    })
 
 def crear_excel_datos_ds1(request):
     session_key = request.GET.get('session_key')
@@ -1740,12 +1810,18 @@ def crear_pdf_datos_ds1(request):
 
 @login_required
 def datos_DS2(request):
+    query = request.GET.get("q", "").strip()
 
     preguntas = PregDS.objects.all()
     
-    usuarios_respuestas = RespDS.objects.select_related(
+    usuarios_respuestas_qs = RespDS.objects.select_related(
         "id_opc_ds", "id_opc_ds__id_preg_ds", "id_manychat"
-    ).values(
+    )
+
+    # Aplico filtro con la función de utils
+    usuarios_respuestas_qs = filtrar_por_rut_o_manychat(usuarios_respuestas_qs, query)
+
+    usuarios_respuestas = usuarios_respuestas_qs.values(
         "id_manychat__rut_usuario",
         "id_manychat__dv_rut",
         "id_manychat", 
@@ -1772,17 +1848,17 @@ def datos_DS2(request):
             }
         dict_respuestas[id_manychat]["respuestas"][pregunta] = respuesta_usuario
 
-    # Convertir el diccionario a una lista de listas
     tabla_respuestas = [
-        [id_manychat, data["rut_completo"]]+[data["respuestas"].get(p.preg_ds, "-") for p in preguntas] + [data["fecha"]]
+        [id_manychat, data["rut_completo"]] + [data["respuestas"].get(p.preg_ds, "-") for p in preguntas] + [data["fecha"]]
         for id_manychat, data in dict_respuestas.items()
     ]
 
     page_obj = paginacion_lista2(request, tabla_respuestas) 
-    
+
     return render(request, "administracion/datos_DS2.html", {
         "preguntas": preguntas,
         "page_obj": page_obj,
+        "query": query,
     })
 
 def crear_excel_datos_ds2(request):
@@ -1962,76 +2038,90 @@ def crear_pdf_datos_ds2(request):
 # ----------------------------------------------------------------- #
 # ---------------------- Listado priorizado ----------------------- #
 # ----------------------------------------------------------------- #
-
+@never_cache
 @login_required
 def listado_priorizado(request):
+    query = request.GET.get("q", "").strip()
+
+    # Si es POST: se envió la contraseña
     if request.method == "POST":
-        password_ingresada = request.POST.get("password")
+        password_ingresada = request.POST.get("password", "").strip()
         if password_ingresada == settings.ACCESO_LISTADO:
-            # Subconsulta para PAP Alterado
-            pap_subquery = RespTM.objects.filter(
-                id_manychat=OuterRef('id_manychat'),
-                id_opc_tm=5
-            ).values('id_opc_tm')[:1]
-
-            # Subconsulta para Parejas sexuales
-            parejas_subquery = RespFRNM.objects.filter(
-                id_manychat=OuterRef('id_manychat'),
-                id_opc_frnm=9
-            ).values('id_opc_frnm')[:1]
-
-            usuarios = Usuario.objects.annotate(
-                nombre_comuna=F('cod_comuna__nombre_comuna'),
-                tiene_pap=Subquery(pap_subquery),
-                tiene_parejas=Subquery(parejas_subquery),
-                pap_alterado=Case(
-                    When(tiene_pap__isnull=False, then=Value('Sí')),
-                    default=Value('No aplica'),
-                    output_field=CharField()
-                ),
-                parejas_sexuales=Case(
-                    When(tiene_parejas__isnull=False, then=Value('Sí')),
-                    default=Value('No aplica'),
-                    output_field=CharField()
-                )
-            ).order_by('id_manychat')
-
-            datos_procesados = []
-            for usuario in usuarios:
-                edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else None
-                
-                datos_procesados.append({
-                    "id": usuario.id_manychat,
-                    "rut_usuario": usuario.rut_usuario, 
-                    "dv_rut": usuario.dv_rut, 
-                    "num_whatsapp": usuario.num_whatsapp, 
-                    "email": getattr(usuario, 'email', 'No disponible'), 
-                    "edad": edad,
-                    "nombre_comuna": usuario.nombre_comuna,
-                    "pap_alterado": usuario.pap_alterado,
-                    "parejas_sexuales": usuario.parejas_sexuales
-                })
-
-            paginator = Paginator(datos_procesados, 20)  # 20 items por página
-            page_number = request.GET.get('page')
-            
-            try:
-                page_obj = paginator.page(page_number)
-            except PageNotAnInteger:
-                page_obj = paginator.page(1)
-            except EmptyPage:
-                page_obj = paginator.page(paginator.num_pages)
-
-
-            return render(request, "administracion/listado_priorizado.html", {
-                "page_obj": page_obj
-            })
+            request.session["acceso_listado_permitido"] = True
+            return redirect("listado_priorizado")
         else:
-            error = "Contraseña incorrecta"
-    else:
-        error = None
-    
-    return render(request, "administracion/form_contrasena_listado.html", {"error": error})
+            return render(request, "administracion/form_contrasena_listado.html", {
+                "error": "Contraseña incorrecta"
+            })
+
+    # Si no hay permiso de sesión → pedir contraseña
+    if not request.session.get("acceso_listado_permitido", False):
+        return render(request, "administracion/form_contrasena_listado.html")
+
+    # Acceso permitido → mostrar listado
+    pap_subquery = RespTM.objects.filter(
+        id_manychat=OuterRef('id_manychat'),
+        id_opc_tm=5
+    ).values('id_opc_tm')[:1]
+
+    parejas_subquery = RespFRNM.objects.filter(
+        id_manychat=OuterRef('id_manychat'),
+        id_opc_frnm=9
+    ).values('id_opc_frnm')[:1]
+
+    usuarios = Usuario.objects.annotate(
+        nombre_comuna=F('cod_comuna__nombre_comuna'),
+        tiene_pap=Subquery(pap_subquery),
+        tiene_parejas=Subquery(parejas_subquery),
+        pap_alterado=Case(
+            When(tiene_pap__isnull=False, then=Value('Sí')),
+            default=Value('No aplica'),
+            output_field=CharField()
+        ),
+        parejas_sexuales=Case(
+            When(tiene_parejas__isnull=False, then=Value('Sí')),
+            default=Value('No aplica'),
+            output_field=CharField()
+        )
+    ).order_by("id_manychat")
+
+    if query:
+        usuarios = filtro_listado_priorizado(usuarios, query)
+
+    datos_procesados = []
+    for usuario in usuarios:
+        edad = calcular_edad(usuario.fecha_nacimiento) if usuario.fecha_nacimiento else None
+        datos_procesados.append({
+            "id": usuario.id_manychat,
+            "rut_usuario": f"{usuario.rut_usuario}-{usuario.dv_rut}",
+            "dv_rut": usuario.dv_rut,
+            "num_whatsapp": usuario.num_whatsapp,
+            "email": usuario.email or "No disponible",
+            "edad": edad,
+            "nombre_comuna": usuario.nombre_comuna,
+            "pap_alterado": usuario.pap_alterado,
+            "parejas_sexuales": usuario.parejas_sexuales
+        })
+
+    paginator = Paginator(datos_procesados, 20)
+    page_number = request.GET.get("page")
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    return render(request, "administracion/listado_priorizado.html", {
+        "page_obj": page_obj,
+        "query": query
+    })
+
+
+@login_required
+def salir_listado_priorizado(request):
+    request.session.pop("acceso_listado_permitido", None) 
+    return redirect("respuestas")
 
 def crear_excel_listado_priorizado(request):
     wb = Workbook()
@@ -2212,10 +2302,20 @@ def crear_pdf_listado_priorizado(request):
 
 @login_required
 def preg_especialista(request):
-    datos_query = UsuarioTextoPregunta.objects.all().order_by("-fecha_pregunta_texto")
-    page_obj = paginacion_queryset1(request, datos_query) 
-    
-    return render(request, "administracion/preg_especialista.html", {"page_obj": page_obj})
+    query = request.GET.get("q", "").strip()
+
+    datos_query = UsuarioTextoPregunta.objects.select_related("id_manychat").order_by("-fecha_pregunta_texto")
+
+    # Aplica el filtro si hay query
+    if query:
+        datos_query = filtrar_por_rut_o_manychat(datos_query, query)
+
+    page_obj = paginacion_queryset1(request, datos_query)
+
+    return render(request, "administracion/preg_especialista.html", {
+        "page_obj": page_obj,
+        "query": query
+    })
 
 def crear_excel_preg_especialista(request):
     session_key = request.GET.get('session_key')
@@ -2581,13 +2681,33 @@ def exportar_historial_excel(request):
 @login_required(login_url='/login/') 
 @user_passes_test(es_administrador, login_url='/login/')
 def historial_agendamientos(request):
-    search_query = request.GET.get('search', '')
+    search_query = request.GET.get('search', '').strip()
 
     agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento')
 
     if search_query:
-        agendamientos = agendamientos.filter(
-            Q(id_manychat__rut_usuario__icontains=search_query) |
+        cleaned_query = search_query.replace(".", "").replace("-", "").replace(" ", "").lower()
+
+        agendamientos = agendamientos.annotate(
+            rut_completo=Concat(
+                F('id_manychat__rut_usuario'),
+                Value('-'),
+                F('id_manychat__dv_rut'),
+                output_field=CharField()
+            ),
+            rut_sin_dv=Concat(
+                F('id_manychat__rut_usuario'),
+                output_field=CharField()
+            ),
+            rut_sin_formato=Concat(
+                F('id_manychat__rut_usuario'),
+                F('id_manychat__dv_rut'),
+                output_field=CharField()
+            )
+        ).filter(
+            Q(rut_completo__icontains=search_query) |
+            Q(rut_sin_formato__icontains=cleaned_query) |
+            Q(rut_sin_dv__icontains=cleaned_query[:-1]) |
             Q(id_manychat__email__icontains=search_query) |
             Q(id_cesfam__nombre_cesfam__icontains=search_query)
         )
