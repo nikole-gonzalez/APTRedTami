@@ -68,7 +68,7 @@
     <p>No hay agendamientos registrados.</p>
     {% endif %}
 
-    <div class="export-buttons" style="text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 30px;">
+    <div style= "text-align: center;">
         <form action="{% url 'exportar_historial_excel' %}" method="post" style="display: inline-block;">
             {% csrf_token %}
             <button type="submit" class="button">Descargar como Excel</button>
