@@ -190,7 +190,7 @@ def generar_grafico_personas_por_genero():
 
 def generar_grafico_ingresos_por_comuna():
     
-    respuestas = RespFRNM.objects.filter(id_opc_frnm__id_opc_frnm__in=[1, 3])
+    respuestas = RespFRNM.objects.filter(id_opc_frnm__id_opc_frnm__in=[1, 4])
 
     datos_agrupados = (
         respuestas
@@ -227,7 +227,7 @@ def generar_grafico_ingresos_por_comuna():
 def generar_grafico_realizado_pap_tres_anios():
     
     manychat_ids = RespFRNM.objects.filter(
-        id_opc_frnm__id_opc_frnm__in=[1, 3]
+        id_opc_frnm__id_opc_frnm__in=[1, 4]
     ).values_list('id_manychat', flat=True)
 
    
@@ -270,7 +270,7 @@ def generar_grafico_realizado_pap_tres_anios():
 def generar_grafico_escolaridad():
    
     manychat_ids = RespFRNM.objects.filter(
-        id_opc_frnm__id_opc_frnm__in=[1, 3]
+        id_opc_frnm__id_opc_frnm__in=[1, 4]
     ).values_list('id_manychat', flat=True)
 
     respuestas_ds = RespDS.objects.filter(
@@ -314,7 +314,7 @@ def generar_grafico_escolaridad():
 def generar_grafico_anio_nacimiento():
     
     manychat_ids = RespFRNM.objects.filter(
-        id_opc_frnm__id_opc_frnm__in=[1, 3]
+        id_opc_frnm__id_opc_frnm__in=[1, 4]
     ).values_list('id_manychat', flat=True)
 
     datos = (
@@ -349,7 +349,7 @@ def generar_grafico_anio_nacimiento():
 def generar_grafico_respuestas_por_dia():
    
     manychat_ids = RespFRNM.objects.filter(
-        id_opc_frnm__id_opc_frnm__in=[1, 3]
+        id_opc_frnm__id_opc_frnm__in=[1, 4]
     ).values_list('id_manychat', flat=True)
 
     datos = (
@@ -384,7 +384,7 @@ def generar_grafico_respuestas_por_dia():
 
 def generar_grafico_usuario_por_edad():
     usuarios = Usuario.objects.filter(
-        respfrnm__id_opc_frnm=1
+        respfrnm__id_opc_frnm=[1,4]
     ).values_list('fecha_nacimiento', flat=True)
 
     # Calcular edades
