@@ -75,19 +75,20 @@
     {% else %}
     <p>No hay datos ingresados</p>
     {% endif %}
-
-    <div class="acciones-container">
-    <form action="{% url 'crear_excel_listado_priorizado' %}" method="post">
-        {% csrf_token %}
-        <button type="submit" class="button">Descargar como Excel</button>
-    </form>
-
-    <a href="{% url 'crear_pdf_listado_priorizado' %}" class="btn btn-danger">
-        <i class="fas fa-file-pdf"></i> Exportar a PDF
-    </a>
-
-    <a class="button" href="{% url 'salir_listado_priorizado' %}">Volver</a>
+    <div style="text-align: center;">
+        <br>
+        <form action="{% url 'crear_excel_listado_priorizado' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Descargar como Excel</button>
+        <form action="{% url 'crear_pdf_listado_priorizado' %}" method="post" style="display:inline;">
+             {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> Exportar a PDF
+            </button>
+        </form>
+        <br>
     </div>
+    <a class="button" href="{% url 'salir_listado_priorizado' %}">Volver</a>
 </section>
 
 <style>
@@ -117,20 +118,6 @@
         color: white;
         text-align: left;
     }
-
-    .acciones-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 10px;
-        margin: 30px 0;
-}
-
-    .acciones-container form,
-    .acciones-container a {
-        margin: 0;
-}
-
 </style>
 
 {% endblock %}
