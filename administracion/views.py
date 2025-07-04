@@ -384,7 +384,7 @@ def generar_grafico_respuestas_por_dia():
 
 def generar_grafico_usuario_por_edad():
     usuarios = Usuario.objects.filter(
-        respfrnm__id_opc_frnm=[1,4]
+        respfrnm__id_opc_frnm__in=[1,4]
     ).values_list('fecha_nacimiento', flat=True)
 
     # Calcular edades
