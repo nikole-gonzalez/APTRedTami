@@ -4,17 +4,17 @@
 
 {% block content %}
 <h2 class="major">Historial de Agendamientos</h2>
-<a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
+
 <form method="get" style="text-align: center; margin-bottom: 20px;">
     <input type="text" name="search" placeholder="Buscar por RUT, correo o CESFAM" value="{{ search_query }}">
     <br>
     <button type="submit" class="button small">Buscar</button>
-    <br>
-    <br>
+    <br><br>
     {% if search_query %}
         <a href="{% url 'historial_agendamientos' %}" class="button small" style="margin-left: 10px;">Limpiar</a>
     {% endif %}
 </form>
+
 <section id="usuarios">
     {% if page_obj %}
     <div class="table-wrapper">
@@ -55,24 +55,33 @@
             <a href="?page={{ page_obj.previous_page_number }}" class="button small">Anterior</a>
         {% endif %}
 
-    <span class="current">
-        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-    </span>
-        
-    {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
-    {% endif %}
-    </div>
+        <span class="current">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
 
-    
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="button small">Siguiente</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="button small">Última &raquo;</a>
+        {% endif %}
+    </div>
     {% else %}
     <p>No hay agendamientos registrados.</p>
     {% endif %}
+
+    <div class="export-buttons" style="text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 30px;">
+        <form action="{% url 'exportar_historial_excel' %}" method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="button">Descargar como Excel</button>
+        </form>
+        <a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
+    </div>
 </section>
-<a class="button" href="{% url 'opc_vis_agenda' %}">Volver</a>
 
 <style>
+    #usuarios {
+        margin-top: 2em;
+    }
+
     .table-wrapper {
         overflow-x: auto;
         max-width: 90%;
@@ -94,6 +103,24 @@
         background-color: #f2849e;
         color: white;
         text-align: left;
+    }
+
+    /* Responsive spacing for buttons */
+    .export-buttons a, .export-buttons button {
+        width: 80%;
+        max-width: 300px;
+    }
+
+    @media (min-width: 600px) {
+        .export-buttons {
+            flex-direction: row;
+            justify-content: center;
+        }
+
+        .export-buttons a, .export-buttons button {
+            width: auto;
+            margin: 0 10px;
+        }
     }
 </style>
 {% endblock %}

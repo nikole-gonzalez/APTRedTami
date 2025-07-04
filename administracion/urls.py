@@ -52,7 +52,6 @@ urlpatterns = [
     path('crear_excel_priorizado/', views.crear_excel_listado_priorizado, name="crear_excel_listado_priorizado"),
     path('crear_excel_preg_especialista', views.crear_excel_preg_especialista, name="crear_excel_preg_especialista"),
 
-
     #CRUD Usuarios
     path('usuarios/', views.lista_usuarios, name='lista_usuarios'),#Home de gestión de usuarios
     path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
