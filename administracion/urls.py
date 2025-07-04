@@ -76,4 +76,7 @@ urlpatterns = [
     path('descargar-json/<int:cesfam_id>/', views.generar_json_por_cesfam, name='descargar_json_por_cesfam'),
     path('descargas-json/', views.lista_descargas, name='lista_descargas'),
 
+    path("administracion/salir_listado_priorizado/", views.salir_listado_priorizado, name="salir_listado_priorizado"),
+
+
 ]

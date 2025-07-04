@@ -5,6 +5,16 @@
 {% block content %}
 <h2 class="major">Datos Preguntas de Tamizaje</h2>
 <a class="button" href="{% url 'respuestas' %}">Volver</a>
+<form method="get" action="" style="text-align:center; margin-bottom: 20px;">
+    <input type="text" name="q" placeholder="Buscar por RUT, ID ManyChat" value="{{ query|default:'' }}" style="padding: 8px; width: 300px;">
+    <br>
+    <button type="submit" class="button small">Buscar</button>
+    <br>
+    <br>
+    {% if query %}
+        <a href="{% url 'tamizaje' %}" class="button small" style="margin-left: 10px;">Limpiar</a>
+    {% endif %}
+</form>
 <section id="usuarios">
     {% if page_obj %}
     <div class="table-wrapper">
@@ -72,10 +82,10 @@
     </div>
 
     <div id="passwordModal" class="modal" style="display:none;">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <h3>Ingrese la contraseña para descargar</h3>
-        <input type="password" id="downloadPassword" placeholder="Contraseña">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>Ingrese la contraseña para descargar</h3>
+            <input type="password" id="downloadPassword" placeholder="Contraseña">
         <div class="button-group" style="margin-top: 15px;">
             <button onclick="validatePassword()" class="button confirm-btn">Validar</button>
             <button onclick="closeModal()" class="button cancel-btn">Cancelar</button>
@@ -85,7 +95,6 @@
             <p id="invalidPasswordError" style="color:red; display:none;">Contraseña incorrecta</p>
         </div>
     </div>
-</div>
 </div>
     <a class="button" href="{% url 'respuestas' %}">Volver</a>
 </section>
