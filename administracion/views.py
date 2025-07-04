@@ -233,7 +233,7 @@ def generar_grafico_realizado_pap_tres_anios():
    
     respuestas_tm = RespTM.objects.filter(
         id_manychat__in=manychat_ids,
-        id_opc_tm__id_opc_tm__in=[1, 2, 3]
+        id_opc_tm__id_opc_tm__in=[1, 2, 3, 4]
     )
 
     contador = Counter(respuestas_tm.values_list('id_opc_tm__id_opc_tm', flat=True))
@@ -245,7 +245,7 @@ def generar_grafico_realizado_pap_tres_anios():
     sizes = []
     counts = []
 
-    for id_opc_tm in [1, 2, 3]:
+    for id_opc_tm in [1, 2, 3,4]:
         try:
             opcion = OpcTM.objects.get(id_opc_tm=id_opc_tm)
             cantidad = contador.get(id_opc_tm, 0)
@@ -259,7 +259,7 @@ def generar_grafico_realizado_pap_tres_anios():
     fig, ax = plt.subplots(figsize=(8, 8))
     wedges, texts, autotexts = ax.pie(
         sizes, labels=None, autopct='%1.1f%%', startangle=90,
-        colors=['#79addc', '#EFB0C9', '#A5F8CE']
+        colors=['#79addc', '#EFB0C9', '#A5F8CE', '#FFD166']
     )
     
     ax.legend(wedges, counts, title="Respuestas", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
