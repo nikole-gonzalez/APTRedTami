@@ -3,14 +3,21 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from administracion.models import PerfilUsuario, Usuario
 from django.core.validators import RegexValidator
+from .validators import validar_rut_chileno
 
 
 class RegistroForm(UserCreationForm):
     rut = forms.CharField(
-        label="RUT (con guión y dígito verificador)",
-        required=True,
-        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': '12345678-9'})
-    )
+    label="RUT (con guión y dígito verificador)",
+    required=True,
+    widget=forms.TextInput(attrs={
+        'class': 'input', 
+        'placeholder': '12345678-9',
+        'pattern': r'^(\d{1,3}(?:\.\d{1,3}){2}-[\dkK])|(\d{7,8}-[\dkK])$',  
+        'title': 'Ingrese RUT con guión y dígito verificador (ej: 12345678-9)'
+    }),
+    help_text="Ingrese su RUT con guión y dígito verificador (ej: 12345678-9)"
+)
     telefono = forms.IntegerField(
         label="Número de WhatsApp",
         validators=[RegexValidator(r'^\d{9,12}$', 'Ingrese un número válido')],
@@ -78,12 +85,21 @@ class RegistroForm(UserCreationForm):
 
     def clean_rut(self):
         rut = self.cleaned_data.get('rut')
-        if not rut or '-' not in rut:
-            raise forms.ValidationError("El RUT debe incluir guión y dígito verificador.")
-        rut_sin_dv, dv = rut.split('-')
+        
+        rut_validado = validar_rut_chileno(rut)
+        if not rut_validado:
+            raise forms.ValidationError(
+                "RUT inválido. Ingrese un RUT válido con guión y dígito verificador (ej: 12345678-9)"
+            )
+        
+        rut_sin_dv, dv = rut_validado.split('-')
+        
         if not Usuario.objects.filter(rut_usuario=rut_sin_dv, dv_rut=dv).exists():
-            raise forms.ValidationError("El RUT no se encuentra registrado en el sistema.")
-        return rut
+            raise forms.ValidationError(
+                "El RUT no se encuentra registrado en el sistema."
+            )
+        
+        return rut_validado
     
     def save(self, commit=True):
         email = self.cleaned_data['email']

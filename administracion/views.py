@@ -2346,43 +2346,34 @@ def crear_usuario(request):
         form_perfil = PerfilUsuarioForm(request.POST)
 
         if form_user.is_valid() and form_perfil.is_valid():
-            username = form_user.cleaned_data.get('username')
+            try:
+                if User.objects.filter(username=form_user.cleaned_data['username']).exists():
+                    messages.error(request, 'El nombre de usuario ya existe.')
+                    return render(request, 'administracion/form_usuario.html', {
+                        'form_user': form_user,
+                        'form_perfil': form_perfil
+                    })
 
-            # Verifica que username no esté vacío
-            if not username:
-                messages.error(request, 'El nombre de usuario (RUT o identificador único) es obligatorio.')
-                return render(request, 'administracion/form_usuario.html', {
-                    'form_user': form_user,
-                    'form_perfil': form_perfil
-                })
+                user = form_user.save()
 
-            # VVerifica  que username ya existe
-            if User.objects.filter(username=username).exists():
-                messages.error(request, 'Ya existe un usuario con ese nombre de usuario.')
-                return render(request, 'administracion/form_usuario.html', {
-                    'form_user': form_user,
-                    'form_perfil': form_perfil
-                })
+                perfil = form_perfil.save(commit=False)
+                perfil.user = user
+                perfil.save()
 
-            # Crear el usuario
-            user = form_user.save(commit=False)
-            user.set_password(form_user.cleaned_data['password'])
-            user.save()
-
-            # Crear perfil vinculado
-            perfil = form_perfil.save(commit=False)
-            perfil.user = user
-            perfil.save()
-
-            messages.success(request, 'Usuario creado correctamente.')
-            return redirect('lista_usuarios')
+                messages.success(request, 'Usuario creado correctamente.')
+                return redirect('lista_usuarios')
+            except Exception as e:
+                messages.error(request, f'Error al crear usuario: {str(e)}')
+        else:
+            messages.error(request, 'Por favor corrija los errores en el formulario.')
     else:
         form_user = UserForm()
         form_perfil = PerfilUsuarioForm()
 
     return render(request, 'administracion/form_usuario.html', {
         'form_user': form_user,
-        'form_perfil': form_perfil
+        'form_perfil': form_perfil,
+        'creando': True
     })
 
 @login_required
@@ -2395,31 +2386,33 @@ def editar_usuario(request, perfil_id):
         form_perfil = PerfilUsuarioForm(request.POST, instance=perfil)
 
         if form_user.is_valid() and form_perfil.is_valid():
-            user = form_user.save(commit=False)
-            if 'password' in form_user.cleaned_data and form_user.cleaned_data['password']:
-                user.set_password(form_user.cleaned_data['password'])
-            user.save()
+            try:
+                email = form_user.cleaned_data['email']
+                if User.objects.filter(email=email).exclude(pk=user.pk).exists():
+                    messages.error(request, 'El correo electrónico ya está en uso.')
+                    return render(request, 'administracion/form_usuario.html', {
+                        'form_user': form_user,
+                        'form_perfil': form_perfil
+                    })
 
-            perfil = form_perfil.save()
-
-            if perfil.usuario_sist:
-                perfil.usuario_sist.email = user.email
-                perfil.usuario_sist.num_whatsapp = perfil.telefono
-                perfil.usuario_sist.save()
-
-            messages.success(request, 'Usuario actualizado correctamente.')
-            return redirect('lista_usuarios')
+                form_user.save()
+                form_perfil.save()
+                
+                messages.success(request, 'Usuario actualizado correctamente.')
+                return redirect('lista_usuarios')
+            except Exception as e:
+                messages.error(request, f'Error al actualizar usuario: {str(e)}')
+        else:
+            messages.error(request, 'Por favor corrija los errores en el formulario.')
     else:
         form_user = UserForm(instance=user)
-        form_user.fields['password'].initial = ''
         form_perfil = PerfilUsuarioForm(instance=perfil)
 
     return render(request, 'administracion/form_usuario.html', {
         'form_user': form_user,
         'form_perfil': form_perfil,
-        'usuario_sist': perfil.usuario_sist 
+        'creando': False
     })
-
 
 @login_required
 def eliminar_usuario(request, perfil_id):
