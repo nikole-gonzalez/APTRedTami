@@ -2678,41 +2678,37 @@ def exportar_historial_excel(request):
     response['Content-Disposition'] = 'attachment; filename=historial_agendamientos.xlsx'
     return response
 
-@login_required(login_url='/login/') 
+@login_required(login_url='/login/')
 @user_passes_test(es_administrador, login_url='/login/')
 def historial_agendamientos(request):
     search_query = request.GET.get('search', '').strip()
 
     agendamientos = Agenda.objects.select_related('id_manychat', 'id_cesfam', 'id_procedimiento')
 
+    # Anotamos el rut completo concatenando rut_usuario + '-' + dv_rut
+    agendamientos = agendamientos.annotate(
+        rut_completo=Concat(
+            F('id_manychat__rut_usuario'),
+            Value('-'),
+            F('id_manychat__dv_rut'),
+            output_field=CharField()
+        )
+    )
+
     if search_query:
+        # Limpiamos la búsqueda para eliminar puntos, guiones o espacios (opcional)
         cleaned_query = search_query.replace(".", "").replace("-", "").replace(" ", "").lower()
 
-        agendamientos = agendamientos.annotate(
-            rut_completo=Concat(
-                F('id_manychat__rut_usuario'),
-                Value('-'),
-                F('id_manychat__dv_rut'),
-                output_field=CharField()
-            ),
-            rut_sin_dv=Concat(
-                F('id_manychat__rut_usuario'),
-                output_field=CharField()
-            ),
-            rut_sin_formato=Concat(
-                F('id_manychat__rut_usuario'),
-                F('id_manychat__dv_rut'),
-                output_field=CharField()
-            )
-        ).filter(
-            Q(rut_completo__icontains=search_query) |
-            Q(rut_sin_formato__icontains=cleaned_query) |
-            Q(rut_sin_dv__icontains=cleaned_query[:-1]) |
+        # Filtramos por rut_completo con y sin formato, email o nombre cesfam
+        agendamientos = agendamientos.filter(
+            Q(rut_completo__icontains=search_query) |  # con guion
+            Q(rut_completo__icontains=cleaned_query) |  # sin guion y espacios
             Q(id_manychat__email__icontains=search_query) |
             Q(id_cesfam__nombre_cesfam__icontains=search_query)
         )
 
     agendamientos = agendamientos.order_by('-fecha_atencion')
+
     page_obj = paginacion_queryset1(request, agendamientos, items_por_pagina=10)
 
     context = {
