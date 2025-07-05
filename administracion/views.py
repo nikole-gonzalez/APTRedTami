@@ -2447,25 +2447,62 @@ def crear_usuario(request):
 
         if form_user.is_valid() and form_perfil.is_valid():
             try:
-                if User.objects.filter(username=form_user.cleaned_data['username']).exists():
+                username = form_user.cleaned_data['username']
+                if User.objects.filter(username=username).exists():
                     messages.error(request, 'El nombre de usuario ya existe.')
                     return render(request, 'administracion/form_usuario.html', {
                         'form_user': form_user,
-                        'form_perfil': form_perfil
+                        'form_perfil': form_perfil,
+                        'creando': True
                     })
 
-                user = form_user.save()
+                tipo = form_perfil.cleaned_data.get('tipo_usuario')
 
+                if tipo == 'paciente':
+                    email = form_user.cleaned_data.get('email')
+                    telefono = form_perfil.cleaned_data.get('telefono')
+                    rut = form_perfil.cleaned_data.get('rut_usuario')
+                    dv = form_perfil.cleaned_data.get('dv_rut')
+                    usuario_sist = form_perfil.cleaned_data.get('usuario_sist')
+
+                    errores = []
+
+                    if not Usuario.objects.filter(id_manychat=usuario_sist.id_manychat).exists():
+                        errores.append("ID ManyChat no coincide")
+                    else:
+                        usuario = Usuario.objects.get(id_manychat=usuario_sist.id_manychat)
+
+                        if usuario.rut_usuario != rut:
+                            errores.append("RUT no coincide")
+                        if usuario.dv_rut.upper() != dv.upper():
+                            errores.append("Dígito verificador no coincide")
+                        if usuario.num_whatsapp != int(telefono):
+                            errores.append(f"Número de teléfono no coincide)")
+                        if usuario.email.strip().lower() != email.strip().lower():
+                            errores.append("Correo electrónico no coincide")
+
+                    if errores:
+                        print("VALIDACIÓN FALLIDA:\n", "\n".join(errores))
+                        messages.error(request, " - ".join(errores))
+                        return render(request, 'administracion/form_usuario.html', {
+                            'form_user': form_user,
+                            'form_perfil': form_perfil,
+                            'creando': True
+                        })
+
+                user = form_user.save()
                 perfil = form_perfil.save(commit=False)
                 perfil.user = user
                 perfil.save()
 
                 messages.success(request, 'Usuario creado correctamente.')
                 return redirect('lista_usuarios')
+
             except Exception as e:
                 messages.error(request, f'Error al crear usuario: {str(e)}')
         else:
             messages.error(request, 'Por favor corrija los errores en el formulario.')
+
     else:
         form_user = UserForm()
         form_perfil = PerfilUsuarioForm()
