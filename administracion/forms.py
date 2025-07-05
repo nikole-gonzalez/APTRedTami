@@ -126,7 +126,8 @@ class PerfilUsuarioForm(forms.ModelForm):
             if not telefono:
                 self.add_error('telefono', 'Este campo es obligatorio para pacientes.')
             elif not telefono.startswith('9') or len(telefono) != 9:
-                self.add_error('telefono', 'Ingrese un número chileno válido (9xxxxxxxx)')
+                self.add_error('telefono', 'Ingrese un número chileno válido (911111111)')
+
         else:
             cleaned_data['usuario_sist'] = None
 
