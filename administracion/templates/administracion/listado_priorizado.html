@@ -80,6 +80,7 @@
         <form action="{% url 'crear_excel_listado_priorizado' %}" method="post">
             {% csrf_token %}
             <button type="submit">Descargar como Excel</button>
+        </form>
         <form action="{% url 'crear_pdf_listado_priorizado' %}" method="post" style="display:inline;">
              {% csrf_token %}
             <button type="submit" class="btn btn-danger">
