@@ -241,38 +241,75 @@ def verificar_usuario(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def cuestionario_completo(request):
-    if not request.data or 'id_manychat' not in request.data:
-        return Response(
-            {'error': 'El campo id_manychat es requerido'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    id_manychat = request.data['id_manychat']
-
     try:
-        usuario = Usuario.objects.get(id_manychat=id_manychat)
+        if not request.data:
+            logger.warning("Request sin datos recibido")
+            return Response(
+                {'error': 'Datos de solicitud requeridos', 'completo': 'false'},
+                status=status.HTTP_200_OK  
+            )
         
-        # Verificar cada tipo de pregunta
+        id_manychat = request.data.get('id_manychat', '').strip()
+        if not id_manychat:
+            logger.warning("Request sin id_manychat")
+            return Response(
+                {'error': 'El campo id_manychat es requerido', 'completo': 'false'},
+                status=status.HTTP_200_OK
+            )
+
+        try:
+            usuario = Usuario.objects.get(id_manychat=id_manychat)
+            logger.info(f"Usuario encontrado: {id_manychat}")
+        except ObjectDoesNotExist:
+            logger.info(f"Usuario no encontrado: {id_manychat}")
+            return Response(
+                {
+                    'completo': 'false',
+                    'estado': 'usuario_no_registrado',
+                    'mensaje': 'Usuario no registrado en el sistema'
+                },
+                status=status.HTTP_200_OK
+            )
+            
         tipos = ['TM', 'DS', 'FRM', 'FRNM']
-        completo = True
+        cuestionarios_pendientes = []
         
         for tipo in tipos:
             if not verificar_tipo_completo(usuario, tipo):
-                completo = False
-                break
+                cuestionarios_pendientes.append(tipo)
 
-        return Response({'completo': 'true' if completo else 'false'})
-
-    except ObjectDoesNotExist:
+        if not cuestionarios_pendientes:
+            logger.info(f"Usuario {id_manychat} tiene todos los cuestionarios completos")
+            return Response(
+                {
+                    'completo': 'true',
+                    'estado': 'completo',
+                    'mensaje': 'Todos los cuestionarios están completos'
+                },
+                status=status.HTTP_200_OK
+            )
+        
+        logger.info(f"Usuario {id_manychat} tiene cuestionarios pendientes: {cuestionarios_pendientes}")
         return Response(
-            {'completo': 'false', 'error': 'Usuario no encontrado'},
-            status=status.HTTP_404_NOT_FOUND
+            {
+                'completo': 'false',
+                'estado': 'cuestionarios_pendientes',
+                'pendientes': ','.join(cuestionarios_pendientes),
+                'mensaje': f"Cuestionarios pendientes: {', '.join(cuestionarios_pendientes)}"
+            },
+            status=status.HTTP_200_OK
         )
+
     except Exception as e:
+        logger.error(f"Error inesperado: {str(e)}", exc_info=True)
         return Response(
-            {'error': 'Error interno del servidor'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        ) 
+            {
+                'error': 'Error en el servidor',
+                'completo': 'false',
+                'estado': 'error_interno'
+            },
+            status=status.HTTP_200_OK 
+        )
 
 def verificar_tipo_completo(usuario, tipo):
     #Verifica si un usuario respondió todas las preguntas de un tipo específico
