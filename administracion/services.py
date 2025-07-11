@@ -30,31 +30,20 @@ class DivulgacionService:
     @classmethod
     def obtener_usuarios_optin(cls):
         try:
-            usuarios = Usuario.objects.filter(
+            return Usuario.objects.filter(
                 opt_out=False,
                 resptm__id_opc_tm__id_preg_tm__cod_pregunta_tm="TM6",  
-                resptm__id_opc_tm__id_opc_tm=17
-            ).distinct()
-
-            usuarios_con_email = []
-            for usuario in usuarios:
-                email = usuario.get_email_descifrado()
-                if email and email.strip() != '':
-                    usuario.email_descifrado = email  # Guardamos el descifrado en el objeto
-                    usuarios_con_email.append(usuario)
-
-            logger.info(f"Usuarios válidos: {len(usuarios_con_email)} de {usuarios.count()}")
-            return usuarios_con_email
-
+                resptm__id_opc_tm__id_opc_tm=17,
+                email__isnull=False
+            ).exclude(email__exact='').distinct()
+            
         except Exception as e:
             logger.error(f"Error al filtrar usuarios: {str(e)}")
-            return []
+            return Usuario.objects.none()
 
     @classmethod
     def construir_email(cls, divulgacion, usuario):
-        email_descifrado = getattr(usuario, 'email_descifrado', None) or usuario.get_email_descifrado()
-
-        if not email_descifrado:
+        if not usuario.email:
             raise ValueError(f"Usuario {usuario.id_manychat} no tiene email válido")
 
         context = {
@@ -70,7 +59,7 @@ class DivulgacionService:
             subject=f"📢 {divulgacion.asunto if hasattr(divulgacion, 'asunto') else 'Mensaje de salud'}",
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[email_descifrado],
+            to=[usuario.email],
             reply_to=[settings.REPLY_TO_EMAIL]
         )
         email.attach_alternative(html_content, "text/html")
