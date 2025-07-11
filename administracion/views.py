@@ -991,7 +991,7 @@ def crear_pdf_datos_frm1(request):
             tabla = Table(data, repeatRows=1)
             
             # Calcular ancho de columnas
-            ancho_total = landscape(A4)[0] - 2*cm  # Descontar márgenes
+            ancho_total = landscape(A4)[0] - 2*cm  
             ancho_rut = 4*cm
             ancho_fecha = 3*cm
             ancho_pregunta = (ancho_total - ancho_rut - ancho_fecha) * 0.6
@@ -1052,10 +1052,8 @@ def datos_FRM2(request):
         "id_opc_frm", "id_opc_frm__id_preg_frm", "id_manychat"
     )
 
-    # Aplico el filtro del utils (la función que diste)
     usuarios_respuestas_qs = filtrar_por_rut_o_manychat(usuarios_respuestas_qs, query)
 
-    # Ahora sí paso a .values() para procesar resultados
     usuarios_respuestas = usuarios_respuestas_qs.values(
         "id_manychat__rut_usuario",
         "id_manychat__dv_rut",
@@ -1285,7 +1283,6 @@ def datos_FRNM1(request):
         "id_opc_frnm", "id_opc_frnm__id_preg_frnm", "id_manychat"
     )
 
-    # Aplico el filtro con la función util
     datos_qs = filtrar_por_rut_o_manychat(datos_qs, query)
 
     datos_query = datos_qs.values(
@@ -1818,7 +1815,6 @@ def datos_DS2(request):
         "id_opc_ds", "id_opc_ds__id_preg_ds", "id_manychat"
     )
 
-    # Aplico filtro con la función de utils
     usuarios_respuestas_qs = filtrar_por_rut_o_manychat(usuarios_respuestas_qs, query)
 
     usuarios_respuestas = usuarios_respuestas_qs.values(
@@ -2043,7 +2039,6 @@ def crear_pdf_datos_ds2(request):
 def listado_priorizado(request):
     query = request.GET.get("q", "").strip()
 
-    # Si es POST: se envió la contraseña
     if request.method == "POST":
         password_ingresada = request.POST.get("password", "").strip()
         if password_ingresada == settings.ACCESO_LISTADO:
@@ -2054,11 +2049,11 @@ def listado_priorizado(request):
                 "error": "Contraseña incorrecta"
             })
 
-    # Si no hay permiso de sesión → pedir contraseña
+    # Si no hay permiso de sesión: pedir contraseña
     if not request.session.get("acceso_listado_permitido", False):
         return render(request, "administracion/form_contrasena_listado.html")
 
-    # Acceso permitido → mostrar listado
+    # Acceso permitido: mostrar listado
     pap_subquery = RespTM.objects.filter(
         id_manychat=OuterRef('id_manychat'),
         id_opc_tm=5
